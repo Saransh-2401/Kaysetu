@@ -1,0 +1,19 @@
+# Reference-only archive of the pre-SaaS platform (not part of this repo)
+Old Project/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+backend/var/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Env & editor
+.env
+.env.local
+*.log
