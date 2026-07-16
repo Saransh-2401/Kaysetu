@@ -13,6 +13,7 @@ urlpatterns = [
     path("auth/tenant/login", views.TenantLoginView.as_view()),
     path("auth/refresh", views.RefreshView.as_view()),
     path("me", views.MeView.as_view()),
+    path("t/org", views.OrgSettingsView.as_view()),
     path("t/", include(router.urls)),
     # Module gate pings (entitlement smoke checks)
     path("t/track/ping", views.ModulePingView.as_view(module_code="TRACK")),

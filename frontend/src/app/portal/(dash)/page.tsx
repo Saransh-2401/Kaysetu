@@ -1,9 +1,13 @@
 "use client";
+import ChecklistIcon from "@mui/icons-material/Checklist";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Chip, LinearProgress, Stack, Typography } from "@mui/material";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { api, type PortalContext } from "@/lib/api";
+
+const SETUP_STEP_COUNT = 5; // company, terminology, appearance, team, catalog
 
 const MODULE_LABELS: Record<string, string> = {
   TRACK: "Live Tracking", FIELD: "Field Sales", ORDERS: "Orders & Dispatch",
@@ -38,6 +42,29 @@ export default function PortalHomePage() {
         <Alert severity="info" sx={{ mb: 2 }} data-testid="portal-home-trial-alert">
           Trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} remaining.
         </Alert>
+      )}
+
+      {!me.org.setup_state?.completed && (
+        <Card variant="outlined" sx={{ mb: 2, borderColor: "secondary.main" }}
+          data-testid="portal-home-setup-card">
+          <CardContent>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+              <ChecklistIcon color="secondary" sx={{ fontSize: 40 }} />
+              <Box sx={{ flexGrow: 1, width: "100%" }}>
+                <Typography variant="subtitle1">Finish setting up your workspace</Typography>
+                <LinearProgress variant="determinate" color="secondary" sx={{ my: 1, height: 8, borderRadius: 4 }}
+                  value={Math.min(100, ((me.org.setup_state?.done?.length ?? 0) / SETUP_STEP_COUNT) * 100)} />
+                <Typography variant="body2" color="text.secondary">
+                  {me.org.setup_state?.done?.length ?? 0} of {SETUP_STEP_COUNT} steps done
+                </Typography>
+              </Box>
+              <Button variant="contained" component={Link} href="/portal/setup"
+                data-testid="portal-home-setup-btn">
+                Continue setup
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
       )}
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>

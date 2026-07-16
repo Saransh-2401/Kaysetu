@@ -4,21 +4,37 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import HomeIcon from "@mui/icons-material/Home";
 import MapIcon from "@mui/icons-material/Map";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
-import { useEffect, useState } from "react";
+import SettingsIcon from "@mui/icons-material/Settings";
+import { ThemeProvider } from "@mui/material/styles";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import AuthGuard from "@/components/AuthGuard";
 import DashboardShell, { type NavItem } from "@/components/DashboardShell";
-import { getContext, type PortalContext } from "@/lib/api";
+import { CONTEXT_UPDATED_EVENT, getContext, type PortalContext } from "@/lib/api";
+import { getScheme } from "@/schemes";
+import { buildTheme } from "@/theme";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const [context, setContext] = useState<PortalContext | null>(null);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     setContext(getContext<PortalContext>("portal"));
   }, []);
 
+  useEffect(() => {
+    refresh();
+    window.addEventListener(CONTEXT_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(CONTEXT_UPDATED_EVENT, refresh);
+  }, [refresh]);
+
   const labels = context?.org.labels ?? {};
   const modules = context?.org.modules ?? [];
+
+  // The tenant's Appearance pick themes the whole portal.
+  const tenantTheme = useMemo(
+    () => buildTheme(getScheme(context?.org.appearance?.scheme)),
+    [context?.org.appearance?.scheme],
+  );
 
   // Foundation items always; module items appear only if entitled (module store
   // upsell page arrives with the billing phase).
@@ -32,14 +48,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     ...(modules.includes("FIELD")
       ? [{ label: "Field Sales", href: "/portal/field", icon: <PointOfSaleIcon />, testId: "portal-nav-field-link" }]
       : []),
+    { label: "Settings", href: "/portal/settings", icon: <SettingsIcon />, testId: "portal-nav-settings-link" },
   ];
 
   return (
     <AuthGuard scope="portal">
-      <DashboardShell scope="portal" title={context?.org.name ?? "Portal"}
-        subtitle={context?.org.org_code} nav={nav}>
-        {children}
-      </DashboardShell>
+      <ThemeProvider theme={tenantTheme}>
+        <DashboardShell scope="portal" title={context?.org.name ?? "Portal"}
+          subtitle={context?.org.org_code} nav={nav}>
+          {children}
+        </DashboardShell>
+      </ThemeProvider>
     </AuthGuard>
   );
 }

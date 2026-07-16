@@ -20,6 +20,8 @@ def _org_payload(tenant, org: OrgSettings | None, modules: list[str]):
         "name": org.company_name if org else tenant.name,
         "industry": tenant.industry,
         "labels": org.labels if org else {},
+        "appearance": org.appearance if org else {},
+        "setup_state": org.setup_state if org else {},
         "modules": modules,
         "status": tenant.status,
         "trial_ends_at": tenant.trial_ends_at,
@@ -137,6 +139,30 @@ class IsOwnerOrReadOnly(IsTenantUser):
             return True
         role = request.user.role
         return request.user.is_owner or (role is not None and role.slug == "admin")
+
+
+class OrgSettingsView(APIView):
+    """The tenant's own organization settings (setup wizard + settings pages).
+    Reads: any tenant user. Writes: owner/admin only."""
+
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def get(self, request):
+        from .serializers import OrgSettingsSerializer
+
+        org = OrgSettings.objects.filter(pk=1).first()
+        if org is None:
+            return Response({"detail": "Organization not initialized."}, status=500)
+        return Response(OrgSettingsSerializer(org).data)
+
+    def patch(self, request):
+        from .serializers import OrgSettingsSerializer
+
+        org = OrgSettings.objects.get(pk=1)
+        serializer = OrgSettingsSerializer(org, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class TenantUserViewSet(viewsets.ModelViewSet):

@@ -1,6 +1,17 @@
 from rest_framework import serializers
 
-from .models import CatalogItem, Party, Role, TenantUser
+from .models import CatalogItem, OrgSettings, Party, Role, TenantUser
+
+
+class OrgSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrgSettings
+        fields = [
+            "company_name", "legal_name", "gstin", "industry", "logo_url",
+            "fy_start_month", "labels", "numbering", "working_hours",
+            "appearance", "setup_state", "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
 
 
 class RoleSerializer(serializers.ModelSerializer):

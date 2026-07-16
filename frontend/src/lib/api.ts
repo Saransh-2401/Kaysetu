@@ -109,10 +109,24 @@ export interface PortalContext {
     name: string;
     industry: string;
     labels: Record<string, string>;
+    appearance: { scheme?: string };
+    setup_state: { done?: string[]; completed?: boolean };
     modules: string[];
     status: string;
     trial_ends_at: string | null;
   };
+}
+
+export const CONTEXT_UPDATED_EVENT = "salexa:portal-context-updated";
+
+/** Merge fresh org fields into the stored portal context and notify listeners
+ * (e.g. the layout re-themes instantly after an Appearance change). */
+export function updatePortalOrg(partialOrg: Partial<PortalContext["org"]>) {
+  const context = getContext<PortalContext>("portal");
+  if (!context) return;
+  const next = { ...context, org: { ...context.org, ...partialOrg } };
+  localStorage.setItem("salexa_portal_context", JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent(CONTEXT_UPDATED_EVENT));
 }
 
 export interface Paginated<T> {

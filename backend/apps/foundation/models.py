@@ -73,6 +73,10 @@ class OrgSettings(models.Model):
     labels = models.JSONField(default=dict, blank=True)
     numbering = models.JSONField(default=dict, blank=True)
     working_hours = models.JSONField(default=dict, blank=True)
+    # Appearance: {"scheme": "<scheme-key>"} — the tenant-picked color scheme.
+    appearance = models.JSONField(default=dict, blank=True)
+    # Setup wizard progress: {"done": ["company", ...], "completed": bool}
+    setup_state = models.JSONField(default=dict, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
