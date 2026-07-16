@@ -1,5 +1,6 @@
 "use client";
 import CategoryIcon from "@mui/icons-material/Category";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
 import GroupsIcon from "@mui/icons-material/Groups";
 import HomeIcon from "@mui/icons-material/Home";
 import MapIcon from "@mui/icons-material/Map";
@@ -48,6 +49,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     ...(modules.includes("FIELD")
       ? [{ label: "Field Sales", href: "/portal/field", icon: <PointOfSaleIcon />, testId: "portal-nav-field-link" }]
       : []),
+    { label: "Billing", href: "/portal/billing", icon: <CreditCardIcon />, testId: "portal-nav-billing-link" },
     { label: "Settings", href: "/portal/settings", icon: <SettingsIcon />, testId: "portal-nav-settings-link" },
   ];
 

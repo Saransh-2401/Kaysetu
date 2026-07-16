@@ -23,6 +23,18 @@ class IsTenantUser(BasePermission):
         return _scope(request) == SCOPE_TENANT
 
 
+class IsTenantAdmin(IsTenantUser):
+    """Tenant scope AND owner/admin role — for billing, org settings writes, etc."""
+
+    message = "Organization admin access required."
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+        role = getattr(request.user, "role", None)
+        return bool(getattr(request.user, "is_owner", False) or (role and role.slug == "admin"))
+
+
 def get_entitled_modules(request) -> list[str]:
     """Entitlements for the request's tenant, cached per request."""
     cached = getattr(request, "_entitled_modules", None)

@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.control",
     "apps.tenancy",
     "apps.foundation",
+    "apps.billing",
 ]
 
 MIDDLEWARE = [
@@ -109,6 +110,18 @@ JWT_REFRESH_TTL = timedelta(days=30)
 
 PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "http://localhost:3000")
 TRIAL_DAYS = int(os.environ.get("TRIAL_DAYS", "14"))
+
+# ---------------------------------------------------------------- billing
+BILLING = {
+    # "razorpay" activates the live gateway (requires the keys below);
+    # anything else (default "mock") auto-approves — dev/test/E2E.
+    "GATEWAY": os.environ.get("BILLING_GATEWAY", "mock"),
+    "RAZORPAY_KEY_ID": os.environ.get("RAZORPAY_KEY_ID", ""),
+    "RAZORPAY_KEY_SECRET": os.environ.get("RAZORPAY_KEY_SECRET", ""),
+    "RAZORPAY_WEBHOOK_SECRET": os.environ.get("RAZORPAY_WEBHOOK_SECRET", ""),
+    "GST_RATE": int(os.environ.get("BILLING_GST_RATE", "18")),
+    "GRACE_DAYS": int(os.environ.get("BILLING_GRACE_DAYS", "3")),
+}
 
 # ---------------------------------------------------------------- misc
 CORS_ALLOW_ALL_ORIGINS = DEBUG

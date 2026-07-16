@@ -39,7 +39,13 @@ export default function PortalHomePage() {
       </Typography>
 
       {me.org.status === "trial" && trialDaysLeft !== null && (
-        <Alert severity="info" sx={{ mb: 2 }} data-testid="portal-home-trial-alert">
+        <Alert severity="info" sx={{ mb: 2 }} data-testid="portal-home-trial-alert"
+          action={
+            <Button color="inherit" size="small" component={Link} href="/portal/billing"
+              data-testid="portal-home-subscribe-btn">
+              Subscribe
+            </Button>
+          }>
           Trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} remaining.
         </Alert>
       )}
