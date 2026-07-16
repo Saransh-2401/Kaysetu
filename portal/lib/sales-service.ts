@@ -179,64 +179,64 @@ export interface ManualInvoice {
 export const salesService = {
     // ===== Sales Orders =====
     async getSalesOrders(params?: Record<string, string>) {
-        return apiClient.get<{ results: SalesOrder[] }>('/sales/orders/', params);
+        return apiClient.get<{ results: SalesOrder[] }>('/t/sales-orders/', params);
     },
 
     async getSalesOrder(id: number) {
-        return apiClient.get<SalesOrder>(`/sales/orders/${id}/`);
+        return apiClient.get<SalesOrder>(`/t/sales-orders/${id}/`);
     },
 
     async createSalesOrder(data: Partial<SalesOrder> & { items: SalesOrderItem[] }) {
-        return apiClient.post<SalesOrder>('/sales/orders/', data);
+        return apiClient.post<SalesOrder>('/t/sales-orders/', data);
     },
 
     async updateSalesOrder(id: number, data: Partial<SalesOrder>) {
-        return apiClient.patch<SalesOrder>(`/sales/orders/${id}/`, data);
+        return apiClient.patch<SalesOrder>(`/t/sales-orders/${id}/`, data);
     },
 
     async submitSalesOrder(id: number) {
-        return apiClient.post(`/sales/orders/${id}/submit/`, {});
+        return apiClient.post(`/t/sales-orders/${id}/submit/`, {});
     },
 
     async approveSalesOrder(id: number, notes?: string) {
-        return apiClient.post(`/sales/orders/${id}/confirm/`, { notes });
+        return apiClient.post(`/t/sales-orders/${id}/confirm/`, { notes });
     },
 
     async getStockDetails(id: number) {
-        return apiClient.get<any[]>(`/sales/orders/${id}/stock_details/`);
+        return apiClient.get<any[]>(`/t/sales-orders/${id}/stock_details/`);
     },
 
     async updateOrderItems(id: number, data: { items: any[] }) {
-        return apiClient.post(`/sales/orders/${id}/update_items/`, data);
+        return apiClient.post(`/t/sales-orders/${id}/update_items/`, data);
     },
 
     async updateAndApproveOrder(id: number, data: { items: any[], notes: string }) {
-        return apiClient.post(`/sales/orders/${id}/update_and_approve/`, data);
+        return apiClient.post(`/t/sales-orders/${id}/update_and_approve/`, data);
     },
 
     async rejectSalesOrder(id: number, notes?: string) {
-        return apiClient.post(`/sales/orders/${id}/reject/`, { notes });
+        return apiClient.post(`/t/sales-orders/${id}/reject/`, { notes });
     },
 
     async packSalesOrder(id: number, notes?: string) {
-        return apiClient.post(`/sales/orders/${id}/pack/`, { notes });
+        return apiClient.post(`/t/sales-orders/${id}/pack/`, { notes });
     },
 
     async dispatchSalesOrder(id: number, notes?: string) {
-        return apiClient.post(`/sales/orders/${id}/mark_dispatched/`, { notes });
+        return apiClient.post(`/t/sales-orders/${id}/mark_dispatched/`, { notes });
     },
 
     async deliverSalesOrder(id: number, notes?: string) {
-        return apiClient.post(`/sales/orders/${id}/deliver/`, { notes });
+        return apiClient.post(`/t/sales-orders/${id}/deliver/`, { notes });
     },
 
     async markSalesOrderPaid(id: number, reference: string, amount?: number, mode: string = 'bank_transfer') {
-        return apiClient.post(`/sales/orders/${id}/mark_paid/`, { reference, amount, mode });
+        return apiClient.post(`/t/sales-orders/${id}/mark_paid/`, { reference, amount, mode });
     },
 
     async generateOrderInvoice(id: number, data?: any) {
         // data can contain detailed invoice fields (items, tax, etc.)
-        return apiClient.post<{ message: string; invoice_id: number }>(`/sales/orders/${id}/generate_invoice/`, data || {});
+        return apiClient.post<{ message: string; invoice_id: number }>(`/t/sales-orders/${id}/generate_invoice/`, data || {});
     },
 
     async getBackorderedOrders() {

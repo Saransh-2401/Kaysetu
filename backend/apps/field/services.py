@@ -129,10 +129,18 @@ def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") 
             return FieldOrder.objects.get(client_uuid=client_uuid)  # lost the idempotency race
         raise
 
+    # Carry the full order in the event so a subscribing module (ORDERS) can
+    # build its own record with no import back into FIELD.
     events.emit(
         "field.order_booked",
         order_id=order.pk, order_number=order.order_number,
-        agent_id=agent.pk, party_id=party_id, total=str(order.total),
+        agent_id=agent.pk, party_id=party_id,
+        subtotal=str(order.subtotal), tax_amount=str(order.tax_amount), total=str(order.total),
+        items=[
+            {"item_id": i, "item_name": n, "quantity": str(q), "rate": str(r),
+             "tax_rate": str(tr), "amount": str(a)}
+            for (i, n, q, r, tr, a) in prepared
+        ],
     )
     return order
 
