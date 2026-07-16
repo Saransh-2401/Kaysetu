@@ -152,10 +152,15 @@ function LeadsContent() {
       setCurrentLeadForVisits(lead);
       setOpenVisitHistory(true);
 
-      // Only fetch visits directly linked to this lead
-      const response = await fieldSalesService.getVisits({ lead: lead.id.toString() });
-      const data = (response as any).results || response || [];
-      setVisitHistory(Array.isArray(data) ? data : []);
+      // Visits are linked to the lead's backing Party (keeps FIELD/CRM decoupled).
+      const partyId = (lead as any).party_id;
+      if (!partyId) {
+        setVisitHistory([]);
+      } else {
+        const response = await fieldSalesService.getVisits({ party: partyId.toString() });
+        const data = (response as any).results || response || [];
+        setVisitHistory(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error("Failed to fetch visit history", error);
       showToast("Failed to fetch visit history", "error");

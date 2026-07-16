@@ -1,10 +1,11 @@
 """CRM API — Leads & Pipeline. Gated by HasModule('CRM'). Mounted /api/t/crm/."""
-from django.db.models import Count
+from django.db.models import Count, Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from apps.foundation.models import TenantUser
+from apps.foundation.models import Party, TenantUser
 from apps.foundation.permissions import HasModule
 
 from . import services
@@ -42,7 +43,8 @@ class LeadViewSet(viewsets.ModelViewSet):
         visible = _visible_agent_ids(self.request.user)
         if visible is not None:
             # agents/managers see their own + team's leads, plus unassigned.
-            qs = qs.filter(assigned_to_id__in=list(visible) + [None])
+            # (Django strips None from __in, so the isnull branch is required.)
+            qs = qs.filter(Q(assigned_to_id__in=visible) | Q(assigned_to__isnull=True))
         params = self.request.query_params
         if params.get("status"):
             qs = qs.filter(status=params["status"])
@@ -57,11 +59,20 @@ class LeadViewSet(viewsets.ModelViewSet):
         if not data.get("name"):
             return Response({"detail": "name required."}, status=400)
         assigned_to_id = data.get("assigned_to")
-        # A plain agent may only create leads assigned to themselves.
-        if assigned_to_id and not _is_manager(request.user) and int(assigned_to_id) != request.user.pk:
-            return Response({"detail": "Agents can only create their own leads."}, status=403)
-        if not assigned_to_id and not _is_manager(request.user):
-            assigned_to_id = request.user.pk
+        if assigned_to_id is not None and assigned_to_id != "":
+            try:
+                assigned_to_id = int(assigned_to_id)
+            except (TypeError, ValueError):
+                return Response({"detail": "assigned_to must be numeric."}, status=400)
+            visible = _visible_agent_ids(request.user)
+            if not _is_manager(request.user) and assigned_to_id != request.user.pk:
+                return Response({"detail": "Agents can only create their own leads."}, status=403)
+            if visible is not None and assigned_to_id not in visible:
+                return Response({"detail": "Cannot assign a lead outside your team."}, status=403)
+            if not TenantUser.objects.filter(pk=assigned_to_id).exists():
+                return Response({"detail": "assigned_to user not found."}, status=400)
+        else:
+            assigned_to_id = None if _is_manager(request.user) else request.user.pk
         lead = services.create_lead(
             actor=request.user, name=data["name"], phone=data.get("phone", ""),
             email=data.get("email", ""), company_name=data.get("company_name", ""),
@@ -76,6 +87,24 @@ class LeadViewSet(viewsets.ModelViewSet):
             latitude=data.get("latitude"), longitude=data.get("longitude"),
         )
         return Response(LeadSerializer(lead).data, status=201)
+
+    def perform_update(self, serializer):
+        # Same rule as create(): a plain agent may not reassign a lead to
+        # anyone but themselves (nor unassign it). Managers/admins may reassign.
+        if not _is_manager(self.request.user):
+            new = serializer.validated_data.get("assigned_to", serializer.instance.assigned_to)
+            new_id = new.pk if new is not None else None
+            if new_id != self.request.user.pk:
+                raise PermissionDenied("Agents can only assign leads to themselves.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        # Clean up the backing prospect party (never a converted customer, and
+        # only if no other lead references it) so deletes don't orphan parties.
+        party = instance.party
+        super().perform_destroy(instance)
+        if party and party.kind == Party.Kind.PROSPECT and not party.leads.exists():
+            party.delete()
 
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):

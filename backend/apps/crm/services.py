@@ -61,6 +61,10 @@ def convert_lead(lead: Lead, actor=None):
     Emits crm.lead_converted so other modules (analytics/notifications) react."""
     if lead.status == Lead.Status.CONVERTED:
         return lead
+    if not lead.party_id:
+        from rest_framework.exceptions import ValidationError
+
+        raise ValidationError("Lead has no backing party; cannot convert.")
     with transaction.atomic(using=ensure_alias(require_tenant())):
         if lead.party_id:
             party = lead.party

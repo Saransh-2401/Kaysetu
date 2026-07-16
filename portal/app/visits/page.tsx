@@ -266,7 +266,7 @@ function VisitsContent() {
 
         // Filter: Only Active Customers
         const allCustomers = custResp.results || [];
-        setCustomers(allCustomers.filter(c => c.status === 'Active'));
+        setCustomers(allCustomers.filter((c: any) => c.is_active !== false));
 
         // Filter: Only Non-Converted Leads
         const allLeads = leadResp.results || [];
@@ -1128,8 +1128,14 @@ function VisitsContent() {
                 };
 
                 if (newVisit.agentId) payload.agent = newVisit.agentId;
-                if (newVisit.entityType === 'client') payload.customer = newVisit.customerId;
-                else payload.lead = newVisit.leadId;
+                // The FIELD backend links a visit to a Foundation Party. A customer
+                // id IS a party id; a lead exposes its backing party via party_id.
+                if (newVisit.entityType === 'client') {
+                    payload.party = newVisit.customerId;
+                } else {
+                    const selectedLead: any = leads.find(l => String(l.id) === String(newVisit.leadId));
+                    payload.party = selectedLead?.party_id;
+                }
 
                 await fieldSalesService.createVisit(payload);
                 showToast("Visit scheduled successfully", "success");

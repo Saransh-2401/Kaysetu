@@ -3,14 +3,14 @@ FIELD API — Field Sales Operations. All gated by HasModule('FIELD').
 Mounted under /api/t/field/.
 """
 from django.db import IntegrityError
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from apps.foundation.models import TenantUser
+from apps.foundation.models import Party, TenantUser
 from apps.foundation.permissions import HasModule
 
 from . import services
@@ -63,6 +63,19 @@ class VisitViewSet(viewsets.ModelViewSet):
             qs = qs.filter(visit_date__gte=params["visit_date__gte"])
         if params.get("visit_date__lte"):
             qs = qs.filter(visit_date__lte=params["visit_date__lte"])
+        # Portal filters: entity type (client vs lead-prospect), manager, search.
+        if params.get("entity_type") == "client":
+            qs = qs.filter(party__kind__in=[Party.Kind.CUSTOMER, Party.Kind.BOTH])
+        elif params.get("entity_type") == "lead":
+            qs = qs.filter(party__kind=Party.Kind.PROSPECT)
+        if params.get("manager"):
+            qs = qs.filter(agent__reports_to_id=params["manager"])
+        if params.get("search"):
+            s = params["search"]
+            qs = qs.filter(
+                Q(party__name__icontains=s) | Q(agent__full_name__icontains=s)
+                | Q(purpose__icontains=s) | Q(outcome__icontains=s)
+            )
         return qs
 
     def perform_create(self, serializer):
@@ -199,7 +212,9 @@ class SalesTargetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = SalesTarget.objects.prefetch_related("city_targets")
         if not _is_manager(self.request.user):
-            qs = qs.filter(agent_id__in=[self.request.user.pk, None])
+            # own targets + global/default (agent IS NULL). Django strips None
+            # from __in, so the isnull branch is required.
+            qs = qs.filter(Q(agent_id=self.request.user.pk) | Q(agent__isnull=True))
         params = self.request.query_params
         if params.get("agent"):
             qs = qs.filter(agent_id=params["agent"])
