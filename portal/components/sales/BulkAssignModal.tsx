@@ -238,7 +238,7 @@ export default function BulkAssignModal({
             await Promise.all(
                 resolvedAgents.map(async (agent) => {
                     try {
-                        const res: any = await apiClient.get("/field-sales/targets/performance/", {
+                        const res: any = await apiClient.get("/t/field/targets/performance/", {
                             agent: String(agent.id),
                             month: String(month),
                             year: String(year),
@@ -380,7 +380,7 @@ export default function BulkAssignModal({
         if (scope !== "selected" || selectedAgentIds.length !== 1) return;
 
         const agentId = selectedAgentIds[0];
-        apiClient.get("/field-sales/targets/performance/", {
+        apiClient.get("/t/field/targets/performance/", {
             agent: String(agentId),
             month: String(month),
             year: String(year),
@@ -453,7 +453,7 @@ export default function BulkAssignModal({
                 }
                 : formData;
 
-            await apiClient.post("/field-sales/targets/bulk-assign/", {
+            await apiClient.post("/t/field/targets/bulk-assign/", {
                 agent_ids: agentIds,
                 month,
                 year,

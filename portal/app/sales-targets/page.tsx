@@ -504,7 +504,7 @@ export default function TargetsPage() {
       // Fetch System Fallback Targets
       let currentDefault: Target = { ...EMPTY_TARGET };
       try {
-        const defRes: any = await apiClient.get("/field-sales/targets/default/");
+        const defRes: any = await apiClient.get("/t/field/targets/default/");
         const sanitized = {
           ...defRes,
           visit_target: Math.round(Number(defRes.visit_target) || 0),
@@ -540,7 +540,7 @@ export default function TargetsPage() {
 
       const perfPromises = agents.map(async (agent: any) => {
         try {
-          const res: any = await apiClient.get("/field-sales/targets/performance/", {
+          const res: any = await apiClient.get("/t/field/targets/performance/", {
             agent: String(agent.id),
             month: String(month),
             year: String(year)
@@ -591,7 +591,7 @@ export default function TargetsPage() {
         new_client_target: Math.round(Number(defaultTarget.new_client_target) || 0),
         login_hours_target: Math.round(Number(loginHrs) || 0),
       };
-      const res: any = await apiClient.post("/field-sales/targets/default/", finalPayload);
+      const res: any = await apiClient.post("/t/field/targets/default/", finalPayload);
       setDefaultTarget({
         ...res,
         visit_target: Math.round(Number(res.visit_target) || 0),

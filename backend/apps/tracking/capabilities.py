@@ -68,6 +68,19 @@ def _is_on_duty(agent_id):
     ).exists()
 
 
+def _month_hours(agent_id, year, month):
+    """Total working hours for an agent in a month — for FIELD target performance
+    (the login-hours actual that used to couple to DailyReport directly)."""
+    from django.db.models import Sum
+
+    from .models import DutyDay
+
+    total = DutyDay.objects.filter(
+        agent_id=agent_id, date__year=year, date__month=month
+    ).aggregate(s=Sum("working_hours"))["s"]
+    return float(total or 0)
+
+
 def register_all():
     """Called from TrackingConfig.ready() at startup (no DB access here)."""
     from apps.foundation.integration import capabilities
@@ -76,3 +89,4 @@ def register_all():
     capabilities.provide("tracking.day_summary", "TRACK", _day_summary)
     capabilities.provide("tracking.last_location", "TRACK", _last_location)
     capabilities.provide("tracking.is_on_duty", "TRACK", _is_on_duty)
+    capabilities.provide("tracking.month_hours", "TRACK", _month_hours)

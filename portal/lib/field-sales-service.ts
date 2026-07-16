@@ -83,23 +83,23 @@ export interface DailyReport {
 export const fieldSalesService = {
     // ===== Visits =====
     async getVisits(params?: Record<string, string>) {
-        return apiClient.get<{ results: Visit[]; count: number }>('/field-sales/visits/', params);
+        return apiClient.get<{ results: Visit[]; count: number }>('/t/field/visits/', params);
     },
 
     async getVisit(id: number) {
-        return apiClient.get<Visit>(`/field-sales/visits/${id}/`);
+        return apiClient.get<Visit>(`/t/field/visits/${id}/`);
     },
 
     async createVisit(data: Partial<Visit>) {
-        return apiClient.post<Visit>('/field-sales/visits/', data);
+        return apiClient.post<Visit>('/t/field/visits/', data);
     },
 
     async updateVisit(id: number, data: Partial<Visit>) {
-        return apiClient.patch<Visit>(`/field-sales/visits/${id}/`, data);
+        return apiClient.patch<Visit>(`/t/field/visits/${id}/`, data);
     },
 
     async checkinVisit(id: number, location: { latitude: number; longitude: number }) {
-        return apiClient.post(`/field-sales/visits/${id}/checkin/`, { location });
+        return apiClient.post(`/t/field/visits/${id}/checkin/`, { location });
     },
 
     async checkoutVisit(
@@ -107,7 +107,7 @@ export const fieldSalesService = {
         location: { latitude: number; longitude: number },
         notes?: string
     ) {
-        return apiClient.post(`/field-sales/visits/${id}/checkout/`, { location, notes });
+        return apiClient.post(`/t/field/visits/${id}/checkout/`, { location, notes });
     },
 
     // ===== Agent Locations (Real-time tracking) =====

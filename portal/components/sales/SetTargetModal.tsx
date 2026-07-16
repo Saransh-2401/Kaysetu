@@ -102,7 +102,7 @@ export default function SetTargetModal({
         try {
             setFetching(true);
             setError(null);
-            const response: any = await apiClient.get(`/field-sales/targets/`, {
+            const response: any = await apiClient.get(`/t/field/targets/`, {
                 agent: String(agentId),
                 month: String(month),
                 year: String(year)
@@ -140,7 +140,7 @@ export default function SetTargetModal({
             setLoading(true);
             setError(null);
 
-            const existingResponse: any = await apiClient.get(`/field-sales/targets/`, {
+            const existingResponse: any = await apiClient.get(`/t/field/targets/`, {
                 agent: String(agentId),
                 month: String(month),
                 year: String(year)
@@ -155,9 +155,9 @@ export default function SetTargetModal({
             };
 
             if (existingResponse && existingResponse.count > 0) {
-                await apiClient.patch(`/field-sales/targets/${existingResponse.results[0].id}/`, payload);
+                await apiClient.patch(`/t/field/targets/${existingResponse.results[0].id}/`, payload);
             } else {
-                await apiClient.post(`/field-sales/targets/`, payload);
+                await apiClient.post(`/t/field/targets/`, payload);
             }
 
             setSuccess(true);
