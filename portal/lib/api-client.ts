@@ -3,12 +3,18 @@
  * Handles all HTTP requests to Django backend with JWT authentication
  */
 
-// API Base URL from environment
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+// API Base URL from environment.
+// SaaS backend serves everything under /api (no /v1 version segment).
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:8000/api';
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'salexa_access_token';
 const REFRESH_TOKEN_KEY = 'salexa_refresh_token';
+// Org code (SaaS multi-tenant): the tenant a session belongs to.
+const ORG_CODE_KEY = 'salexa_org_code';
 
 /**
  * Token management utilities
@@ -40,6 +46,18 @@ export const tokenManager = {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(ORG_CODE_KEY);
+    }
+  },
+
+  getOrgCode: (): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(ORG_CODE_KEY);
+  },
+
+  setOrgCode: (orgCode: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(ORG_CODE_KEY, orgCode);
     }
   },
 };
@@ -138,7 +156,8 @@ class APIClient {
       throw new APIError('No refresh token available', 401);
     }
 
-    const response = await fetch(`${this.baseURL}/auth/refresh/`, {
+    // SaaS backend: POST /api/auth/refresh (no trailing slash) rotates BOTH tokens.
+    const response = await fetch(`${this.baseURL}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -153,6 +172,7 @@ class APIClient {
 
     const data = await response.json();
     tokenManager.setAccessToken(data.access);
+    if (data.refresh) tokenManager.setRefreshToken(data.refresh);
     return data.access;
   }
 

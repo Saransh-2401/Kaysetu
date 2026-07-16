@@ -9,6 +9,7 @@ from apps.control.models import Tenant
 from apps.tenancy.context import use_tenant
 
 from .auth import SCOPE_TENANT, decode_token, make_token_pair, resolve_user
+from .module_map import build_effective_permissions
 from .models import CatalogItem, EntitlementSnapshot, OrgSettings, Party, Role, TenantUser
 from .permissions import HasModule, IsTenantUser, get_entitled_modules
 from .serializers import CatalogItemSerializer, PartySerializer, RoleSerializer, TenantUserSerializer
@@ -126,6 +127,90 @@ class MeView(APIView):
                     "admin_role": request.user.admin_role,
                 },
             }
+        )
+
+
+class LegacyProfileView(APIView):
+    """Portal-compat: GET /auth/users/me/ returns the UserProfile shape the
+    existing (Old Project) portal consumes. Maps our TenantUser -> that shape,
+    synthesising `username` (portal uses full_name||username for avatars/forms)."""
+
+    permission_classes = [IsTenantUser]
+
+    def get(self, request):
+        user = request.user
+        role = user.role
+        operating_city = ""
+        if user.city:
+            import json
+
+            operating_city = json.dumps([user.city])
+        return Response(
+            {
+                "id": user.pk,
+                "email": user.email,
+                "username": user.email,  # synthesised; TenantUser has no username
+                "full_name": user.full_name,
+                "phone": user.phone or "",
+                "profile_image": user.profile_image or None,
+                "role": role.slug if role else "",
+                "is_active": user.is_active,
+                "is_owner": user.is_owner,
+                "department": "",
+                "employee_id": "",
+                "region": user.state or "",
+                "operating_city": operating_city,
+                "operating_pincodes": [],
+                "assigned_to": None,
+            }
+        )
+
+
+class ChangePasswordView(APIView):
+    """Portal-compat: PATCH /auth/users/{id}/change_password/. A user may only
+    change their OWN password (matches the portal's profile-settings screen)."""
+
+    permission_classes = [IsTenantUser]
+
+    def patch(self, request, pk):
+        if request.user.pk != int(pk):
+            return Response({"detail": "You can only change your own password."}, status=403)
+        old_password = request.data.get("old_password") or ""
+        new_password = request.data.get("new_password") or ""
+        confirm = request.data.get("new_password_confirm") or ""
+        if not request.user.check_password(old_password):
+            return Response({"detail": "Current password is incorrect."}, status=400)
+        if new_password != confirm:
+            return Response({"new_password_confirm": "Passwords do not match."}, status=400)
+
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        try:
+            validate_password(new_password)
+        except DjangoValidationError as error:
+            return Response({"new_password": list(error.messages)}, status=400)
+
+        request.user.set_password(new_password)
+        request.user.save(update_fields=["password", "updated_at"])
+        return Response(status=204)
+
+
+class RolePermissionsMeView(APIView):
+    """Portal-compat: GET /core/role-permissions/me/ returns EffectivePermissions.
+    Un-entitled packages are folded in as {enabled:false} so the portal's existing
+    (fail-open) sidebar gating hides sections the tenant did not buy."""
+
+    permission_classes = [IsTenantUser]
+
+    def get(self, request):
+        role = request.user.role
+        return Response(
+            build_effective_permissions(
+                role_slug=role.slug if role else "",
+                is_owner=request.user.is_owner,
+                entitled_modules=get_entitled_modules(request),
+            )
         )
 
 

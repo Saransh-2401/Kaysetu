@@ -10,6 +10,10 @@ import { Eye, EyeOff, Sparkles, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+// Phone/OTP login is not yet implemented on the SaaS backend — hide the tab
+// until /auth/send-otp/ + /auth/verify-otp/ exist. Password login is org-scoped.
+const OTP_LOGIN_ENABLED = false;
+
 
 interface PupilProps {
   size?: number;
@@ -183,6 +187,7 @@ const EyeBall = ({
 function LoginPage() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [orgCode, setOrgCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -333,8 +338,9 @@ function LoginPage() {
       // Import authService
       const { authService } = await import("@/lib");
 
-      // Call Django login API
+      // Call SaaS org-scoped login API
       const response = await authService.login({
+        org_code: orgCode.trim().toUpperCase(),
         email,
         password,
       });
@@ -351,9 +357,11 @@ function LoginPage() {
         purchase_manager: "/purchase",
         warehouse_manager: "/warehouse",
         production_manager: "/production",
-        accounts_manager: "/accounts",
+        quality_manager: "/production",
+        accounts_officer: "/accounts",
         distributor: "/distributor",
-        field_sales_agent: "/sales-agent/visits",
+        dispatcher: "/sales-manager",
+        mdo: "/admin",
         executive: "/admin",
       };
 
@@ -364,7 +372,18 @@ function LoginPage() {
 
     } catch (err: any) {
       console.error("Login error:", err);
-      toast.error("Invalid email or password");
+      const code = err?.details?.code as string | undefined;
+      const detail = err?.details?.detail as string | undefined;
+      let message = "Invalid organization code, email or password";
+      if (code === "tenant_suspended") {
+        message = "This organization is suspended. Please contact your admin or settle billing.";
+      } else if (code === "tenant_churned") {
+        message = "This organization is no longer active.";
+      } else if (detail) {
+        message = detail;
+      }
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -678,7 +697,8 @@ function LoginPage() {
             </p>
           </div>
 
-          {/* Tab Toggle */}
+          {/* Tab Toggle — OTP hidden until the SaaS backend implements phone/OTP auth */}
+          {OTP_LOGIN_ENABLED && (
           <div className="flex items-center p-1 rounded-lg bg-muted mb-7 gap-1">
             <button
               type="button"
@@ -706,6 +726,7 @@ function LoginPage() {
               Phone & OTP
             </button>
           </div>
+          )}
 
           {/* Session Expired Banner */}
           {error && (
@@ -718,6 +739,23 @@ function LoginPage() {
           {loginMode === "password" && (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
+                <Label htmlFor="orgCode" className="text-sm font-medium">Organization code</Label>
+                <Input
+                  id="orgCode"
+                  type="text"
+                  placeholder="SLX-XXXXXX"
+                  value={orgCode}
+                  autoComplete="off"
+                  data-testid="portal-login-orgcode-input"
+                  onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
+                  onFocus={() => setIsTyping(true)}
+                  onBlur={() => setIsTyping(false)}
+                  required
+                  className="h-12 bg-background border-border/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-border transition-colors shadow-none uppercase"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
                   id="email"
@@ -725,6 +763,7 @@ function LoginPage() {
                   placeholder="anna@gmail.com"
                   value={email}
                   autoComplete="off"
+                  data-testid="portal-login-email-input"
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setIsTyping(true)}
                   onBlur={() => setIsTyping(false)}
@@ -741,6 +780,7 @@ function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
+                    data-testid="portal-login-password-input"
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="h-12 pr-10 bg-background border-border/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-border transition-colors shadow-none"
@@ -760,6 +800,7 @@ function LoginPage() {
                 className="w-full h-12 text-base font-medium"
                 size="lg"
                 disabled={isLoading}
+                data-testid="portal-login-submit-btn"
               >
                 {isLoading ? "Logging in..." : "Log in"}
               </Button>

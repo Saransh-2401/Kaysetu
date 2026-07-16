@@ -6,8 +6,21 @@
 import { apiClient, tokenManager } from './api-client';
 
 export interface LoginCredentials {
+    org_code: string;   // SaaS: which tenant this user belongs to
     email: string;
     password: string;
+}
+
+export interface OrgContext {
+    org_code: string;
+    name: string;
+    industry: string;
+    labels: Record<string, string>;
+    appearance: { scheme?: string };
+    setup_state: { done?: string[]; completed?: boolean };
+    modules: string[];
+    status: string;
+    trial_ends_at: string | null;
 }
 
 export interface LoginResponse {
@@ -20,6 +33,7 @@ export interface LoginResponse {
         full_name: string;
         role: string;
     };
+    org?: OrgContext;
 }
 
 export interface UserProfile {
@@ -70,33 +84,59 @@ export const authService = {
      * Login user
      */
     async login(credentials: LoginCredentials): Promise<LoginResponse> {
-        const response = await apiClient.post<LoginResponse>(
-            '/auth/login/',
-            credentials
-        );
+        // SaaS org-scoped login: POST /api/auth/tenant/login (no trailing slash),
+        // body {org_code, email, password}. Returns tokens + user + org context.
+        const raw = await apiClient.post<any>('/auth/tenant/login', {
+            org_code: credentials.org_code,
+            email: credentials.email,
+            password: credentials.password,
+        });
 
-        // Store tokens
+        const response: LoginResponse = {
+            access: raw.access,
+            refresh: raw.refresh,
+            user: {
+                id: raw.user?.id,
+                email: raw.user?.email ?? '',
+                // TenantUser has no username — synthesise from email so the
+                // portal's full_name||username display/forms keep working.
+                username: raw.user?.username ?? raw.user?.email ?? '',
+                full_name: raw.user?.full_name ?? '',
+                role: raw.user?.role ?? '',
+            },
+            org: raw.org,
+        };
+
         tokenManager.setAccessToken(response.access);
         tokenManager.setRefreshToken(response.refresh);
+        if (credentials.org_code) tokenManager.setOrgCode(credentials.org_code);
+        if (response.org && typeof window !== 'undefined') {
+            localStorage.setItem('salexa_org_context', JSON.stringify(response.org));
+        }
 
         return response;
+    },
+
+    /**
+     * Cached org context from the last login (labels, appearance, modules).
+     */
+    getOrgContext(): OrgContext | null {
+        if (typeof window === 'undefined') return null;
+        const raw = localStorage.getItem('salexa_org_context');
+        return raw ? (JSON.parse(raw) as OrgContext) : null;
     },
 
     /**
      * Logout user
      */
     logout(): void {
-        const refreshToken = tokenManager.getRefreshToken();
-
-        // Clear tokens immediately — prevents error flash from background
-        // intervals making 401 requests during the redirect window
+        // Purely local: the SaaS backend has no server-side session/token
+        // revocation to invoke. Clearing immediately prevents an error flash
+        // from background 401s during the redirect window.
         this.clearCache();
         tokenManager.clearTokens();
-
-        // Notify server in background (best-effort, non-blocking)
-        if (refreshToken) {
-            apiClient.post('/auth/users/logout/', { refresh_token: refreshToken })
-                .catch(() => {});
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('salexa_org_context');
         }
     },
 

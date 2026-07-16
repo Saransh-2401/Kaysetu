@@ -13,6 +13,10 @@ urlpatterns = [
     path("auth/tenant/login", views.TenantLoginView.as_view()),
     path("auth/refresh", views.RefreshView.as_view()),
     path("me", views.MeView.as_view()),
+    # Portal (Old Project) compatibility endpoints
+    path("auth/users/me/", views.LegacyProfileView.as_view()),
+    path("auth/users/<int:pk>/change_password/", views.ChangePasswordView.as_view()),
+    path("core/role-permissions/me/", views.RolePermissionsMeView.as_view()),
     path("t/org", views.OrgSettingsView.as_view()),
     path("t/", include(router.urls)),
     # Module gate pings (entitlement smoke checks)

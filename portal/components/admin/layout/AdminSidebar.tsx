@@ -50,7 +50,7 @@ const adminMenuItems: MenuItemType[] = [
     text: "Stock Operations", icon: <MoveToInboxIcon />, section: "Warehouse",
     children: [
       { text: "Adjustment", path: "/stock-adjustments", icon: <CompareArrowsIcon fontSize="small" />, moduleKey: "stock_adjustments" },
-      { text: "Dist. Adjustment", path: "/distributor-adjustments", icon: <CompareArrowsIcon fontSize="small" />, moduleKey: "stock_adjustments" },
+      { text: "Dist. Adjustment", path: "/distributor-adjustments", icon: <CompareArrowsIcon fontSize="small" />, moduleKey: "distributor_adjustments" },
       { text: "Stock Ledger", path: "/stock-ledger", icon: <MenuBookIcon fontSize="small" />, moduleKey: "stock_ledger" },
     ],
   },

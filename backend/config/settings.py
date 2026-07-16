@@ -19,6 +19,21 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-secret-key-do-not-use-in
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 ALLOWED_HOSTS = [h for h in os.environ.get("ALLOWED_HOSTS", "*").split(",") if h]
 
+# Tenant selection trusts the JWT `tid` claim, which is only as trustworthy as
+# SECRET_KEY. Refuse to boot in production with an unset/known-default secret so
+# a forged tenant token can never read another tenant's data.
+_INSECURE_SECRETS = {
+    "dev-insecure-secret-key-do-not-use-in-prod",
+    "compose-dev-secret-change-me",
+    "change-me-in-production",
+}
+if not DEBUG and (not os.environ.get("SECRET_KEY") or SECRET_KEY in _INSECURE_SECRETS):
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set to a strong, unique value when DEBUG is off."
+    )
+
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",

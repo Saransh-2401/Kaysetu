@@ -60,6 +60,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
       { key: "distributor_products", label: "Distributor Products" },
       { key: "distributor_invoices", label: "Distributor Invoices" },
       { key: "distributor_requests", label: "Distributor Requests" },
+      { key: "distributor_adjustments", label: "Distributor Adjustments" },
     ],
   },
   {

@@ -57,7 +57,7 @@ export const PAGE_REGISTRY: RegistryPage[] = [
   { label: "Raw Materials (WH)", path: "/warehouse/raw-materials", moduleKey: "raw_materials" },
   { label: "Our Products", path: "/warehouse/our-products", moduleKey: "our_products" },
   { label: "Stock Adjustments", path: "/stock-adjustments", moduleKey: "stock_adjustments" },
-  { label: "Distributor Adjustments", path: "/distributor-adjustments", moduleKey: "stock_adjustments" },
+  { label: "Distributor Adjustments", path: "/distributor-adjustments", moduleKey: "distributor_adjustments" },
   { label: "Stock Ledger", path: "/stock-ledger", moduleKey: "stock_ledger" },
 
   // Production
