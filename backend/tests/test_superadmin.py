@@ -62,6 +62,22 @@ def test_audit_log_written_for_admin_actions(api, make_tenant, admin_token):
     assert entry.actor.email == "root@salexa.com"
 
 
+def test_command_center_stats(api, make_tenant, admin_token):
+    tenant_a, _ = make_tenant(package_code="P1")
+    tenant_b, _ = make_tenant(package_code="P2")
+    auth(api, admin_token).post(f"/api/sa/tenants/{tenant_b.pk}/suspend/")
+
+    stats = auth(api, admin_token).get("/api/sa/stats")
+    assert stats.status_code == 200
+    assert stats.data["tenants"]["total"] == 2
+    assert stats.data["tenants"]["by_status"]["trial"] == 1
+    assert stats.data["tenants"]["by_status"]["suspended"] == 1
+    assert stats.data["signups_this_week"] == 2
+    assert stats.data["provisioning"]["failed"] == 0
+    codes = {p["package__code"] for p in stats.data["package_distribution"]}
+    assert codes == {"P1", "P2"}
+
+
 def test_package_composer_edit(api, admin_token):
     from apps.control.models import Package
 

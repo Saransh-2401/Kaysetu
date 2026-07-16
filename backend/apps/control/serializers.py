@@ -47,9 +47,16 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 
 class ProvisioningJobSerializer(serializers.ModelSerializer):
+    tenant_id = serializers.IntegerField(read_only=True)
+    tenant_org_code = serializers.CharField(source="tenant.org_code", read_only=True)
+    tenant_name = serializers.CharField(source="tenant.name", read_only=True)
+
     class Meta:
         model = ProvisioningJob
-        fields = ["id", "job_type", "status", "attempts", "log", "created_at", "finished_at"]
+        fields = [
+            "id", "tenant_id", "tenant_org_code", "tenant_name",
+            "job_type", "status", "attempts", "log", "created_at", "finished_at",
+        ]
 
 
 class TenantListSerializer(serializers.ModelSerializer):

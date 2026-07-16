@@ -52,6 +52,9 @@ def _control_db():
             # PgBouncer (transaction pooling) compatibility:
             "CONN_MAX_AGE": 0,
             "DISABLE_SERVER_SIDE_CURSORS": True,
+            # psycopg3 auto-prepares statements after repeated use, which
+            # breaks behind transaction pooling — disable.
+            "OPTIONS": {"prepare_threshold": None},
         }
     (BASE_DIR / "var").mkdir(exist_ok=True)
     return {
@@ -70,10 +73,16 @@ TENANCY = {
     "SQLITE_DIR": Path(os.environ.get("TENANT_SQLITE_DIR", BASE_DIR / "var" / "tenants")),
     "DB_PREFIX": "salexa_t_",
     "PG": {
+        # Tenant query traffic — ALWAYS PgBouncer in production.
         "HOST": os.environ.get("TENANT_PG_HOST", "127.0.0.1"),
         "PORT": os.environ.get("TENANT_PG_PORT", "6432"),
         "USER": os.environ.get("TENANT_PG_USER", "salexa"),
         "PASSWORD": os.environ.get("TENANT_PG_PASSWORD", ""),
+        # CREATE DATABASE must go DIRECT to Postgres (not through the pooler).
+        "MAINTENANCE_HOST": os.environ.get(
+            "TENANT_PG_MAINTENANCE_HOST", os.environ.get("TENANT_PG_HOST", "127.0.0.1")
+        ),
+        "MAINTENANCE_PORT": os.environ.get("TENANT_PG_MAINTENANCE_PORT", "5432"),
         "MAINTENANCE_DB": os.environ.get("TENANT_PG_MAINTENANCE_DB", "postgres"),
     },
 }

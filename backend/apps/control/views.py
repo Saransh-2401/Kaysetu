@@ -1,6 +1,8 @@
 import logging
 
 from django.conf import settings
+from django.db.models import Count, Sum
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
@@ -14,7 +16,15 @@ from apps.foundation.permissions import IsControlAdmin
 from apps.tenancy.provisioning import MODULE_ROLE_TEMPLATES, ProvisioningError, provision_tenant
 
 from . import services
-from .models import AdminUser, ControlAuditLog, ModuleDef, Package, ProvisioningJob, Tenant
+from .models import (
+    AdminUser,
+    ControlAuditLog,
+    ModuleDef,
+    Package,
+    ProvisioningJob,
+    Subscription,
+    Tenant,
+)
 from .serializers import (
     ModuleDefSerializer,
     PackageAdminSerializer,
@@ -37,6 +47,23 @@ def _audit(request, action_name, entity="", entity_id="", before=None, after=Non
         before=before,
         after=after,
     )
+
+
+class HealthView(APIView):
+    """Liveness/readiness probe for Docker healthchecks and K8s."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request):
+        from django.db import connection
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            return Response({"status": "ok"})
+        except Exception:
+            return Response({"status": "degraded"}, status=503)
 
 
 class PublicPackagesView(ListAPIView):
@@ -205,6 +232,46 @@ class TenantViewSet(viewsets.ReadOnlyModelViewSet):
             job = tenant.jobs.filter(job_type=ProvisioningJob.Type.CREATE).first()
         _audit(request, "tenant.retry_provisioning", "Tenant", tenant.pk)
         return Response(ProvisioningJobSerializer(job).data)
+
+
+class StatsView(APIView):
+    """SA-2 Command Center counters."""
+
+    permission_classes = [IsControlAdmin]
+
+    def get(self, request):
+        now = timezone.now()
+        week_ago = now - timezone.timedelta(days=7)
+        by_status = dict(
+            Tenant.objects.values_list("status").annotate(count=Count("id"))
+        )
+        mrr = (
+            Subscription.objects.filter(status=Subscription.Status.ACTIVE)
+            .aggregate(total=Sum("package__base_price_monthly"))["total"]
+            or 0
+        )
+        return Response(
+            {
+                "tenants": {"total": Tenant.objects.count(), "by_status": by_status},
+                "signups_this_week": Tenant.objects.filter(created_at__gte=week_ago).count(),
+                "active_trials": by_status.get(Tenant.Status.TRIAL, 0),
+                "trials_ending_7d": Tenant.objects.filter(
+                    status=Tenant.Status.TRIAL,
+                    trial_ends_at__lte=now + timezone.timedelta(days=7),
+                ).count(),
+                "provisioning": {
+                    "failed": ProvisioningJob.objects.filter(status="failed").count(),
+                    "running": ProvisioningJob.objects.filter(status="running").count(),
+                },
+                "mrr": str(mrr),
+                "package_distribution": list(
+                    Tenant.objects.exclude(package=None)
+                    .values("package__code", "package__name")
+                    .annotate(count=Count("id"))
+                    .order_by("-count")
+                ),
+            }
+        )
 
 
 class ProvisioningJobViewSet(viewsets.ReadOnlyModelViewSet):

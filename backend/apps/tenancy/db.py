@@ -50,6 +50,9 @@ def build_db_config(tenant) -> dict:
             "HOST": pg["HOST"],
             "PORT": pg["PORT"],
             "DISABLE_SERVER_SIDE_CURSORS": True,
+            # psycopg3 auto-prepared statements break behind PgBouncer
+            # transaction pooling — disable.
+            "OPTIONS": {"prepare_threshold": None},
         }
     return {
         **base,
@@ -98,13 +101,14 @@ def create_database_if_needed(tenant):
         import psycopg
         from psycopg import errors, sql
 
+        # CREATE DATABASE goes DIRECT to Postgres — never through the pooler.
         pg = settings.TENANCY["PG"]
         conn = psycopg.connect(
             dbname=pg["MAINTENANCE_DB"],
             user=pg["USER"],
             password=pg["PASSWORD"],
-            host=pg["HOST"],
-            port=pg["PORT"],
+            host=pg["MAINTENANCE_HOST"],
+            port=pg["MAINTENANCE_PORT"],
             autocommit=True,
         )
         try:
