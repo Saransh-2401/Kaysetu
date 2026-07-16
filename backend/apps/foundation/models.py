@@ -160,20 +160,26 @@ class CatalogItem(models.Model):
 
 
 class Party(models.Model):
-    """Generic business party — customer, supplier, or both."""
+    """Generic business party — customer, supplier, both, or a prospect (a lead
+    that the CRM module manages until it converts to a customer)."""
 
     class Kind(models.TextChoices):
         CUSTOMER = "customer", "Customer"
         SUPPLIER = "supplier", "Supplier"
         BOTH = "both", "Customer & Supplier"
+        PROSPECT = "prospect", "Prospect"
 
     name = models.CharField(max_length=200)
     kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.CUSTOMER)
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     gstin = models.CharField(max_length=15, blank=True)
-    address = models.JSONField(default=dict, blank=True)
+    address = models.JSONField(default=dict, blank=True)   # {line1,line2,city,state,postal_code,latitude,longitude}
     credit_limit = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    # The agent who owns this party's relationship (field sales territory).
+    assigned_agent = models.ForeignKey(
+        "TenantUser", null=True, blank=True, on_delete=models.SET_NULL, related_name="assigned_parties"
+    )
     is_active = models.BooleanField(default=True)
     extra = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

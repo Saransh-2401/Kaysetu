@@ -98,9 +98,28 @@ class CatalogItemSerializer(serializers.ModelSerializer):
 
 
 class PartySerializer(serializers.ModelSerializer):
+    # Portal-compat aliases so the ported /my-customers screen renders unchanged.
+    customer_name = serializers.CharField(source="name", read_only=True)
+    formatted_address = serializers.SerializerMethodField()
+    assigned_agent_name = serializers.CharField(source="assigned_agent.full_name", read_only=True, default=None)
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
+
     class Meta:
         model = Party
         fields = [
-            "id", "name", "kind", "phone", "email", "gstin", "address",
-            "credit_limit", "is_active", "extra", "created_at", "updated_at",
+            "id", "name", "customer_name", "kind", "phone", "email", "gstin", "address",
+            "formatted_address", "credit_limit", "assigned_agent", "assigned_agent_name",
+            "latitude", "longitude", "is_active", "extra", "created_at", "updated_at",
         ]
+
+    def get_formatted_address(self, obj):
+        a = obj.address or {}
+        parts = [a.get(k) for k in ("line1", "line2", "city", "state", "postal_code")]
+        return ", ".join(p for p in parts if p)
+
+    def get_latitude(self, obj):
+        return (obj.address or {}).get("latitude")
+
+    def get_longitude(self, obj):
+        return (obj.address or {}).get("longitude")

@@ -125,48 +125,48 @@ export interface QuotationItem {
 export const crmService = {
     // ===== Leads =====
     async getLeads(params?: Record<string, string>) {
-        return apiClient.get<{ results: Lead[]; count: number }>('/crm/leads/', params);
+        return apiClient.get<{ results: Lead[]; count: number }>('/t/crm/leads/', params);
     },
 
     async getLead(id: number) {
-        return apiClient.get<Lead>(`/crm/leads/${id}/`);
+        return apiClient.get<Lead>(`/t/crm/leads/${id}/`);
     },
 
     async createLead(data: Partial<Lead>) {
-        return apiClient.post<Lead>('/crm/leads/', data);
+        return apiClient.post<Lead>('/t/crm/leads/', data);
     },
 
     async updateLead(id: number, data: Partial<Lead>) {
-        return apiClient.patch<Lead>(`/crm/leads/${id}/`, data);
+        return apiClient.patch<Lead>(`/t/crm/leads/${id}/`, data);
     },
 
     async deleteLead(id: number) {
-        return apiClient.delete(`/crm/leads/${id}/`);
+        return apiClient.delete(`/t/crm/leads/${id}/`);
     },
 
 
 
 
 
-    // ===== Customers =====
+    // ===== Customers (Foundation Parties, kind=customer) =====
     async getCustomers(params?: Record<string, string>) {
-        return apiClient.get<{ results: Customer[]; count: number }>('/crm/customers/', params);
+        return apiClient.get<{ results: Customer[]; count: number }>('/t/parties/', { kind: 'customer', ...(params || {}) });
     },
 
     async getCustomer(id: number) {
-        return apiClient.get<Customer>(`/crm/customers/${id}/`);
+        return apiClient.get<Customer>(`/t/parties/${id}/`);
     },
 
     async getCustomerDetail(id: number, params?: Record<string, string>) {
-        return apiClient.get<any>(`/crm/customers/${id}/detail/`, params);
+        return apiClient.get<any>(`/t/parties/${id}/detail/`, params);
     },
 
     async getCustomerLedger(id: number, params?: Record<string, string>) {
-        return apiClient.get<CustomerLedger>(`/crm/customers/${id}/ledger/`, params);
+        return apiClient.get<CustomerLedger>(`/t/parties/${id}/ledger/`, params);
     },
 
     async createCustomer(data: Partial<Customer>) {
-        return apiClient.post<Customer>('/crm/customers/', data);
+        return apiClient.post<Customer>('/t/parties/', data);
     },
 
     // Append a new venue/shop image (admin/SM). Backend keeps `keptImages` and appends the new file.
@@ -174,11 +174,11 @@ export const crmService = {
         const fd = new FormData();
         fd.append("image_shop_0", file);
         fd.append("shop_images", JSON.stringify(keptImages));
-        return apiClient.patch<Customer>(`/crm/customers/${id}/`, fd);
+        return apiClient.patch<Customer>(`/t/parties/${id}/`, fd);
     },
 
     async updateCustomer(id: number, data: Partial<Customer>) {
-        return apiClient.patch<Customer>(`/crm/customers/${id}/`, data);
+        return apiClient.patch<Customer>(`/t/parties/${id}/`, data);
     },
 
     // ===== Quotations =====
