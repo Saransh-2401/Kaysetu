@@ -59,6 +59,55 @@ def test_orders_order_to_cash(api, make_tenant, tenant_token):
     assert paid.data["payment_status"] == "paid"
 
 
+def test_review_fixes_money_state_rbac(api, make_tenant, tenant_token):
+    """Review fixes: client can't override line amount; no state skipping;
+    overpayment/negative rejected; non-managers see only their own orders."""
+    tenant, _ = make_tenant(package_code="P4")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    party, item = _party(api, token), _item(api, token, price="100", tax="0")
+
+    # client-supplied bogus amount is IGNORED (server recomputes qty*rate)
+    order = client.post("/api/t/sales-orders/", {
+        "customer": party, "items": [{"item": item, "item_name": "X", "quantity": 2, "rate": "100", "amount": "1"}]}).data
+    assert str(order["total"]) == "200.00"  # 2 x 100, not the bogus 1
+
+    # cannot invoice before delivered (state machine)
+    assert client.post(f"/api/t/sales-orders/{order['id']}/invoice/").status_code == 400
+    # cannot mark delivered straight from processing
+    assert client.post(f"/api/t/sales-orders/{order['id']}/mark-delivered/").status_code == 400
+
+    # walk to delivered, then overpayment + negative are rejected
+    client.post(f"/api/t/sales-orders/{order['id']}/confirm/")
+    client.post(f"/api/t/sales-orders/{order['id']}/delivery-note/", {})
+    client.post(f"/api/t/sales-orders/{order['id']}/mark-delivered/")
+    assert client.post(f"/api/t/sales-orders/{order['id']}/record-payment/", {"amount": "-5"}).status_code == 400
+    assert client.post(f"/api/t/sales-orders/{order['id']}/record-payment/", {"amount": "9999"}).status_code == 400
+    ok = client.post(f"/api/t/sales-orders/{order['id']}/record-payment/", {"amount": "200"})
+    assert ok.data["payment_status"] == "paid"
+    # double-invoice blocked
+    client.post(f"/api/t/sales-orders/{order['id']}/invoice/")
+    assert client.post(f"/api/t/sales-orders/{order['id']}/invoice/").status_code == 400
+
+
+def test_orders_agent_scoping(api, make_tenant, tenant_token):
+    """A non-manager sees only orders assigned to them."""
+    tenant, _ = make_tenant(package_code="P8")
+    owner = tenant_token(tenant)["access"]
+    party = _party(api, owner)
+    item = _item(api, owner)
+    # manager creates an order (assigned to nobody)
+    auth(api, owner).post("/api/t/sales-orders/", {
+        "customer": party, "items": [{"item": item, "item_name": "X", "quantity": 1, "rate": "10"}]})
+    agent_token, agent_id = _agent(api, tenant, tenant_token)
+    # agent creates their own order (auto-assigned to self)
+    auth(api, agent_token).post("/api/t/sales-orders/", {
+        "customer": party, "items": [{"item": item, "item_name": "Y", "quantity": 1, "rate": "10"}]})
+    # agent sees only their own; owner/manager sees both
+    assert auth(api, agent_token).get("/api/t/sales-orders/").data["count"] == 1
+    assert auth(api, owner).get("/api/t/sales-orders/").data["count"] == 2
+
+
 def test_orders_is_package_gated(api, make_tenant, tenant_token):
     tenant, _ = make_tenant(package_code="P2")  # FIELD only, no ORDERS
     token = tenant_token(tenant)["access"]

@@ -37,6 +37,16 @@ class SalesOrderSerializer(serializers.ModelSerializer):
             "amount_paid", "status", "payment_status", "created_at",
         ]
 
+    def update(self, instance, validated_data):
+        # discount_amount / round_off are editable; keep `total` consistent with
+        # what is actually billed/invoiced.
+        order = super().update(instance, validated_data)
+        new_total = order.subtotal + order.tax_amount - order.discount_amount + order.round_off
+        if order.total != new_total:
+            order.total = new_total
+            order.save(update_fields=["total", "updated_at"])
+        return order
+
 
 class PickListSerializer(serializers.ModelSerializer):
     order_number = serializers.CharField(source="order.order_number", read_only=True)

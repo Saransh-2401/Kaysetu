@@ -3,10 +3,11 @@ ORDERS domain services. Cross-module reads via the capability registry
 (inventory stock checks when INV is present); effects emitted as events
 (orders.invoice_issued -> BOOKS). Imports only foundation.
 """
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from apps.foundation.integration import capabilities, events
 from apps.tenancy.context import require_tenant
@@ -14,9 +15,28 @@ from apps.tenancy.db import ensure_alias
 
 from .models import DeliveryNote, Invoice, Payment, PickList, SalesOrder, SalesOrderItem, StatusLog
 
+MAX_AMOUNT = Decimal("9999999999.99")
+S = SalesOrder.Status
+
+# Forward-only lifecycle: which source states may move to each target.
+_ALLOWED_TRANSITIONS = {
+    S.CONFIRMED: {S.PROCESSING},
+    S.PACKED: {S.CONFIRMED},
+    S.IN_TRANSIT: {S.PACKED, S.CONFIRMED},   # a pick list may be skipped
+    S.DELIVERED: {S.IN_TRANSIT},
+    S.REJECTED: {S.PROCESSING, S.CONFIRMED},
+}
+
 
 def _num(prefix):
     return prefix + "-" + timezone.now().strftime("%y%m%d%H%M%S%f")[:16]
+
+
+def _to_decimal(value, field):
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValidationError({field: "must be a number."})
 
 
 def create_order(*, customer_id, order_date, items, assigned_agent=None, source=SalesOrder.Source.MANUAL,
@@ -31,10 +51,17 @@ def create_order(*, customer_id, order_date, items, assigned_agent=None, source=
     subtotal = tax_total = Decimal("0")
     prepared = []
     for line in items:
-        qty = Decimal(str(line.get("quantity", 1)))
-        rate = Decimal(str(line.get("rate", 0)))
-        tax_rate = Decimal(str(line.get("tax_rate", 0)))
-        amount = Decimal(str(line.get("amount", (qty * rate).quantize(Decimal("0.01")))))
+        qty = _to_decimal(line.get("quantity", 1), "quantity")
+        rate = _to_decimal(line.get("rate", 0), "rate")
+        tax_rate = _to_decimal(line.get("tax_rate", 0), "tax_rate")
+        if qty <= 0:
+            raise ValidationError({"quantity": "must be greater than 0."})
+        if rate < 0 or tax_rate < 0 or tax_rate > 100:
+            raise ValidationError({"rate": "rate must be >= 0 and tax_rate within 0..100."})
+        # Amount is ALWAYS computed server-side — never trusted from the client.
+        amount = (qty * rate).quantize(Decimal("0.01"))
+        if amount > MAX_AMOUNT:
+            raise ValidationError({"amount": "line amount exceeds the maximum allowed."})
         subtotal += amount
         tax_total += (amount * tax_rate / 100).quantize(Decimal("0.01"))
         prepared.append((line, qty, rate, tax_rate, amount))
@@ -59,6 +86,9 @@ def create_order(*, customer_id, order_date, items, assigned_agent=None, source=
 
 
 def _transition(order: SalesOrder, to_status: str, actor=None, note="") -> SalesOrder:
+    allowed = _ALLOWED_TRANSITIONS.get(to_status, set())
+    if order.status not in allowed:
+        raise ValidationError(f"Cannot move order from '{order.status}' to '{to_status}'.")
     old = order.status
     order.status = to_status
     order.save(update_fields=["status", "updated_at"])
@@ -91,9 +121,10 @@ def stock_warnings(order: SalesOrder) -> list:
 
 
 def make_pick_list(order: SalesOrder, picker=None) -> PickList:
+    if order.status != SalesOrder.Status.CONFIRMED:
+        raise ValidationError("Only a confirmed order can have a pick list.")
     pl = PickList.objects.create(order=order, picker=picker)
-    if order.status == SalesOrder.Status.CONFIRMED:
-        _transition(order, SalesOrder.Status.PACKED, note="pick list created")
+    _transition(order, SalesOrder.Status.PACKED, note="pick list created")
     return pl
 
 
@@ -111,6 +142,10 @@ def mark_delivered(order: SalesOrder, actor=None) -> SalesOrder:
 
 
 def issue_invoice(order: SalesOrder) -> Invoice:
+    if order.status != SalesOrder.Status.DELIVERED:
+        raise ValidationError("Order must be delivered before invoicing.")
+    if order.invoices.exists():
+        raise ValidationError("Invoice already issued for this order.")
     invoice = Invoice.objects.create(
         order=order, invoice_number=_num("INV"), invoice_date=timezone.localdate(), total=order.total,
     )
@@ -123,14 +158,27 @@ def issue_invoice(order: SalesOrder) -> Invoice:
 
 
 def record_payment(order: SalesOrder, *, amount, mode="cash", reference="") -> Payment:
-    payment = Payment.objects.create(
-        order=order, amount=Decimal(str(amount)), mode=mode, reference=reference
-    )
-    order.amount_paid = (order.amount_paid or Decimal("0")) + payment.amount
-    if order.amount_paid >= order.total:
-        order.payment_status = SalesOrder.PaymentStatus.PAID
-    elif order.amount_paid > 0:
-        order.payment_status = SalesOrder.PaymentStatus.PARTIALLY_PAID
-    order.save(update_fields=["amount_paid", "payment_status", "updated_at"])
-    events.emit("orders.payment_recorded", order_id=order.pk, amount=str(payment.amount))
+    amount = _to_decimal(amount, "amount")
+    if amount <= 0:
+        raise ValidationError({"amount": "must be a positive amount."})
+    if order.status == SalesOrder.Status.REJECTED:
+        raise ValidationError("Cannot record a payment against a rejected order.")
+
+    with transaction.atomic(using=ensure_alias(require_tenant())):
+        # Lock the order row so concurrent payments don't lose updates.
+        locked = SalesOrder.objects.select_for_update().get(pk=order.pk)
+        outstanding = locked.total - (locked.amount_paid or Decimal("0"))
+        if amount > outstanding + Decimal("0.01"):
+            raise ValidationError({"amount": f"exceeds the outstanding balance ({outstanding})."})
+        payment = Payment.objects.create(order=locked, amount=amount, mode=mode, reference=reference)
+        locked.amount_paid = (locked.amount_paid or Decimal("0")) + amount
+        if locked.amount_paid >= locked.total:
+            locked.payment_status = SalesOrder.PaymentStatus.PAID
+        elif locked.amount_paid > 0:
+            locked.payment_status = SalesOrder.PaymentStatus.PARTIALLY_PAID
+        else:
+            locked.payment_status = SalesOrder.PaymentStatus.PENDING
+        locked.save(update_fields=["amount_paid", "payment_status", "updated_at"])
+    events.emit("orders.payment_recorded", order_id=order.pk, amount=str(amount))
+    order.refresh_from_db()
     return payment

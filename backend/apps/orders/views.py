@@ -26,6 +26,9 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = SalesOrder.objects.select_related("customer", "assigned_agent").prefetch_related("items", "status_logs")
+        # Non-managers see only orders assigned to them (managers/admin see all).
+        if not _is_manager(self.request.user):
+            qs = qs.filter(assigned_agent_id=self.request.user.pk)
         params = self.request.query_params
         if params.get("status"):
             qs = qs.filter(status=params["status"])
@@ -47,6 +50,14 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
             notes=data.get("notes", ""), advance_amount=data.get("advance_amount", 0),
         )
         return Response(SalesOrderSerializer(order).data, status=201)
+
+    def update(self, request, *args, **kwargs):
+        denied = self._manager_only(request)
+        return denied or super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        denied = self._manager_only(request)
+        return denied or super().destroy(request, *args, **kwargs)
 
     def _manager_only(self, request):
         return None if _is_manager(request.user) else Response({"detail": "Manager access required."}, status=403)
@@ -80,7 +91,10 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         denied = self._manager_only(request)
         if denied:
             return denied
-        pl = services.make_pick_list(self.get_object(), picker=request.user)
+        order = self.get_object()
+        if order.status != SalesOrder.Status.CONFIRMED:
+            return Response({"detail": "Only a confirmed order can have a pick list."}, status=400)
+        pl = services.make_pick_list(order, picker=request.user)
         return Response(PickListSerializer(pl).data, status=201)
 
     @action(detail=True, methods=["post"], url_path="delivery-note")
@@ -134,6 +148,8 @@ class PickListViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="mark-picked")
     def mark_picked(self, request, pk=None):
+        if not _is_manager(request.user):
+            return Response({"detail": "Manager access required."}, status=403)
         pl = self.get_object()
         pl.status = PickList.Status.PICKED
         pl.save(update_fields=["status"])

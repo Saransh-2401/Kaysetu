@@ -19,13 +19,18 @@ def _on_field_order_booked(**payload):
 
     from django.utils import timezone
 
+    from apps.foundation.models import TenantUser
+
     from . import services
 
+    # Preserve which agent booked the order (agent_id is a TenantUser pk in the
+    # same tenant DB). .filter().first() so a missing id degrades to None.
+    agent = TenantUser.objects.filter(pk=payload.get("agent_id")).first()
     services.create_order(
         customer_id=payload.get("party_id"),
         order_date=timezone.localdate(),
         items=payload.get("items", []),
-        assigned_agent=None,
+        assigned_agent=agent,
         source=services.SalesOrder.Source.FIELD,
         field_order_id=payload.get("order_id"),
         notes=f"From field order {payload.get('order_number', '')}",
