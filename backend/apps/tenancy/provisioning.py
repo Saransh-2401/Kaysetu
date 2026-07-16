@@ -128,8 +128,6 @@ def _apply_baseline(tenant, modules, owner_password):
         },
     )
 
-    _write_snapshot(modules)
-
     admin_role, _ = Role.objects.get_or_create(
         slug="admin",
         defaults={"name": "Admin", "is_system": True, "permissions": {"*": ["*"]}},
@@ -152,7 +150,10 @@ def _apply_baseline(tenant, modules, owner_password):
             owner.set_unusable_password()
         owner.save()
 
+    # Seed per-module baseline (e.g. BOOKS chart of accounts) BEFORE flipping the
+    # entitlement gate on, so an entitled module can never observe missing setup.
     _apply_module_setup(modules)
+    _write_snapshot(modules)
 
 
 def _apply_module_setup(modules):
@@ -167,6 +168,10 @@ def _apply_module_setup(modules):
 
         if not Warehouse.objects.exists():
             Warehouse.objects.create(name="Main Warehouse", code="MAIN", is_default=True)
+    if "BOOKS" in modules:
+        from apps.books.services import seed_chart_of_accounts
+
+        seed_chart_of_accounts()
 
 
 def _ensure_role_templates(modules):

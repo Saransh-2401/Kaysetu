@@ -154,10 +154,12 @@ def issue_invoice(order: SalesOrder) -> Invoice:
     invoice = Invoice.objects.create(
         order=order, invoice_number=_num("INV"), invoice_date=timezone.localdate(), total=order.total,
     )
-    # BOOKS subscribes to post this to the ledger when present.
+    # BOOKS subscribes to post this to the ledger when present. subtotal + tax_amount
+    # let it split output GST out of revenue (Dr AR / Cr Sales / Cr GST Payable).
     events.emit(
         "orders.invoice_issued",
-        invoice_id=invoice.pk, order_id=order.pk, party_id=order.customer_id, total=str(order.total),
+        invoice_id=invoice.pk, order_id=order.pk, party_id=order.customer_id,
+        total=str(order.total), subtotal=str(order.subtotal), tax_amount=str(order.tax_amount),
     )
     return invoice
 
@@ -184,6 +186,12 @@ def record_payment(order: SalesOrder, *, amount, mode="cash", reference="") -> P
         else:
             locked.payment_status = SalesOrder.PaymentStatus.PENDING
         locked.save(update_fields=["amount_paid", "payment_status", "updated_at"])
-    events.emit("orders.payment_recorded", order_id=order.pk, amount=str(amount))
+    # party_id + payment_id let BOOKS post an idempotent receipt against the
+    # right customer's receivable; mode routes it to Cash vs Bank (no import back).
+    events.emit(
+        "orders.payment_recorded",
+        order_id=order.pk, payment_id=payment.pk, party_id=order.customer_id,
+        amount=str(amount), mode=mode,
+    )
     order.refresh_from_db()
     return payment

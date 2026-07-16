@@ -260,14 +260,15 @@ export const accountsApi = {
   getPurchaseOverview: () =>
     apiClient.get<PurchaseOverview>('/analytics/purchase/overview/'),
 
+  // Financial statements — computed from the BOOKS general ledger.
   getCashFlow: (params: Record<string, string>) =>
-    apiClient.get<CashFlowData>('/reports/financials/cash-flow/', params),
+    apiClient.get<CashFlowData>('/t/books/reports/cash-flow/', params),
 
   getProfitLoss: (params: Record<string, string>) =>
-    apiClient.get<ProfitLossData>('/reports/financials/profit-loss/', params),
+    apiClient.get<ProfitLossData>('/t/books/reports/profit-loss/', params),
 
   getBalanceSheet: (params: Record<string, string>) =>
-    apiClient.get<BalanceSheetData>('/reports/financials/balance-sheet/', params),
+    apiClient.get<BalanceSheetData>('/t/books/reports/balance-sheet/', params),
 
   getSalesInvoices: (params: Record<string, string>) =>
     apiClient.get<PaginatedResponse<SalesInvoiceResult>>('/sales/invoices/', params),
@@ -284,10 +285,11 @@ export const accountsApi = {
   markStockInvoicePaid: (id: number, data: { payment_reference: string; payment_date: string }) =>
     apiClient.post<StockRequestInvoiceResult>(`/distributor-inventory/invoices/${id}/mark_paid/`, data),
 
+  // Chart of Accounts + general ledger — BOOKS module.
   getAccounts: (params?: Record<string, string>) =>
-    apiClient.get<PaginatedResponse<Account>>('/accounts/accounts/', params),
+    apiClient.get<PaginatedResponse<Account>>('/t/books/accounts/', params),
 
   getAccountLedger: (id: number, params?: Record<string, string>) =>
-    apiClient.get<AccountLedger>(`/accounts/accounts/${id}/ledger/`, params),
+    apiClient.get<AccountLedger>(`/t/books/accounts/${id}/ledger/`, params),
 
 };

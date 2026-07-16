@@ -160,8 +160,10 @@ export const purchaseService = {
         return apiClient.get<{ count: number; results: SupplierPriceHistoryItem[] }>(`/purchase/suppliers/${id}/price-history/`);
     },
 
+    // Suppliers are foundation Parties; the BOOKS-backed party ledger serves both
+    // customer and supplier statements via one decoupled foundation URL.
     async getSupplierLedger(id: number, params?: Record<string, string>) {
-        return apiClient.get<SupplierLedger>(`/purchase/suppliers/${id}/ledger/`, params);
+        return apiClient.get<SupplierLedger>(`/t/parties/${id}/ledger/`, params);
     },
 
     async createSupplier(data: Partial<Supplier>) {

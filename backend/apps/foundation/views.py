@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -306,6 +307,23 @@ class PartyViewSet(viewsets.ModelViewSet):
         if kind:
             qs = qs.filter(kind__in=[kind, Party.Kind.BOTH])
         return qs
+
+    @action(detail=True, methods=["get"])
+    def ledger(self, request, pk=None):
+        """Customer/supplier statement. Foundation owns the stable URL but the
+        data lives in BOOKS — ask the capability registry (no import). Returns an
+        empty statement when BOOKS is not entitled, so the screen degrades cleanly."""
+        from apps.foundation.integration import capabilities
+
+        party = self.get_object()
+        empty = {"customer": {"id": party.id, "name": party.name}, "currency": "INR",
+                 "opening_balance": 0.0, "lines": [], "closing_balance": 0.0}
+        data = capabilities.call(
+            "books.party_ledger", party.id,
+            request.query_params.get("from_date"), request.query_params.get("to_date"),
+            default=empty,
+        )
+        return Response(data)
 
 
 class ModulePingView(APIView):
