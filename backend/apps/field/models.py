@@ -187,6 +187,12 @@ class FieldOrder(models.Model):
     class Meta:
         ordering = ["-order_date", "-id"]
         indexes = [models.Index(fields=["agent", "-order_date"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client_uuid"], condition=~Q(client_uuid=""),
+                name="field_order_unique_client_uuid",
+            )
+        ]
 
     def __str__(self):
         return self.order_number
@@ -223,3 +229,12 @@ class Collection(models.Model):
     against_invoice = models.CharField(max_length=64, blank=True)
     collected_at = models.DateTimeField(auto_now_add=True)
     client_uuid = models.CharField(max_length=64, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ["-collected_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client_uuid"], condition=~Q(client_uuid=""),
+                name="field_collection_unique_client_uuid",
+            )
+        ]

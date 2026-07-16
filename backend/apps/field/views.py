@@ -2,9 +2,11 @@
 FIELD API — Field Sales Operations. All gated by HasModule('FIELD').
 Mounted under /api/t/field/.
 """
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -64,9 +66,20 @@ class VisitViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        # Agents book against themselves; managers may assign.
-        agent_id = serializer.validated_data.get("agent")
-        if agent_id is None or not _is_manager(self.request.user):
+        # Agents book against themselves; managers may assign — but only within
+        # their own team (an admin's visible set is None = unrestricted).
+        agent = serializer.validated_data.get("agent")
+        if agent is None or not _is_manager(self.request.user):
+            serializer.save(agent=self.request.user)
+            return
+        visible = _visible_agent_ids(self.request.user)
+        if visible is not None and agent.pk not in visible:
+            raise PermissionDenied("Cannot assign a visit to an agent outside your team.")
+        serializer.save()
+
+    def perform_update(self, serializer):
+        # A non-manager cannot reassign their own visit to someone else.
+        if not _is_manager(self.request.user):
             serializer.save(agent=self.request.user)
         else:
             serializer.save()
@@ -74,10 +87,18 @@ class VisitViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         client_uuid = request.data.get("client_uuid")
         if client_uuid:
-            existing = Visit.objects.filter(client_uuid=client_uuid).first()
+            existing = Visit.objects.filter(client_uuid=client_uuid, agent=request.user).first()
             if existing:
                 return Response(VisitSerializer(existing).data, status=200)
-        return super().create(request, *args, **kwargs)
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            # Lost the idempotency race — return the winning row, not a 500.
+            if client_uuid:
+                existing = Visit.objects.filter(client_uuid=client_uuid).first()
+                if existing:
+                    return Response(VisitSerializer(existing).data, status=200)
+            raise
 
     @action(detail=False, methods=["get"], url_path="check-pending")
     def check_pending(self, request):
@@ -142,8 +163,10 @@ class VisitViewSet(viewsets.ModelViewSet):
         data = request.data
         if not (data.get("reason") and data.get("visit_date") and data.get("scheduled_time")):
             return Response({"detail": "reason, visit_date, scheduled_time required."}, status=400)
-        if visit.status == Visit.Status.COMPLETED:
-            return Response({"detail": "Visit already completed."}, status=400)
+        # Only an open visit can be rescheduled — a rescheduled/skipped/completed
+        # one cannot, so a retry can't keep minting new visits.
+        if visit.status not in (Visit.Status.SCHEDULED, Visit.Status.IN_PROGRESS):
+            return Response({"detail": "Only a scheduled or in-progress visit can be rescheduled."}, status=400)
         visit.status = Visit.Status.RESCHEDULED
         visit.reschedule_reason = data["reason"]
         visit.rescheduled_to = data["visit_date"]
@@ -164,6 +187,14 @@ class VisitViewSet(viewsets.ModelViewSet):
 class SalesTargetViewSet(viewsets.ModelViewSet):
     permission_classes = [FieldModule]
     serializer_class = SalesTargetSerializer
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # Agents may only READ targets (and use the gated default/bulk-assign
+        # actions); the standard write verbs are manager-only to prevent
+        # tampering with the performance denominators.
+        if self.action in {"create", "update", "partial_update", "destroy"} and not _is_manager(request.user):
+            self.permission_denied(request, message="Manager access required.")
 
     def get_queryset(self):
         qs = SalesTarget.objects.prefetch_related("city_targets")
@@ -198,10 +229,17 @@ class SalesTargetViewSet(viewsets.ModelViewSet):
         agent_id = request.query_params.get("agent")
         if not agent_id:
             return Response({"detail": "agent required."}, status=400)
+        try:
+            agent_id = int(agent_id)
+        except (TypeError, ValueError):
+            return Response({"detail": "agent must be numeric."}, status=400)
+        visible = _visible_agent_ids(request.user)
+        if visible is not None and agent_id not in visible:
+            return Response({"detail": "Not found."}, status=404)
         now = timezone.localdate()
         month = int(request.query_params.get("month", now.month))
         year = int(request.query_params.get("year", now.year))
-        return Response(services.target_performance(int(agent_id), month, year))
+        return Response(services.target_performance(agent_id, month, year))
 
     @action(detail=False, methods=["post"], url_path="bulk-assign")
     def bulk_assign(self, request):
@@ -212,6 +250,10 @@ class SalesTargetViewSet(viewsets.ModelViewSet):
         month, year = data.get("month"), data.get("year")
         if not agent_ids or not month or not year:
             return Response({"detail": "agent_ids, month, year required."}, status=400)
+        # A non-admin manager may only assign to their own team.
+        visible = _visible_agent_ids(request.user)
+        if visible is not None and any(int(a) not in visible for a in agent_ids):
+            return Response({"detail": "Cannot assign targets to agents outside your team."}, status=403)
         fields = {
             k: data.get(k, 0) for k in [
                 "visit_target", "order_target", "stock_request_target", "revenue_target",

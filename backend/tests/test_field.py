@@ -86,6 +86,54 @@ def test_field_order_booking_emits_event(api, make_tenant, tenant_token):
     assert fired and fired[-1]["order_number"] == order.data["order_number"]  # event for ORDERS module
 
 
+def test_review_fixes_money_and_rbac(api, make_tenant, tenant_token):
+    """Review fixes: bad order lines -> 400 (not 500/persisted); agent cannot
+    tamper with targets or read another agent's performance; idempotent orders."""
+    tenant, _ = make_tenant(package_code="P2")
+    token, agent_id = _agent(api, tenant, tenant_token)
+    owner = tenant_token(tenant)["access"]
+    party_id = _party(api, owner)
+    item = auth(api, owner).post("/api/t/catalog/", {"name": "Ghee", "price": "500"}).data
+    client = auth(api, token)
+
+    # negative qty rejected
+    bad = client.post("/api/t/field/orders/", {
+        "party": party_id, "items": [{"item": item["id"], "quantity": -3, "rate": "500"}],
+    })
+    assert bad.status_code == 400
+    # missing item id rejected
+    assert client.post("/api/t/field/orders/", {"party": party_id, "items": [{"quantity": 1}]}).status_code == 400
+
+    # idempotent order (same client_uuid -> one order)
+    body = {"party": party_id, "client_uuid": "ord-abc-1",
+            "items": [{"item": item["id"], "item_name": "Ghee", "quantity": 2, "rate": "500"}]}
+    o1 = client.post("/api/t/field/orders/", body)
+    o2 = client.post("/api/t/field/orders/", body)
+    assert o1.data["order_number"] == o2.data["order_number"]
+
+    # an agent cannot create/delete targets (manager-only)
+    assert client.post("/api/t/field/targets/", {"visit_target": 5}).status_code == 403
+    # an agent cannot read another agent's performance
+    assert client.get("/api/t/field/targets/performance/?agent=999999").status_code == 404
+
+
+def test_reschedule_is_bounded(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P2")
+    token, agent_id = _agent(api, tenant, tenant_token)
+    owner = tenant_token(tenant)["access"]
+    party_id = _party(api, owner)
+    client = auth(api, token)
+    v = client.post("/api/t/field/visits/", {
+        "party": party_id, "visit_date": str(timezone.localdate()), "scheduled_time": "10:00",
+    }).data
+    payload = {"reason": "customer away", "visit_date": str(timezone.localdate() + timedelta(days=1)), "scheduled_time": "11:00"}
+    first = client.post(f"/api/t/field/visits/{v['id']}/reschedule/", payload)
+    assert first.status_code == 200
+    # a second reschedule of the now-RESCHEDULED original is refused (no unbounded minting)
+    second = client.post(f"/api/t/field/visits/{v['id']}/reschedule/", payload)
+    assert second.status_code == 400
+
+
 def test_field_is_package_gated(api, make_tenant, tenant_token):
     tenant, _ = make_tenant(package_code="P1")  # TRACK only, NO FIELD
     token = tenant_token(tenant)["access"]

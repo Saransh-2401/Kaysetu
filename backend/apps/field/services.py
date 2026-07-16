@@ -3,16 +3,34 @@ FIELD domain services. Cross-module reads go through the capability registry;
 cross-module effects are emitted as events — FIELD never imports another module.
 """
 import math
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Min, Sum
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from apps.foundation.integration import capabilities, events
+from apps.tenancy.context import require_tenant
+from apps.tenancy.db import ensure_alias
 
 from .models import Collection, FieldOrder, FieldOrderItem, SalesCityTarget, SalesTarget, Visit
 
 VISIT_GEOFENCE_M = 250.0  # a checkin is GPS-verified if within this of the tracked position
+MAX_AMOUNT = Decimal("9999999999.99")  # NUMERIC(12,2) ceiling
+
+
+def _to_decimal(value, field):
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValidationError({field: "must be a number."})
+
+
+def _tenant_atomic():
+    """A transaction bound to the ACTIVE TENANT's DB (a bare atomic() would wrap
+    the control DB). Use for multi-row writes that must commit together."""
+    return transaction.atomic(using=ensure_alias(require_tenant()))
 
 
 def _haversine_m(lat1, lng1, lat2, lng2) -> float:
@@ -62,7 +80,9 @@ def check_out_visit(visit: Visit, *, lat=None, lng=None, address="", notes="", o
 
 # ------------------------------------------------------------------- orders
 def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") -> FieldOrder:
-    """Create a field order + items, recompute totals server-side, emit event."""
+    """Create a field order + items atomically, recompute totals server-side,
+    emit the event only after commit. Validates each line (400 on bad input);
+    idempotent + race-tolerant on client_uuid."""
     if client_uuid:
         existing = FieldOrder.objects.filter(client_uuid=client_uuid).first()
         if existing:
@@ -71,26 +91,44 @@ def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") 
     subtotal = tax_total = Decimal("0")
     prepared = []
     for line in items:
-        qty = Decimal(str(line.get("quantity", 1)))
-        rate = Decimal(str(line.get("rate", 0)))
-        tax_rate = Decimal(str(line.get("tax_rate", 0)))
+        item_id = line.get("item")
+        if item_id is None:
+            raise ValidationError({"items": "each line requires an 'item' id."})
+        qty = _to_decimal(line.get("quantity", 1), "quantity")
+        rate = _to_decimal(line.get("rate", 0), "rate")
+        tax_rate = _to_decimal(line.get("tax_rate", 0), "tax_rate")
+        if qty <= 0:
+            raise ValidationError({"quantity": "must be greater than 0."})
+        if rate < 0 or tax_rate < 0 or tax_rate > 100:
+            raise ValidationError({"rate": "rate must be >= 0 and tax_rate within 0..100."})
         line_amount = (qty * rate).quantize(Decimal("0.01"))
+        if line_amount > MAX_AMOUNT:
+            raise ValidationError({"amount": "line amount exceeds the maximum allowed."})
         line_tax = (line_amount * tax_rate / 100).quantize(Decimal("0.01"))
         subtotal += line_amount
         tax_total += line_tax
-        prepared.append((line, qty, rate, tax_rate, line_amount))
+        prepared.append((item_id, line.get("item_name", ""), qty, rate, tax_rate, line_amount))
+    if subtotal + tax_total > MAX_AMOUNT:
+        raise ValidationError({"total": "order total exceeds the maximum allowed."})
 
-    order = FieldOrder.objects.create(
-        order_number="FO-" + timezone.now().strftime("%y%m%d%H%M%S%f")[:16],
-        agent=agent, party_id=party_id, order_date=order_date,
-        subtotal=subtotal, tax_amount=tax_total, total=subtotal + tax_total,
-        notes=notes, client_uuid=client_uuid,
-    )
-    for line, qty, rate, tax_rate, line_amount in prepared:
-        FieldOrderItem.objects.create(
-            order=order, item_id=line["item"], item_name=line.get("item_name", ""),
-            quantity=qty, rate=rate, tax_rate=tax_rate, amount=line_amount,
-        )
+    try:
+        with _tenant_atomic():
+            order = FieldOrder.objects.create(
+                order_number="FO-" + timezone.now().strftime("%y%m%d%H%M%S%f")[:16],
+                agent=agent, party_id=party_id, order_date=order_date,
+                subtotal=subtotal, tax_amount=tax_total, total=subtotal + tax_total,
+                notes=notes, client_uuid=client_uuid,
+            )
+            for item_id, item_name, qty, rate, tax_rate, line_amount in prepared:
+                FieldOrderItem.objects.create(
+                    order=order, item_id=item_id, item_name=item_name,
+                    quantity=qty, rate=rate, tax_rate=tax_rate, amount=line_amount,
+                )
+    except IntegrityError:
+        if client_uuid:
+            return FieldOrder.objects.get(client_uuid=client_uuid)  # lost the idempotency race
+        raise
+
     events.emit(
         "field.order_booked",
         order_id=order.pk, order_number=order.order_number,
@@ -104,10 +142,20 @@ def record_collection(agent, *, party_id, amount, mode, reference="", against_in
         existing = Collection.objects.filter(client_uuid=client_uuid).first()
         if existing:
             return existing
-    collection = Collection.objects.create(
-        agent=agent, party_id=party_id, amount=Decimal(str(amount)), mode=mode,
-        reference=reference, against_invoice=against_invoice, client_uuid=client_uuid,
-    )
+    amt = _to_decimal(amount, "amount")
+    if amt <= 0:
+        raise ValidationError({"amount": "must be a positive amount."})
+    if amt > MAX_AMOUNT:
+        raise ValidationError({"amount": "exceeds the maximum allowed."})
+    try:
+        collection = Collection.objects.create(
+            agent=agent, party_id=party_id, amount=amt, mode=mode,
+            reference=reference, against_invoice=against_invoice, client_uuid=client_uuid,
+        )
+    except IntegrityError:
+        if client_uuid:
+            return Collection.objects.get(client_uuid=client_uuid)
+        raise
     events.emit(
         "field.collection_recorded",
         collection_id=collection.pk, agent_id=agent.pk, party_id=party_id,
