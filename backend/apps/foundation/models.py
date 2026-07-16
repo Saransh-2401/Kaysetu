@@ -25,7 +25,10 @@ class Role(models.Model):
 
 
 class TenantUser(models.Model):
-    """A user inside one tenant. Deliberately NOT Django's AUTH_USER_MODEL."""
+    """A user inside one tenant. Deliberately NOT Django's AUTH_USER_MODEL.
+
+    Field set ported in full from the previous platform's User model — KYC,
+    address, geo and business fields included."""
 
     email = models.EmailField(unique=True, db_index=True)
     phone = models.CharField(max_length=20, blank=True)
@@ -34,7 +37,36 @@ class TenantUser(models.Model):
     role = models.ForeignKey(Role, null=True, on_delete=models.SET_NULL, related_name="users")
     is_owner = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+
+    # Profile & KYC
+    profile_image = models.URLField(max_length=500, blank=True)
+    aadhaar_card = models.URLField(max_length=500, blank=True)
+    aadhaar_number = models.CharField(max_length=12, blank=True)
+    pan_card = models.URLField(max_length=500, blank=True)
+    pan_number = models.CharField(max_length=10, blank=True)
+
+    # Address
+    address_line1 = models.CharField(max_length=200, blank=True)
+    address_line2 = models.CharField(max_length=200, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
+    country = models.CharField(max_length=100, default="India")
+    full_address = models.TextField(blank=True)
+
+    # Business fields (distributor-style users)
+    business_name = models.CharField(max_length=200, blank=True)
+    gst_number = models.CharField(max_length=15, blank=True)
+    shipping_address = models.TextField(blank=True)
+
+    # Geo — work + home (home feeds the Travel Allowance distance basis)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+    home_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    home_longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+
     last_login = models.DateTimeField(null=True, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

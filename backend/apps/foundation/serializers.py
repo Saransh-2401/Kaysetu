@@ -23,17 +23,50 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class TenantUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=8)
+    password_confirm = serializers.CharField(write_only=True, required=False)
     role_slug = serializers.SlugRelatedField(
         source="role", slug_field="slug", queryset=Role.objects.all(), required=False, allow_null=True
+    )
+    aadhaar_number = serializers.RegexField(
+        r"^\d{12}$", required=False, allow_blank=True,
+        error_messages={"invalid": "Aadhaar number must be exactly 12 digits."},
+    )
+    pan_number = serializers.RegexField(
+        r"^[A-Z]{5}[0-9]{4}[A-Z]$", required=False, allow_blank=True,
+        error_messages={"invalid": "PAN must look like ABCDE1234F."},
+    )
+    gst_number = serializers.RegexField(
+        r"^\d{2}[A-Z]{5}\d{4}[A-Z]\d[A-Z\d]{2}$", required=False, allow_blank=True,
+        error_messages={"invalid": "Enter a valid 15-character GSTIN."},
     )
 
     class Meta:
         model = TenantUser
         fields = [
-            "id", "email", "phone", "full_name", "role_slug",
-            "is_owner", "is_active", "last_login", "password",
+            "id", "email", "phone", "full_name", "role_slug", "is_owner", "is_active",
+            "profile_image", "aadhaar_card", "aadhaar_number", "pan_card", "pan_number",
+            "address_line1", "address_line2", "city", "state", "postal_code", "country",
+            "full_address", "business_name", "gst_number", "shipping_address",
+            "latitude", "longitude", "home_latitude", "home_longitude",
+            "last_login", "last_seen", "created_at",
+            "password", "password_confirm",
         ]
-        read_only_fields = ["is_owner", "last_login"]
+        read_only_fields = ["is_owner", "last_login", "last_seen", "created_at"]
+
+    def validate(self, data):
+        password = data.get("password")
+        confirm = data.pop("password_confirm", None)
+        if password:
+            if confirm is not None and password != confirm:
+                raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+            from django.contrib.auth.password_validation import validate_password
+            from django.core.exceptions import ValidationError as DjangoValidationError
+
+            try:
+                validate_password(password)
+            except DjangoValidationError as error:
+                raise serializers.ValidationError({"password": list(error.messages)})
+        return data
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)

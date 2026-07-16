@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { api, ApiError, type PublicPackage } from "@/lib/api";
+import { api, ApiError, passwordError, type PublicPackage } from "@/lib/api";
 
 const INDUSTRIES = [
   { value: "manufacturing", label: "Manufacturing" },
@@ -36,9 +36,12 @@ function SignupForm() {
     owner_email: "",
     owner_phone: "",
     password: "",
+    password_confirm: "",
     package_code: params.get("package") ?? "P2",
     industry: "generic",
   });
+  const [touched, setTouched] = useState(false);
+  const pwError = touched ? passwordError(form.password, form.password_confirm) : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SignupResult | null>(null);
@@ -54,6 +57,8 @@ function SignupForm() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setTouched(true);
+    if (passwordError(form.password, form.password_confirm)) return;
     setBusy(true);
     setError(null);
     try {
@@ -132,9 +137,18 @@ function SignupForm() {
             </Stack>
             <TextField label="Work email" type="email" required value={form.owner_email} onChange={set("owner_email")}
               inputProps={{ "data-testid": "signup-email-input" }} />
-            <TextField label="Password" type="password" required helperText="Minimum 8 characters"
-              value={form.password} onChange={set("password")}
+            <TextField label="Password" type="password" required
+              error={Boolean(pwError) && !pwError?.includes("match")}
+              helperText={pwError && !pwError.includes("match") ? pwError : "Min 8 characters, at least one letter and one number"}
+              value={form.password}
+              onChange={(e) => { setTouched(true); setForm((f) => ({ ...f, password: e.target.value })); }}
               inputProps={{ "data-testid": "signup-password-input", minLength: 8 }} />
+            <TextField label="Confirm password" type="password" required
+              error={Boolean(pwError?.includes("match"))}
+              helperText={pwError?.includes("match") ? pwError : " "}
+              value={form.password_confirm}
+              onChange={(e) => { setTouched(true); setForm((f) => ({ ...f, password_confirm: e.target.value })); }}
+              inputProps={{ "data-testid": "signup-password-confirm-input", minLength: 8 }} />
             <TextField select label="Industry" value={form.industry} onChange={set("industry")}
               data-testid="signup-industry-select">
               {INDUSTRIES.map((industry) => (

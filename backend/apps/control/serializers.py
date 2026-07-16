@@ -90,6 +90,7 @@ class SignupSerializer(serializers.Serializer):
     owner_email = serializers.EmailField()
     owner_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
     password = serializers.CharField(min_length=8, max_length=128)
+    password_confirm = serializers.CharField(max_length=128)
     package_code = serializers.CharField(max_length=16)
     industry = serializers.ChoiceField(choices=Tenant.Industry.choices, default=Tenant.Industry.GENERIC)
     seats = serializers.IntegerField(required=False, min_value=1, default=None, allow_null=True)
@@ -98,3 +99,15 @@ class SignupSerializer(serializers.Serializer):
         if not Package.objects.filter(code=value, is_published=True, is_addon=False).exists():
             raise serializers.ValidationError("Unknown or unpublished package.")
         return value
+
+    def validate(self, data):
+        if data["password"] != data.pop("password_confirm"):
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        try:
+            validate_password(data["password"])
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"password": list(error.messages)})
+        return data

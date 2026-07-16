@@ -119,6 +119,17 @@ export interface PortalContext {
 
 export const CONTEXT_UPDATED_EVENT = "salexa:portal-context-updated";
 
+/** Mirrors the backend password rules (min 8, not all-numeric, not trivially
+ * common). Returns an error message or null when acceptable. */
+export function passwordError(password: string, confirm?: string): string | null {
+  if (password.length < 8) return "Password must be at least 8 characters.";
+  if (/^\d+$/.test(password)) return "Password cannot be only numbers.";
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password))
+    return "Use at least one letter and one number.";
+  if (confirm !== undefined && password !== confirm) return "Passwords do not match.";
+  return null;
+}
+
 /** Merge fresh org fields into the stored portal context and notify listeners
  * (e.g. the layout re-themes instantly after an Appearance change). */
 export function updatePortalOrg(partialOrg: Partial<PortalContext["org"]>) {

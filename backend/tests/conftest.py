@@ -79,6 +79,7 @@ def make_tenant(api, db):
             "owner_email": email or f"owner{n}@acme.test",
             "owner_phone": "9999999999",
             "password": "owner-pass-123",
+            "password_confirm": "owner-pass-123",
             "package_code": package_code,
             "industry": industry,
         }

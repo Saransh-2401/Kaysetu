@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
-import { api, type Paginated } from "@/lib/api";
+import { api, passwordError, type Paginated } from "@/lib/api";
 
 interface TeamUser {
   id: number;
@@ -26,7 +26,7 @@ interface Role {
   is_system: boolean;
 }
 
-const EMPTY_FORM = { email: "", full_name: "", phone: "", role_slug: "", password: "" };
+const EMPTY_FORM = { email: "", full_name: "", phone: "", role_slug: "", password: "", password_confirm: "" };
 
 export default function TeamPage() {
   const [rows, setRows] = useState<TeamUser[]>([]);
@@ -125,15 +125,24 @@ export default function TeamPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField label="Password" type="password" required helperText="Minimum 8 characters"
+            <TextField label="Password" type="password" required
+              error={Boolean(form.password) && Boolean(passwordError(form.password))}
+              helperText={form.password ? passwordError(form.password) ?? " " : "Min 8 characters, one letter + one number"}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               inputProps={{ "data-testid": "portal-team-password-input", minLength: 8 }} />
+            <TextField label="Confirm password" type="password" required
+              error={Boolean(form.password_confirm) && form.password !== form.password_confirm}
+              helperText={form.password_confirm && form.password !== form.password_confirm ? "Passwords do not match." : " "}
+              value={form.password_confirm}
+              onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
+              inputProps={{ "data-testid": "portal-team-password-confirm-input", minLength: 8 }} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)} data-testid="portal-team-cancel-btn">Cancel</Button>
-          <Button variant="contained" onClick={save} disabled={!form.email || !form.full_name || form.password.length < 8}
+          <Button variant="contained" onClick={save}
+            disabled={!form.email || !form.full_name || Boolean(passwordError(form.password, form.password_confirm))}
             data-testid="portal-team-save-btn">
             Add member
           </Button>

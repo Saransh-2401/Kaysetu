@@ -13,7 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { api, getContext, updatePortalOrg, type PortalContext } from "@/lib/api";
+import { api, passwordError, updatePortalOrg } from "@/lib/api";
 import { SCHEMES } from "@/schemes";
 
 const STEPS = [
@@ -49,7 +49,7 @@ export default function SetupWizardPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   // Step-local state
-  const [invite, setInvite] = useState({ email: "", full_name: "", role_slug: "", password: "" });
+  const [invite, setInvite] = useState({ email: "", full_name: "", role_slug: "", password: "", password_confirm: "" });
   const [roles, setRoles] = useState<{ slug: string; name: string }[]>([]);
   const [teamCount, setTeamCount] = useState(0);
   const [item, setItem] = useState({ name: "", kind: "product", price: "0", tax_rate: "18" });
@@ -219,14 +219,21 @@ export default function SetupWizardPage() {
                   ))}
                 </TextField>
                 <TextField label="Password" type="password" fullWidth value={invite.password}
+                  error={Boolean(invite.password) && Boolean(passwordError(invite.password))}
+                  helperText={invite.password ? passwordError(invite.password) ?? " " : "Min 8 chars, one letter + one number"}
                   onChange={(e) => setInvite({ ...invite, password: e.target.value })}
                   inputProps={{ "data-testid": "portal-setup-teampassword-input" }} />
+                <TextField label="Confirm" type="password" fullWidth value={invite.password_confirm}
+                  error={Boolean(invite.password_confirm) && invite.password !== invite.password_confirm}
+                  onChange={(e) => setInvite({ ...invite, password_confirm: e.target.value })}
+                  inputProps={{ "data-testid": "portal-setup-teampasswordconfirm-input" }} />
               </Stack>
-              <Button variant="outlined" disabled={!invite.email || !invite.full_name || invite.password.length < 8}
+              <Button variant="outlined"
+                disabled={!invite.email || !invite.full_name || Boolean(passwordError(invite.password, invite.password_confirm))}
                 onClick={async () => {
                   await api("portal", "/t/users/", { method: "POST", body: invite });
                   setTeamCount((count) => count + 1);
-                  setInvite({ email: "", full_name: "", role_slug: "", password: "" });
+                  setInvite({ email: "", full_name: "", role_slug: "", password: "", password_confirm: "" });
                   setToast("Member added");
                 }}
                 data-testid="portal-setup-teamadd-btn">

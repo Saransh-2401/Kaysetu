@@ -60,6 +60,31 @@ def test_reprovisioning_is_idempotent(make_tenant):
     assert tenant.jobs.filter(status="done").count() >= 2
 
 
+def test_signup_password_rules(api, db):
+    def try_signup(**overrides):
+        payload = {
+            "company_name": "PwRules Co", "owner_name": "O", "owner_email": "pw@x.test",
+            "owner_phone": "", "password": "owner-pass-123", "password_confirm": "owner-pass-123",
+            "package_code": "P1", "industry": "generic",
+        }
+        payload.update(overrides)
+        return api.post("/api/public/signup", payload)
+
+    mismatch = try_signup(password_confirm="different-999")
+    assert mismatch.status_code == 400
+    assert "password_confirm" in mismatch.data
+
+    numeric = try_signup(password="12345678", password_confirm="12345678")
+    assert numeric.status_code == 400
+    assert "password" in numeric.data
+
+    common = try_signup(password="password", password_confirm="password")
+    assert common.status_code == 400
+
+    missing_confirm = try_signup(password_confirm=None)
+    assert missing_confirm.status_code == 400
+
+
 def test_public_packages_lists_published(api, db):
     response = api.get("/api/public/packages")
     assert response.status_code == 200
