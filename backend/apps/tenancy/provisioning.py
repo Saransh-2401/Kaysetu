@@ -152,6 +152,17 @@ def _apply_baseline(tenant, modules, owner_password):
             owner.set_unusable_password()
         owner.save()
 
+    _apply_module_setup(modules)
+
+
+def _apply_module_setup(modules):
+    """Per-module baseline data (idempotent). Only for entitled modules; a
+    module's setup never imports another module."""
+    if "TRACK" in modules:
+        from apps.tracking.models import TrackingSettings
+
+        TrackingSettings.objects.get_or_create(pk=1)
+
 
 def _ensure_role_templates(modules):
     from apps.foundation.models import Role
@@ -179,12 +190,20 @@ def _write_snapshot(modules):
 def sync_entitlements(tenant):
     """Push the control-plane entitlement state into the tenant DB snapshot.
 
-    Called whenever the SuperAdmin (or a purchase) changes a tenant's modules.
-    Also creates role templates for newly-added modules.
+    Called whenever the SuperAdmin (or a purchase) enables/disables a tenant's
+    modules. Because a newly-enabled module may ship tables the tenant DB does
+    not yet have, we MIGRATE first, then apply the module's baseline, then flip
+    the entitlement snapshot LAST inside an atomic block — so a schema-dependent
+    failure can never leave the runtime gate on with no schema behind it. This
+    is what makes "upgrade to another module later" self-sufficient.
     """
+    from django.db import transaction
+
     modules = tenant.entitled_modules()
-    ensure_alias(tenant)
-    with use_tenant(tenant):
-        _write_snapshot(modules)
+    alias = ensure_alias(tenant)
+    call_command("migrate", database=alias, interactive=False, verbosity=0)
+    with use_tenant(tenant), transaction.atomic(using=alias):
         _ensure_role_templates(modules)
+        _apply_module_setup(modules)
+        _write_snapshot(modules)  # gate flips on only after setup succeeds
     return modules

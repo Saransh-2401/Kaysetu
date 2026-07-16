@@ -35,6 +35,11 @@ class TenantUser(models.Model):
     full_name = models.CharField(max_length=200)
     password = models.CharField(max_length=128)
     role = models.ForeignKey(Role, null=True, on_delete=models.SET_NULL, related_name="users")
+    # Manager hierarchy — a field agent reports to a field/sales manager. Drives
+    # team-scoped RBAC and manager alerts across modules (tracking, field, TA).
+    reports_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="team_members"
+    )
     is_owner = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 

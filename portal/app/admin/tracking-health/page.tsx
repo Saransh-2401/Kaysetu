@@ -46,8 +46,7 @@ export default function TrackingHealthPage() {
 
     const load = useCallback(async () => {
         try {
-            const res: any = await apiClient.get(
-                "/field-sales/daily-reports/tracking-health/");
+            const res: any = await apiClient.get("/t/track/tracking-health");
             setAgents(res?.agents ?? []);
             setAsOf(res?.as_of ?? "");
             setError(null);

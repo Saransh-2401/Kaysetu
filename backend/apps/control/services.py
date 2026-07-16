@@ -90,8 +90,22 @@ def set_tenant_modules(tenant: Tenant, module_codes: list[str]) -> list[str]:
             tenant=tenant, module_code=code, source=TenantModule.Source.MANUAL
         )
 
-    ProvisioningJob.objects.create(
-        tenant=tenant, job_type=ProvisioningJob.Type.SYNC, status=ProvisioningJob.Status.DONE,
-        log="entitlement sync via set_tenant_modules\n", finished_at=timezone.now(),
+    # Record the SYNC job truthfully: RUNNING -> DONE only if the tenant-DB
+    # sync (migrate + module setup + snapshot) actually succeeds, else FAILED.
+    job = ProvisioningJob.objects.create(
+        tenant=tenant, job_type=ProvisioningJob.Type.SYNC,
+        status=ProvisioningJob.Status.RUNNING,
+        log="entitlement sync via set_tenant_modules\n",
     )
-    return sync_entitlements(tenant)
+    try:
+        modules = sync_entitlements(tenant)
+    except Exception as exc:
+        job.status = ProvisioningJob.Status.FAILED
+        job.append_log(f"FAILED: {exc}")
+        job.finished_at = timezone.now()
+        job.save(update_fields=["status", "log", "finished_at"])
+        raise
+    job.status = ProvisioningJob.Status.DONE
+    job.finished_at = timezone.now()
+    job.save(update_fields=["status", "finished_at"])
+    return modules

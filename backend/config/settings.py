@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.tenancy",
     "apps.foundation",
     "apps.billing",
+    "apps.tracking",
 ]
 
 MIDDLEWARE = [
@@ -84,7 +85,7 @@ DATABASE_ROUTERS = ["apps.tenancy.router.TenantRouter"]
 
 # Tenant-plane configuration. App labels listed here live ONLY in tenant DBs.
 TENANCY = {
-    "TENANT_APP_LABELS": ["foundation"],
+    "TENANT_APP_LABELS": ["foundation", "tracking"],
     "DB_ENGINE": os.environ.get("TENANT_DB_ENGINE", "sqlite"),  # sqlite | postgres
     "SQLITE_DIR": Path(os.environ.get("TENANT_SQLITE_DIR", BASE_DIR / "var" / "tenants")),
     "DB_PREFIX": "salexa_t_",
@@ -150,7 +151,11 @@ if not DEBUG:
     CORS_ALLOWED_ORIGINS = [o for o in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if o]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+# Operational wall-clock timezone (attendance day rollover, auto-punchout time).
+# Datetimes are still STORED in UTC (USE_TZ=True); this only sets the default
+# zone for localdate()/localtime()/get_current_timezone(). Default = India
+# (the target market). Per-tenant timezones would activate() this per request.
+TIME_ZONE = os.environ.get("TIME_ZONE", "Asia/Kolkata")
 USE_I18N = False
 USE_TZ = True
 
