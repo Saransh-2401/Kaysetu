@@ -131,7 +131,12 @@ def make_pick_list(order: SalesOrder, picker=None) -> PickList:
 def make_delivery_note(order: SalesOrder, **fields) -> DeliveryNote:
     dn = DeliveryNote.objects.create(order=order, note_number=_num("DN"), **fields)
     _transition(order, SalesOrder.Status.IN_TRANSIT, note="delivery note created")
-    events.emit("orders.dispatched", order_id=order.pk)
+    # Carry line items so INV can deduct stock (no import back into ORDERS).
+    events.emit(
+        "orders.dispatched",
+        order_id=order.pk, order_number=order.order_number,
+        items=[{"item_id": i.item_id, "quantity": str(i.quantity)} for i in order.items.all()],
+    )
     return dn
 
 

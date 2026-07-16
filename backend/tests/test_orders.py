@@ -115,16 +115,26 @@ def test_orders_is_package_gated(api, make_tenant, tenant_token):
 
 
 def test_inventory_seam_degrades_without_inv(api, make_tenant, tenant_token):
-    """confirm + stock-warnings work with no INV module (capability returns None)."""
-    # P8 has ORDERS but (in this build) no INV capability provider registered yet.
+    """ORDERS runs standalone: when INV is not entitled, the inventory.* seams
+    return None and ORDERS degrades gracefully (no warnings, confirm still works).
+
+    Every shipped package that includes ORDERS also bundles INV, so we simulate
+    an ORDERS-only entitlement by dropping INV from the snapshot — proving the
+    capability is entitlement-gated, not merely provider-presence-gated."""
+    from apps.foundation.models import EntitlementSnapshot
+    from apps.tenancy.context import use_tenant
+
     tenant, _ = make_tenant(package_code="P4")
+    with use_tenant(tenant):  # entitle ORDERS only — INV provider stays registered but un-entitled
+        EntitlementSnapshot.objects.update_or_create(pk=1, defaults={"modules": ["ORDERS"]})
+
     token = tenant_token(tenant)["access"]
     client = auth(api, token)
     party, item = _party(api, token), _item(api, token)
     order = client.post("/api/t/sales-orders/", {
         "customer": party, "order_date": str(timezone.localdate()),
         "items": [{"item": item, "item_name": "Soap", "quantity": 5, "rate": "30"}]}).data
-    # no INV -> no warnings, confirm succeeds
+    # INV not entitled -> capability returns None -> no warnings, confirm succeeds
     assert client.get(f"/api/t/sales-orders/{order['id']}/stock-warnings/").data["warnings"] == []
     assert client.post(f"/api/t/sales-orders/{order['id']}/confirm/").status_code == 200
 

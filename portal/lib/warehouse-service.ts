@@ -185,17 +185,25 @@ export const warehouseService = {
         return apiClient.delete(`/warehouse/products/${id}/`);
     },
 
-    // ===== Warehouses =====
+    // ===== Warehouses (INV module: /t/inv/warehouses/) =====
+    // The SaaS backend uses canonical field names (name/code); map to the
+    // legacy Warehouse shape the imported screens expect.
     async getWarehouses(params?: Record<string, string>) {
-        return apiClient.get<{ results: Warehouse[] }>('/warehouse/warehouses/', params);
+        const res = await apiClient.get<{ results: any[] }>('/t/inv/warehouses/', params);
+        return { ...res, results: (res.results || []).map(mapWarehouse) };
     },
 
     async getWarehouse(id: number) {
-        return apiClient.get<Warehouse>(`/warehouse/warehouses/${id}/`);
+        return mapWarehouse(await apiClient.get<any>(`/t/inv/warehouses/${id}/`));
     },
 
     async createWarehouse(data: Partial<Warehouse>) {
-        return apiClient.post<Warehouse>('/warehouse/warehouses/', data);
+        const payload: any = {
+            name: data.warehouse_name,
+            code: data.abbreviation,
+            is_active: data.is_active ?? true,
+        };
+        return mapWarehouse(await apiClient.post<any>('/t/inv/warehouses/', payload));
     },
 
     // ===== Stock Entries =====
@@ -215,15 +223,28 @@ export const warehouseService = {
         return apiClient.post(`/warehouse/stock-entries/${id}/submit/`, {});
     },
 
-    // ===== Stock Ledger (Read-only) =====
+    // ===== Stock Ledger (Read-only) — INV module: /t/inv/stock-ledger/ =====
+    // The INV serializer exposes legacy aliases (transaction_date/voucher_type/
+    // voucher_no/balance_qty/...), so rows render against the same screen.
     async getStockLedger(params?: Record<string, string>) {
-        return apiClient.get<{ results: StockLedger[], count: number }>('/warehouse/stock-ledger/', params);
+        return apiClient.get<{ results: StockLedger[], count: number }>('/t/inv/stock-ledger/', params);
     },
 
     async getStockLedgerActivity(id: number) {
-        return apiClient.get<StockLedgerActivity>(`/warehouse/stock-ledger/${id}/activity/`);
+        return apiClient.get<StockLedgerActivity>(`/t/inv/stock-ledger/${id}/activity/`);
     },
 };
+
+// Map the canonical INV warehouse payload onto the legacy Warehouse shape.
+function mapWarehouse(w: any): Warehouse {
+    return {
+        id: w.id,
+        warehouse_name: w.name ?? w.warehouse_name ?? '',
+        abbreviation: w.code ?? w.abbreviation ?? '',
+        warehouse_type: w.is_default ? 'main' : (w.warehouse_type ?? ''),
+        is_active: w.is_active ?? true,
+    };
+}
 
 export interface StockLedgerActivityEvent {
     timestamp: string;

@@ -162,6 +162,11 @@ def _apply_module_setup(modules):
         from apps.tracking.models import TrackingSettings
 
         TrackingSettings.objects.get_or_create(pk=1)
+    if "INV" in modules:
+        from apps.inventory.models import Warehouse
+
+        if not Warehouse.objects.exists():
+            Warehouse.objects.create(name="Main Warehouse", code="MAIN", is_default=True)
 
 
 def _ensure_role_templates(modules):
