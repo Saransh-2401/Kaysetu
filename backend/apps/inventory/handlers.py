@@ -83,9 +83,35 @@ def _on_dist_dispatched(**payload):
         services.issue_for_dispatch(item_id, line.get("quantity", 0), reference=reference)
 
 
+def _on_materials_consumed(**payload):
+    """PROD consumed raw materials on a completed work order — deduct them."""
+    if not _inv_entitled():
+        return
+
+    from . import services
+
+    reference = payload.get("order_number", "")
+    for line in payload.get("items", []):
+        item_id = line.get("item_id")
+        if item_id is None:
+            continue
+        services.issue_for_dispatch(item_id, line.get("quantity", 0), reference=reference)
+
+
+def _on_goods_produced(**payload):
+    """PROD finished goods — receive them into stock (same path as a GRN)."""
+    _on_goods_received(
+        receipt_number=payload.get("order_number", ""),
+        warehouse_id=payload.get("warehouse_id"),
+        items=payload.get("items", []),
+    )
+
+
 def register_all():
     from apps.foundation.integration import events
 
     events.subscribe("orders.dispatched", _on_order_dispatched)
     events.subscribe("purchase.goods_received", _on_goods_received)
     events.subscribe("dist.stock_dispatched", _on_dist_dispatched)
+    events.subscribe("prod.materials_consumed", _on_materials_consumed)
+    events.subscribe("prod.goods_produced", _on_goods_produced)

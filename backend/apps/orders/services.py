@@ -29,7 +29,11 @@ _ALLOWED_TRANSITIONS = {
 
 
 def _num(prefix):
-    return prefix + "-" + timezone.now().strftime("%y%m%d%H%M%S%f")[:16]
+    # Full microseconds + random suffix. The old form truncated to 100µs, so two
+    # documents created in the same instant collided on the unique number.
+    import secrets
+
+    return f"{prefix}-{timezone.now().strftime('%y%m%d%H%M%S%f')}-{secrets.token_hex(2)}"
 
 
 def _to_decimal(value, field):

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.books",
     "apps.purchase",
     "apps.distribution",
+    "apps.production",
 ]
 
 MIDDLEWARE = [
@@ -92,7 +93,7 @@ DATABASE_ROUTERS = ["apps.tenancy.router.TenantRouter"]
 
 # Tenant-plane configuration. App labels listed here live ONLY in tenant DBs.
 TENANCY = {
-    "TENANT_APP_LABELS": ["foundation", "tracking", "field", "crm", "orders", "inventory", "books", "purchase", "distribution"],
+    "TENANT_APP_LABELS": ["foundation", "tracking", "field", "crm", "orders", "inventory", "books", "purchase", "distribution", "production"],
     "DB_ENGINE": os.environ.get("TENANT_DB_ENGINE", "sqlite"),  # sqlite | postgres
     "SQLITE_DIR": Path(os.environ.get("TENANT_SQLITE_DIR", BASE_DIR / "var" / "tenants")),
     "DB_PREFIX": "salexa_t_",

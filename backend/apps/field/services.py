@@ -3,6 +3,7 @@ FIELD domain services. Cross-module reads go through the capability registry;
 cross-module effects are emitted as events — FIELD never imports another module.
 """
 import math
+import secrets
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
@@ -114,7 +115,8 @@ def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") 
     try:
         with _tenant_atomic():
             order = FieldOrder.objects.create(
-                order_number="FO-" + timezone.now().strftime("%y%m%d%H%M%S%f")[:16],
+                order_number=("FO-" + timezone.now().strftime("%y%m%d%H%M%S%f")
+                              + "-" + secrets.token_hex(2)),
                 agent=agent, party_id=party_id, order_date=order_date,
                 subtotal=subtotal, tax_amount=tax_total, total=subtotal + tax_total,
                 notes=notes, client_uuid=client_uuid,
