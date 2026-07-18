@@ -8,7 +8,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.control.models import Tenant
-from apps.tenancy.context import use_tenant
+from apps.tenancy.context import get_tenant, use_tenant
 
 from .auth import SCOPE_TENANT, decode_token, make_token_pair, resolve_user
 from .module_map import build_effective_permissions
@@ -325,6 +325,41 @@ class PartyViewSet(viewsets.ModelViewSet):
             default=empty,
         )
         return Response(data)
+
+
+class CurrentCompanyView(APIView):
+    """Portal-compat: the tenant's own company profile.
+
+    Invoice/PO previews and print headers across the imported screens read this,
+    so it is served from OrgSettings rather than a separate Company table.
+    """
+
+    permission_classes = [IsTenantUser]
+
+    def get(self, request):
+        org = OrgSettings.objects.filter(pk=1).first()
+        tenant = get_tenant()
+        address = (org.address if org and isinstance(getattr(org, "address", None), dict) else {}) or {}
+        payload = {
+            "id": 1,
+            "name": (org.company_name if org else None) or (tenant.name if tenant else ""),
+            "legal_name": (org.company_name if org else "") or "",
+            "tax_id": getattr(org, "gstin", "") or "",
+            "email": getattr(org, "email", "") or "",
+            "phone": getattr(org, "phone", "") or "",
+            "address": address,
+            "full_address": ", ".join(
+                str(v) for v in [address.get("line1"), address.get("line2"), address.get("city"),
+                                 address.get("state"), address.get("postal_code")] if v
+            ),
+            "industry": (org.industry if org else "") or "",
+            "currency": "INR",
+            "org_code": tenant.org_code if tenant else "",
+        }
+        # the portal calls this both as a detail and a list endpoint
+        if request.query_params.get("as") == "list":
+            return Response({"count": 1, "results": [payload]})
+        return Response(payload)
 
 
 class EventDeliveryView(APIView):

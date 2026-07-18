@@ -8,11 +8,19 @@ from rest_framework.response import Response
 from apps.foundation.permissions import HasModule
 
 from . import services
-from .models import DistributorInvoice, DistributorStock, StockRequest
+from .models import (
+    DistributorAdjustment,
+    DistributorInvoice,
+    DistributorStock,
+    StockRequest,
+    StockRequestShortage,
+)
 from .serializers import (
+    DistributorAdjustmentSerializer,
     DistributorInvoiceSerializer,
     DistributorStockSerializer,
     StockRequestSerializer,
+    StockRequestShortageSerializer,
 )
 
 DistModule = HasModule("DIST")
@@ -153,6 +161,48 @@ class StockRequestViewSet(viewsets.ModelViewSet):
     def cancel(self, request, pk=None):
         return self.reject(request, pk=pk)
 
+    @action(detail=True, methods=["post"], url_path="mark_packed",
+            permission_classes=[DistModule, IsDistManager])
+    def mark_packed(self, request, pk=None):
+        services.mark_packed(self.get_object(), actor=request.user)
+        return self._fresh()
+
+    @action(detail=True, methods=["get"], url_path="check_inventory")
+    def check_inventory(self, request, pk=None):
+        """What the company can actually supply against this request right now."""
+        return Response(services.check_inventory(self.get_object()))
+
+    @action(detail=True, methods=["post"], url_path="update_payment_status",
+            permission_classes=[DistModule, IsDistManager])
+    def update_payment_status(self, request, pk=None):
+        req = self.get_object()
+        target = request.data.get("payment_status")
+        valid = {c for c, _ in StockRequest.PaymentStatus.choices}
+        if target not in valid:
+            return Response({"detail": f"payment_status must be one of {sorted(valid)}."},
+                            status=400)
+        req.payment_status = target
+        req.save(update_fields=["payment_status", "updated_at"])
+        return self._fresh()
+
+    # POST (not DELETE) — that is the verb the imported portal uses.
+    @action(detail=True, methods=["post"], url_path="delete_invoice",
+            permission_classes=[DistModule, IsDistManager])
+    def delete_invoice(self, request, pk=None):
+        """Void an unpaid invoice so a corrected one can be raised."""
+        req = self.get_object()
+        invoices = req.invoices.all()
+        invoice_id = request.data.get("invoice_id")
+        invoice = (invoices.filter(pk=invoice_id).first() if invoice_id else invoices.first())
+        if invoice is None:
+            return Response({"detail": "This request has no such invoice."}, status=404)
+        if (invoice.paid_amount or 0) > 0:
+            return Response({"detail": "A part-paid invoice cannot be deleted."}, status=400)
+        invoice.delete()
+        req.payment_status = StockRequest.PaymentStatus.UNPAID
+        req.save(update_fields=["payment_status", "updated_at"])
+        return self._fresh()
+
 
 class DistributorInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [DistModule]
@@ -189,6 +239,140 @@ class DistributorInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
             reference=request.data.get("payment_reference", ""),
         )
         return Response(DistributorInvoiceSerializer(self.get_object()).data)
+
+
+class StockRequestShortageViewSet(viewsets.ReadOnlyModelViewSet):
+    """Back-orders: the part of a request the company could not supply.
+
+    Each has its own lifecycle (usually through production) and ships separately,
+    so unmet distributor demand is tracked rather than dropped at approval.
+    """
+
+    serializer_class = StockRequestShortageSerializer
+    pagination_class = DistPagination
+
+    _ACTION_TARGETS = {
+        "start_production": StockRequestShortage.Status.IN_PRODUCTION,
+        "complete_production": StockRequestShortage.Status.COMPLETED,
+        "mark_packed": StockRequestShortage.Status.PACKED,
+        "mark_in_transit": StockRequestShortage.Status.IN_TRANSIT,
+        "mark_delivered": StockRequestShortage.Status.DELIVERED,
+    }
+
+    def get_permissions(self):
+        if self.action in (set(self._ACTION_TARGETS) | {"generate_invoice", "mark_paid",
+                                                        "batch_pack", "batch_ship",
+                                                        "batch_deliver"}):
+            return [DistModule(), IsDistManager()]
+        return [DistModule()]
+
+    def get_queryset(self):
+        qs = StockRequestShortage.objects.select_related("request", "request__distributor", "item")
+        params = self.request.query_params
+        if params.get("status"):
+            qs = qs.filter(status__in=[s.strip() for s in params["status"].split(",") if s.strip()])
+        if params.get("distributor"):
+            qs = qs.filter(request__distributor_id=params["distributor"])
+        return _scope_to_own_party(qs, self.request.user, field="request__distributor_id")
+
+    def _advance(self, target, plan_id=None):
+        shortage = services.set_shortage_status(
+            self.get_object(), target, production_plan_id=plan_id, actor=self.request.user,
+        )
+        return Response(StockRequestShortageSerializer(shortage).data)
+
+    @action(detail=True, methods=["post"], url_path="start_production")
+    def start_production(self, request, pk=None):
+        return self._advance(StockRequestShortage.Status.IN_PRODUCTION,
+                             plan_id=request.data.get("production_plan_id"))
+
+    @action(detail=True, methods=["post"], url_path="complete_production")
+    def complete_production(self, request, pk=None):
+        return self._advance(StockRequestShortage.Status.COMPLETED)
+
+    @action(detail=True, methods=["post"], url_path="mark_packed")
+    def mark_packed(self, request, pk=None):
+        return self._advance(StockRequestShortage.Status.PACKED)
+
+    @action(detail=True, methods=["post"], url_path="mark_in_transit")
+    def mark_in_transit(self, request, pk=None):
+        return self._advance(StockRequestShortage.Status.IN_TRANSIT)
+
+    @action(detail=True, methods=["post"], url_path="mark_delivered")
+    def mark_delivered(self, request, pk=None):
+        return self._advance(StockRequestShortage.Status.DELIVERED)
+
+    @action(detail=True, methods=["post"], url_path="generate_invoice")
+    def generate_invoice(self, request, pk=None):
+        shortage = self.get_object()
+        shortage.payment_status = StockRequestShortage.PaymentStatus.INVOICED
+        shortage.save(update_fields=["payment_status", "updated_at"])
+        return Response(StockRequestShortageSerializer(shortage).data)
+
+    @action(detail=True, methods=["post"], url_path="mark_paid")
+    def mark_paid(self, request, pk=None):
+        shortage = self.get_object()
+        shortage.payment_status = StockRequestShortage.PaymentStatus.PAID
+        shortage.save(update_fields=["payment_status", "updated_at"])
+        return Response(StockRequestShortageSerializer(shortage).data)
+
+    def _batch(self, request, target):
+        ids = request.data.get("ids") or []
+        if not isinstance(ids, list) or not ids:
+            return Response({"detail": "ids must be a non-empty list."}, status=400)
+        done, failed = [], []
+        for shortage in self.get_queryset().filter(pk__in=ids):
+            try:
+                services.set_shortage_status(shortage, target, actor=request.user)
+                done.append(shortage.pk)
+            except Exception as exc:  # a bad row must not abort the whole batch
+                failed.append({"id": shortage.pk, "error": str(exc)})
+        return Response({"updated": done, "failed": failed})
+
+    @action(detail=False, methods=["post"], url_path="batch_pack")
+    def batch_pack(self, request):
+        return self._batch(request, StockRequestShortage.Status.PACKED)
+
+    @action(detail=False, methods=["post"], url_path="batch_ship")
+    def batch_ship(self, request):
+        return self._batch(request, StockRequestShortage.Status.IN_TRANSIT)
+
+    @action(detail=False, methods=["post"], url_path="batch_deliver")
+    def batch_deliver(self, request):
+        return self._batch(request, StockRequestShortage.Status.DELIVERED)
+
+
+class DistributorAdjustmentViewSet(viewsets.ModelViewSet):
+    """Manual corrections to a distributor's own holding (damage/return/audit)."""
+
+    serializer_class = DistributorAdjustmentSerializer
+    pagination_class = DistPagination
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [DistModule(), IsDistManager()]
+        return [DistModule()]
+
+    def get_queryset(self):
+        qs = DistributorAdjustment.objects.select_related("distributor", "item", "created_by")
+        params = self.request.query_params
+        if params.get("distributor"):
+            qs = qs.filter(distributor_id=params["distributor"])
+        if params.get("item"):
+            qs = qs.filter(item_id=params["item"])
+        return _scope_to_own_party(qs, self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        adj = services.adjust_distributor_stock(
+            distributor_id=request.data.get("distributor"),
+            item_id=request.data.get("item"),
+            quantity=request.data.get("quantity"),
+            reason=request.data.get("reason", "other"),
+            notes=request.data.get("notes", ""),
+            actor=request.user,
+        )
+        return Response(DistributorAdjustmentSerializer(adj).data, status=201)
 
 
 class DistributorStockViewSet(viewsets.ReadOnlyModelViewSet):

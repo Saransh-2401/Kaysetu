@@ -14,13 +14,17 @@ from apps.foundation.integration import capabilities, events
 from apps.tenancy.context import require_tenant
 from apps.tenancy.db import ensure_alias
 
+from django.db.models import F
+
 from .models import (
+    DistributorAdjustment,
     DistributorInvoice,
     DistributorPayment,
     DistributorStock,
     StockRequest,
     StockRequestItem,
     StockRequestLog,
+    StockRequestShortage,
 )
 
 logger = logging.getLogger("salexa.distribution")
@@ -113,11 +117,27 @@ def create_stock_request(*, distributor_id, items, notes=""):
 
 _TRANSITIONS = {
     StockRequest.Status.PENDING: {StockRequest.Status.APPROVED, StockRequest.Status.REJECTED},
-    StockRequest.Status.APPROVED: {StockRequest.Status.DISPATCHED, StockRequest.Status.REJECTED},
+    # packing is an optional staging step the portal exposes; dispatch may also
+    # be called directly from approved.
+    StockRequest.Status.APPROVED: {StockRequest.Status.PACKED, StockRequest.Status.DISPATCHED,
+                                   StockRequest.Status.REJECTED},
+    StockRequest.Status.PACKED: {StockRequest.Status.DISPATCHED, StockRequest.Status.REJECTED},
     StockRequest.Status.DISPATCHED: {StockRequest.Status.DELIVERED},
     StockRequest.Status.DELIVERED: set(),
     StockRequest.Status.REJECTED: set(),
 }
+
+
+def mark_packed(req, *, actor=None):
+    with _tenant_atomic():
+        locked = StockRequest.objects.select_for_update().get(pk=req.pk)
+        _guard(locked, StockRequest.Status.PACKED)
+        previous = locked.status
+        locked.status = StockRequest.Status.PACKED
+        locked.save(update_fields=["status", "updated_at"])
+        _log(locked, previous, "packed", actor)
+    req.refresh_from_db()
+    return req
 
 
 def _log(req, previous, note="", actor=None):
@@ -174,6 +194,21 @@ def approve_request(req, *, actor=None, allocations=None):
             if approved > 0:
                 capabilities.call("inventory.reserve", line.item_id, float(approved), default=None)
 
+            # Record what we could NOT supply as a tracked back-order, so the
+            # distributor's unmet demand survives approval instead of vanishing.
+            # Done HERE, off the freshly-computed line — reading req.items.all()
+            # afterwards would return the caller's stale prefetch cache.
+            if line.shortage_quantity > 0:
+                StockRequestShortage.objects.update_or_create(
+                    request_id=req.pk, item_id=line.item_id,
+                    defaults={"item_name": line.item_name,
+                              "shortage_quantity": line.shortage_quantity,
+                              "unit_price": line.unit_price},
+                )
+            else:
+                StockRequestShortage.objects.filter(
+                    request_id=req.pk, item_id=line.item_id).delete()
+
         previous = req.status
         req.status = StockRequest.Status.APPROVED
         req.total_amount = total
@@ -182,6 +217,103 @@ def approve_request(req, *, actor=None, allocations=None):
         req.save(update_fields=["status", "total_amount", "has_shortage", "approved_by", "updated_at"])
         _log(req, previous, "approved", actor)
     return req
+
+
+# ------------------------------------------------------------------ shortages
+_SHORTAGE_TRANSITIONS = {
+    StockRequestShortage.Status.PENDING: {StockRequestShortage.Status.PLAN_CREATED,
+                                          StockRequestShortage.Status.IN_PRODUCTION,
+                                          StockRequestShortage.Status.CANCELLED},
+    StockRequestShortage.Status.PLAN_CREATED: {StockRequestShortage.Status.IN_PRODUCTION,
+                                               StockRequestShortage.Status.CANCELLED},
+    StockRequestShortage.Status.IN_PRODUCTION: {StockRequestShortage.Status.COMPLETED,
+                                                StockRequestShortage.Status.CANCELLED},
+    StockRequestShortage.Status.COMPLETED: {StockRequestShortage.Status.PACKED,
+                                            StockRequestShortage.Status.CANCELLED},
+    StockRequestShortage.Status.PACKED: {StockRequestShortage.Status.IN_TRANSIT,
+                                         StockRequestShortage.Status.CANCELLED},
+    StockRequestShortage.Status.IN_TRANSIT: {StockRequestShortage.Status.DELIVERED},
+    StockRequestShortage.Status.DELIVERED: set(),
+    StockRequestShortage.Status.CANCELLED: set(),
+}
+
+
+def set_shortage_status(shortage, target, *, production_plan_id=None, actor=None):
+    """Advance a back-order. Delivering it moves the stock for real: company
+    stock out (INV) and the distributor's own book up — the same movement a
+    normal dispatch makes, just for the part that was short."""
+    with _tenant_atomic():
+        locked = StockRequestShortage.objects.select_for_update().get(pk=shortage.pk)
+        if target not in _SHORTAGE_TRANSITIONS.get(locked.status, set()):
+            raise ValidationError(
+                f"Cannot move a {locked.get_status_display()} shortage to {target}."
+            )
+        locked.status = target
+        if production_plan_id is not None:
+            locked.production_plan_id = production_plan_id
+        locked.save(update_fields=["status", "production_plan_id", "updated_at"])
+
+        payload = []
+        if target == StockRequestShortage.Status.DELIVERED:
+            qty = locked.shortage_quantity or Decimal("0")
+            if qty > 0:
+                stock, _ = DistributorStock.objects.get_or_create(
+                    distributor_id=locked.request.distributor_id, item_id=locked.item_id
+                )
+                DistributorStock.objects.filter(pk=stock.pk).update(on_hand=F("on_hand") + qty)
+                payload.append({"item_id": locked.item_id, "quantity": str(qty)})
+
+        if payload:
+            events.emit("dist.stock_dispatched", request_id=locked.request_id,
+                        request_number=f"{locked.request.number}-SHORT", items=payload)
+    shortage.refresh_from_db()
+    return shortage
+
+
+# ---------------------------------------------------------------- adjustments
+def adjust_distributor_stock(*, distributor_id, item_id, quantity, reason="other",
+                             notes="", actor=None):
+    """Correct a distributor's own holding (damage/return/audit), never below zero."""
+    delta = _dec(quantity, "quantity")
+    if delta == 0:
+        raise ValidationError({"quantity": "an adjustment cannot be zero."})
+    with _tenant_atomic():
+        stock, _ = DistributorStock.objects.select_for_update().get_or_create(
+            distributor_id=distributor_id, item_id=item_id
+        )
+        new_balance = (stock.on_hand or Decimal("0")) + delta
+        if new_balance < 0:
+            raise ValidationError(
+                {"quantity": f"would take stock below zero (holding {stock.on_hand})."}
+            )
+        stock.on_hand = new_balance
+        stock.save(update_fields=["on_hand", "updated_at"])
+        from apps.foundation.models import CatalogItem
+
+        item = CatalogItem.objects.filter(pk=item_id).first()
+        return DistributorAdjustment.objects.create(
+            distributor_id=distributor_id, item_id=item_id,
+            item_name=item.name if item else "", quantity=delta, reason=reason,
+            balance_after=new_balance, notes=notes, created_by=actor,
+        )
+
+
+def check_inventory(req):
+    """What the company can actually supply against this request right now."""
+    stock_of = capabilities.get("inventory.stock_of")
+    rows = []
+    for line in req.items.all():
+        available = _dec(stock_of(line.item_id), "stock") if stock_of else None
+        wanted = line.requested_quantity
+        rows.append({
+            "item": line.item_id,
+            "item_name": line.item_name,
+            "requested_quantity": float(wanted),
+            "available_qty": float(available) if available is not None else None,
+            "can_fulfil": bool(available is None or available >= wanted),
+            "shortage": float(max(Decimal("0"), wanted - available)) if available is not None else 0.0,
+        })
+    return {"inventory_available": stock_of is not None, "items": rows}
 
 
 def reject_request(req, *, reason, actor=None):

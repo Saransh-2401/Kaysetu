@@ -38,6 +38,7 @@ class StockRequest(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
+        PACKED = "packed", "Packed"
         DISPATCHED = "dispatched", "Dispatched"
         DELIVERED = "delivered", "Delivered"
         REJECTED = "rejected", "Rejected"
@@ -86,6 +87,87 @@ class StockRequestItem(models.Model):
 
     class Meta:
         ordering = ["id"]
+
+
+class StockRequestShortage(models.Model):
+    """The part of a request the company could NOT supply — a tracked back-order.
+
+    It gets its own lifecycle (often via production) and ships separately, so the
+    distributor's outstanding demand is never silently dropped when a request is
+    approved short.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PLAN_CREATED = "plan_created", "Plan Created"
+        IN_PRODUCTION = "in_production", "In Production"
+        COMPLETED = "completed", "Completed"
+        PACKED = "packed", "Packed"
+        IN_TRANSIT = "in_transit", "In Transit"
+        DELIVERED = "delivered", "Delivered"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class PaymentStatus(models.TextChoices):
+        UNPAID = "unpaid", "Unpaid"
+        INVOICED = "invoiced", "Invoiced"
+        PAID = "paid", "Paid"
+
+    request = models.ForeignKey(StockRequest, on_delete=models.CASCADE, related_name="shortages")
+    item = models.ForeignKey("foundation.CatalogItem", on_delete=models.PROTECT,
+                             related_name="shortages")
+    item_name = models.CharField(max_length=200, blank=True)
+    shortage_quantity = models.DecimalField(max_digits=14, decimal_places=3)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=16, choices=Status.choices,
+                              default=Status.PENDING, db_index=True)
+    payment_status = models.CharField(max_length=12, choices=PaymentStatus.choices,
+                                      default=PaymentStatus.UNPAID)
+    # Loose reference to a PROD production plan (PROD owns that table; no FK so
+    # DIST stays import-free and works without PROD installed).
+    production_plan_id = models.IntegerField(null=True, blank=True)
+    invoice = models.ForeignKey(
+        "distribution.DistributorInvoice", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="shortage_items",
+    )
+    notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        unique_together = [("request", "item")]
+
+    @property
+    def total_price(self):
+        return (self.shortage_quantity or 0) * (self.unit_price or 0)
+
+
+class DistributorAdjustment(models.Model):
+    """A manual correction to a distributor's own stock (damage, return, audit)."""
+
+    class Reason(models.TextChoices):
+        DAMAGE = "damage", "Damaged"
+        RETURN = "return", "Returned"
+        AUDIT = "audit", "Stock Audit"
+        OTHER = "other", "Other"
+
+    distributor = models.ForeignKey("foundation.Party", on_delete=models.CASCADE,
+                                    related_name="stock_adjustments")
+    item = models.ForeignKey("foundation.CatalogItem", on_delete=models.PROTECT,
+                             related_name="distributor_adjustments")
+    item_name = models.CharField(max_length=200, blank=True)
+    quantity = models.DecimalField(max_digits=14, decimal_places=3)   # signed: + in, - out
+    reason = models.CharField(max_length=12, choices=Reason.choices, default=Reason.OTHER)
+    balance_after = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    notes = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(
+        "foundation.TenantUser", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="distributor_adjustments",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
 
 
 class StockRequestLog(models.Model):

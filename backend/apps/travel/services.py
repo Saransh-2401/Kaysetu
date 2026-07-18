@@ -136,6 +136,114 @@ def build_claim(agent, *, period_start, period_end, city=""):
     return claim
 
 
+def recalculate_claim(claim, *, city=""):
+    """Re-price a claim from its trips — after a policy rate change or a basis
+    correction. Only while it is still editable; an approved/paid claim is a
+    financial record and must not silently change value."""
+    if claim.status not in (AllowanceClaim.Status.DRAFT, AllowanceClaim.Status.SUBMITTED):
+        raise ValidationError("Only a draft or submitted claim can be recalculated.")
+
+    with _tenant_atomic():
+        locked = AllowanceClaim.objects.select_for_update().get(pk=claim.pk)
+        total_km = amount = Decimal("0")
+        for trip in locked.trips.all():
+            policy = policy_for(city=city, vehicle_type=trip.transport_mode)
+            rate = policy.rate_per_km if policy else Decimal("0")
+            day_amount = (trip.distance_km * rate).quantize(CENT)
+            if policy and policy.max_daily_limit is not None:
+                day_amount = min(day_amount, policy.max_daily_limit)
+            total_km += trip.distance_km
+            amount += day_amount
+        first = locked.trips.first()
+        if first is not None:
+            monthly = policy_for(city=city, vehicle_type=first.transport_mode)
+            if monthly and monthly.max_monthly_limit is not None:
+                amount = min(amount, monthly.max_monthly_limit)
+        locked.total_distance_km = total_km
+        locked.system_amount = amount
+        locked.approved_amount = amount
+        locked.save(update_fields=["total_distance_km", "system_amount", "approved_amount",
+                                   "updated_at"])
+    claim.refresh_from_db()
+    return claim
+
+
+def set_trip_basis(*, agent_id, date, basis):
+    """Admin sets whether a day's distance is measured from home or office."""
+    if basis not in ("home", "office", ""):
+        raise ValidationError({"basis": "must be 'home', 'office' or empty."})
+    day = _as_date(date, "date")
+    updated = Trip.objects.filter(agent_id=agent_id, date=day).update(basis=basis)
+    if not updated:
+        raise ValidationError({"date": "no trip recorded for that agent on that date."})
+    return Trip.objects.get(agent_id=agent_id, date=day)
+
+
+def claim_analytics(*, from_date=None, to_date=None, agent_id=None):
+    """Headline TA numbers for the analytics screen."""
+    from django.db.models import Avg, Count, F, Sum
+
+    qs = AllowanceClaim.objects.all()
+    if agent_id:
+        qs = qs.filter(agent_id=agent_id)
+    if from_date:
+        qs = qs.filter(period_start__gte=_as_date(from_date, "from_date"))
+    if to_date:
+        qs = qs.filter(period_end__lte=_as_date(to_date, "to_date"))
+
+    totals = qs.aggregate(
+        total_requests=Count("id"),
+        total_claimed=Sum("system_amount"),
+        total_approved=Sum("approved_amount"),
+    )
+    paid_qs = qs.filter(status=AllowanceClaim.Status.PAID)
+    total_paid = paid_qs.aggregate(s=Sum("approved_amount"))["s"] or Decimal("0")
+    pending = qs.exclude(
+        status__in=[AllowanceClaim.Status.PAID, AllowanceClaim.Status.REJECTED]
+    ).aggregate(s=Sum("approved_amount"))["s"] or Decimal("0")
+
+    decided = qs.exclude(status__in=[AllowanceClaim.Status.DRAFT,
+                                     AllowanceClaim.Status.SUBMITTED]).count()
+    approved_count = qs.filter(status__in=[
+        AllowanceClaim.Status.MANAGER_APPROVED, AllowanceClaim.Status.FINANCE_APPROVED,
+        AllowanceClaim.Status.PAID,
+    ]).count()
+    approval_rate = round(approved_count / decided * 100, 2) if decided else None
+
+    avg_days = paid_qs.annotate(days=F("paid_at") - F("created_at")).aggregate(
+        a=Avg("days"))["a"]
+    avg_processing_days = round(avg_days.days + avg_days.seconds / 86400, 2) if avg_days else None
+
+    breakdown = list(
+        Trip.objects.filter(claim__in=qs).values("transport_mode")
+        .annotate(count=Count("id")).order_by("-count")
+    )
+
+    today = timezone.localdate()
+    def _paid_since(start):
+        return float(paid_qs.filter(paid_at__date__gte=start).aggregate(
+            s=Sum("approved_amount"))["s"] or 0)
+
+    quarter_start = today.replace(month=((today.month - 1) // 3) * 3 + 1, day=1)
+    return {
+        "summary": {
+            "total_requests": totals["total_requests"] or 0,
+            "total_claimed": float(totals["total_claimed"] or 0),
+            "total_approved": float(totals["total_approved"] or 0),
+            "total_paid": float(total_paid),
+            "pending_amount": float(pending),
+        },
+        "approval_rate": approval_rate,
+        "avg_processing_days": avg_processing_days,
+        "transport_breakdown": breakdown,
+        "payment_rollups": {
+            "this_month": _paid_since(today.replace(day=1)),
+            "this_quarter": _paid_since(quarter_start),
+            "this_year": _paid_since(today.replace(month=1, day=1)),
+        },
+    }
+
+
 _TRANSITIONS = {
     AllowanceClaim.Status.DRAFT: {AllowanceClaim.Status.SUBMITTED},
     AllowanceClaim.Status.SUBMITTED: {AllowanceClaim.Status.MANAGER_APPROVED,

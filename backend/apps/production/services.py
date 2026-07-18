@@ -14,7 +14,15 @@ from apps.foundation.integration import capabilities, events
 from apps.tenancy.context import require_tenant
 from apps.tenancy.db import ensure_alias
 
-from .models import BillOfMaterials, BOMItem, WorkOrder, WorkOrderMaterial
+from .models import (
+    BillOfMaterials,
+    BOMItem,
+    JobCard,
+    ProductionPlan,
+    ProductionPlanItem,
+    WorkOrder,
+    WorkOrderMaterial,
+)
 
 logger = logging.getLogger("salexa.production")
 
@@ -117,6 +125,143 @@ def create_work_order(*, bom, planned_quantity, start_date=None, end_date=None,
             )
     events.emit("prod.order_created", order_id=order.pk, item_id=bom.item_id, quantity=str(planned))
     return order
+
+
+# ------------------------------------------------------------ production plans
+def check_material_availability(items):
+    """For a set of {item_id, quantity} finished goods, explode their BOMs and
+    report what raw material the plan needs vs what INV actually holds.
+
+    Aggregated ACROSS items, so a material shared by two planned products is
+    counted once against one pool of stock rather than appearing to be available
+    twice. Without INV installed, availability is reported as unknown (0).
+    """
+    from apps.foundation.models import CatalogItem
+
+    needed = {}
+    for line in items or []:
+        item_id = line.get("item_id") or line.get("item")
+        qty = _dec(line.get("quantity", line.get("planned_qty", 0)), "quantity")
+        if item_id in (None, "") or qty <= 0:
+            continue
+        bom = BillOfMaterials.objects.filter(item_id=item_id, is_active=True).order_by("-id").first()
+        if bom is None or not bom.output_quantity:
+            continue
+        factor = qty / bom.output_quantity
+        for mat in bom.materials.all():
+            needed[mat.raw_material_id] = (needed.get(mat.raw_material_id, Decimal("0"))
+                                           + (mat.quantity * factor))
+
+    stock_of = capabilities.get("inventory.stock_of")
+    names = {c.pk: c for c in CatalogItem.objects.filter(pk__in=needed.keys())}
+    results = []
+    for raw_id, qty_needed in needed.items():
+        available = _dec(stock_of(raw_id), "stock") if stock_of else Decimal("0")
+        catalog = names.get(raw_id)
+        shortage = max(Decimal("0"), qty_needed - available)
+        results.append({
+            "item_id": raw_id,
+            "item_name": catalog.name if catalog else str(raw_id),
+            "item_code": getattr(catalog, "sku", "") or f"ITEM-{raw_id}",
+            "qty_needed": float(qty_needed.quantize(QTY)),
+            "available_qty": float(available),
+            "shortage": float(shortage.quantize(QTY)),
+            "is_available": shortage == 0,
+            "uom": getattr(catalog, "unit", "") or "",
+        })
+    return results
+
+
+def create_plan(*, from_date, to_date, items, source="Manual", notes=""):
+    prepared = []
+    for line in items or []:
+        item = _catalog_item(line.get("item"), "item")
+        qty = _dec(line.get("planned_qty", line.get("quantity", 0)), "planned_qty")
+        if qty <= 0:
+            raise ValidationError({"planned_qty": "must be greater than zero."})
+        prepared.append((item, qty, line.get("priority", ProductionPlanItem.Priority.MEDIUM)))
+    if not prepared:
+        raise ValidationError({"items": "a plan needs at least one item."})
+
+    with _tenant_atomic():
+        plan = ProductionPlan.objects.create(
+            number=_num("PP"), batch_no=_num("BATCH"), from_date=from_date,
+            to_date=to_date, source=source, notes=notes,
+        )
+        for item, qty, priority in prepared:
+            ProductionPlanItem.objects.create(
+                plan=plan, item=item, item_name=item.name, planned_qty=qty, priority=priority,
+            )
+    return plan
+
+
+_PLAN_TRANSITIONS = {
+    ProductionPlan.Status.DRAFT: {ProductionPlan.Status.IN_PROGRESS,
+                                  ProductionPlan.Status.CANCELLED},
+    ProductionPlan.Status.IN_PROGRESS: {ProductionPlan.Status.COMPLETED,
+                                        ProductionPlan.Status.CANCELLED},
+    ProductionPlan.Status.COMPLETED: set(),
+    ProductionPlan.Status.CANCELLED: set(),
+}
+
+
+def set_plan_status(plan, target):
+    with _tenant_atomic():
+        locked = ProductionPlan.objects.select_for_update().get(pk=plan.pk)
+        if target not in _PLAN_TRANSITIONS.get(locked.status, set()):
+            raise ValidationError(
+                f"Cannot move a {locked.get_status_display()} plan to {target}."
+            )
+        locked.status = target
+        locked.save(update_fields=["status", "updated_at"])
+    plan.refresh_from_db()
+    return plan
+
+
+def refresh_plan_progress(plan):
+    """Percent complete = produced vs planned across the plan's items."""
+    planned = produced = Decimal("0")
+    for line in ProductionPlanItem.objects.filter(plan_id=plan.pk):
+        planned += line.planned_qty or Decimal("0")
+        produced += line.produced_qty or Decimal("0")
+    pct = (produced / planned * 100).quantize(CENT) if planned else Decimal("0")
+    ProductionPlan.objects.filter(pk=plan.pk).update(progress=min(pct, Decimal("100")))
+    return pct
+
+
+# ---------------------------------------------------------------- job cards
+def create_job_card(*, work_order, operation=None, workstation=None, assigned_to=None,
+                    for_quantity=None, remarks=""):
+    qty = (_dec(for_quantity, "for_quantity") if for_quantity is not None
+           else work_order.planned_quantity)
+    if qty <= 0:
+        raise ValidationError({"for_quantity": "must be greater than zero."})
+    return JobCard.objects.create(
+        number=_num("JC"), work_order=work_order, operation=operation,
+        operation_name=(operation.operation_name if operation else ""),
+        workstation=workstation, assigned_to=assigned_to, for_quantity=qty, remarks=remarks,
+    )
+
+
+def complete_job_card(card, *, quantity=None):
+    with _tenant_atomic():
+        locked = JobCard.objects.select_for_update().get(pk=card.pk)
+        if locked.status == JobCard.Status.COMPLETED:
+            raise ValidationError("This job card is already complete.")
+        done = _dec(quantity, "quantity") if quantity is not None else locked.for_quantity
+        if done <= 0:
+            raise ValidationError({"quantity": "must be greater than zero."})
+        if done > locked.for_quantity:
+            raise ValidationError(
+                {"quantity": f"exceeds the card's quantity ({locked.for_quantity})."}
+            )
+        locked.completed_quantity = done
+        locked.status = JobCard.Status.COMPLETED
+        locked.end_time = timezone.now()
+        locked.start_time = locked.start_time or timezone.now()
+        locked.save(update_fields=["completed_quantity", "status", "end_time", "start_time"])
+    card.refresh_from_db()
+    return card
 
 
 _TRANSITIONS = {

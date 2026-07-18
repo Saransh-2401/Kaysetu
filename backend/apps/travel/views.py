@@ -2,14 +2,30 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.foundation.permissions import HasModule
 
 from . import services
-from .models import AllowanceClaim, PolicyConfig, Trip
-from .serializers import AllowanceClaimSerializer, PolicyConfigSerializer, TripSerializer
+from .models import (
+    AgentBankDetail,
+    AllowanceClaim,
+    AllowanceDocument,
+    NotificationPreference,
+    PolicyConfig,
+    Trip,
+)
+from .serializers import (
+    AgentBankDetailSerializer,
+    AllowanceClaimSerializer,
+    AllowanceDocumentSerializer,
+    NotificationPreferenceSerializer,
+    PolicyConfigSerializer,
+    TripSerializer,
+)
 
 TaModule = HasModule("TA")
 MANAGER_ROLES = {"admin", "sales_manager", "field_manager", "hr_manager"}
@@ -179,3 +195,105 @@ class AllowanceClaimViewSet(viewsets.ModelViewSet):
             permission_classes=[TaModule, IsFinance])
     def finance_reject(self, request, pk=None):
         return self.reject(request, pk=pk)
+
+    @action(detail=True, methods=["post"])
+    def recalculate(self, request, pk=None):
+        """Re-price from the trips (after a rate change or basis correction)."""
+        claim = self.get_object()
+        if claim.agent_id != request.user.pk and not _has_role(request.user, MANAGER_ROLES):
+            return Response({"detail": "You can only recalculate your own claim."}, status=403)
+        services.recalculate_claim(claim, city=request.data.get("city", ""))
+        return self._fresh()
+
+    @action(detail=True, methods=["get", "post"], url_path="upload_document",
+            parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def upload_document(self, request, pk=None):
+        """Attach supporting evidence (receipt/toll/fuel) to a claim."""
+        claim = self.get_object()
+        if request.method == "GET":
+            return Response(AllowanceDocumentSerializer(claim.documents.all(), many=True).data)
+        if claim.agent_id != request.user.pk and not _has_role(request.user, MANAGER_ROLES):
+            return Response({"detail": "You can only attach to your own claim."}, status=403)
+        if claim.status in (AllowanceClaim.Status.PAID, AllowanceClaim.Status.REJECTED):
+            return Response({"detail": "This claim is closed."}, status=400)
+        upload = request.FILES.get("file")
+        if upload is None:
+            return Response({"detail": "A file is required."}, status=400)
+        doc = AllowanceDocument.objects.create(
+            claim=claim, file=upload, file_name=upload.name,
+            doc_type=request.data.get("doc_type", AllowanceDocument.DocType.RECEIPT),
+            uploaded_by=request.user,
+        )
+        return Response(AllowanceDocumentSerializer(doc).data, status=201)
+
+    @action(detail=False, methods=["get"])
+    def analytics(self, request):
+        params = request.query_params
+        # an agent only ever sees their own numbers
+        agent_id = params.get("agent")
+        if not _has_role(request.user, MANAGER_ROLES | FINANCE_ROLES):
+            agent_id = request.user.pk
+        return Response(services.claim_analytics(
+            from_date=params.get("from_date"), to_date=params.get("to_date"), agent_id=agent_id,
+        ))
+
+
+class BankDetailViewSet(viewsets.ModelViewSet):
+    """An agent's payout account. Everyone manages their own; managers see all."""
+
+    permission_classes = [TaModule]
+    serializer_class = AgentBankDetailSerializer
+    pagination_class = TaPagination
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return _scope(AgentBankDetail.objects.select_related("agent"), self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # always your own record — never write someone else's payout account
+        obj, _ = AgentBankDetail.objects.update_or_create(
+            agent=request.user, defaults=serializer.validated_data,
+        )
+        return Response(AgentBankDetailSerializer(obj).data, status=201)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.agent_id != request.user.pk and not _has_role(request.user, MANAGER_ROLES):
+            return Response({"detail": "You can only edit your own bank details."}, status=403)
+        return super().partial_update(request, *args, **kwargs)
+
+
+class NotificationPreferenceView(APIView):
+    """The signed-in user's TA notification channels."""
+
+    permission_classes = [TaModule]
+
+    def get(self, request):
+        prefs, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        return Response(NotificationPreferenceSerializer(prefs).data)
+
+    def patch(self, request):
+        prefs, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        serializer = NotificationPreferenceSerializer(prefs, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def post(self, request):
+        return self.patch(request)
+
+
+class SetBasisView(APIView):
+    """Admin sets whether a day's distance is measured from home or office."""
+
+    permission_classes = [TaModule, IsTaManager]
+
+    def post(self, request):
+        trip = services.set_trip_basis(
+            agent_id=request.data.get("agent"),
+            date=request.data.get("date"),
+            basis=request.data.get("basis", ""),
+        )
+        return Response(TripSerializer(trip).data)

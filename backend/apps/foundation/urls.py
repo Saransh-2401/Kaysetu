@@ -18,6 +18,8 @@ urlpatterns = [
     path("auth/users/<int:pk>/change_password/", views.ChangePasswordView.as_view()),
     path("core/role-permissions/me/", views.RolePermissionsMeView.as_view()),
     path("t/org", views.OrgSettingsView.as_view()),
+    # Portal-compat: invoice/PO headers read the company profile from here
+    path("core/companies/current/", views.CurrentCompanyView.as_view()),
     # Event outbox: what failed to deliver, and a manual replay
     path("t/event-deliveries", views.EventDeliveryView.as_view()),
     path("t/event-deliveries/retry", views.EventDeliveryView.as_view()),

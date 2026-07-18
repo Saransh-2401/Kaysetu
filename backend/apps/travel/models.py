@@ -46,6 +46,12 @@ class Trip(models.Model):
     transport_mode = models.CharField(max_length=10, choices=PolicyConfig.Vehicle.choices,
                                       default=PolicyConfig.Vehicle.BIKE)
     source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
+    # Admin choice of whether the day's distance is measured from home or office
+    # (set at end-of-day); blank = use the policy default.
+    basis = models.CharField(
+        max_length=10, blank=True,
+        choices=[("home", "From home"), ("office", "From office")],
+    )
     notes = models.CharField(max_length=255, blank=True)
     claim = models.ForeignKey(
         "travel.AllowanceClaim", null=True, blank=True, on_delete=models.SET_NULL,
@@ -60,6 +66,78 @@ class Trip(models.Model):
     @property
     def is_claimed(self):
         return self.claim_id is not None
+
+
+def _claim_document_path(instance, filename):
+    """Keep every tenant's uploads in their own directory."""
+    from apps.tenancy.context import get_tenant
+
+    tenant = get_tenant()
+    slug = getattr(tenant, "slug", None) or "unknown"
+    return f"ta/{slug}/claim-{instance.claim_id}/{filename}"
+
+
+class AllowanceDocument(models.Model):
+    """Supporting evidence attached to a claim (toll receipt, fuel bill, ...)."""
+
+    class DocType(models.TextChoices):
+        RECEIPT = "receipt", "Receipt"
+        TOLL = "toll", "Toll"
+        FUEL = "fuel", "Fuel"
+        OTHER = "other", "Other"
+
+    claim = models.ForeignKey(
+        "travel.AllowanceClaim", on_delete=models.CASCADE, related_name="documents"
+    )
+    file = models.FileField(upload_to=_claim_document_path)
+    file_name = models.CharField(max_length=255, blank=True)
+    doc_type = models.CharField(max_length=20, choices=DocType.choices, default=DocType.RECEIPT)
+    uploaded_by = models.ForeignKey(
+        "foundation.TenantUser", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="ta_documents",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
+class AgentBankDetail(models.Model):
+    """Where an agent's reimbursement is paid. One record per user."""
+
+    agent = models.OneToOneField(
+        "foundation.TenantUser", on_delete=models.CASCADE, related_name="bank_detail"
+    )
+    account_holder_name = models.CharField(max_length=200, blank=True)
+    account_number = models.CharField(max_length=30, blank=True)
+    ifsc_code = models.CharField(max_length=15, blank=True)
+    bank_name = models.CharField(max_length=150, blank=True)
+    upi_id = models.CharField(max_length=100, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["agent_id"]
+
+    @property
+    def masked_account_number(self):
+        """Never echo a full account number back to a list screen."""
+        number = self.account_number or ""
+        return f"{'*' * max(0, len(number) - 4)}{number[-4:]}" if number else ""
+
+
+class NotificationPreference(models.Model):
+    """Per-user TA notification channel choices."""
+
+    user = models.OneToOneField(
+        "foundation.TenantUser", on_delete=models.CASCADE, related_name="ta_notification_prefs"
+    )
+    push_enabled = models.BooleanField(default=True)
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=False)
+    in_app_enabled = models.BooleanField(default=True)
+    deadline_reminders = models.BooleanField(default=True)
+    unclaimed_reminders = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class AllowanceClaim(models.Model):

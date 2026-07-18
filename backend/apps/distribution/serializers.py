@@ -1,12 +1,47 @@
 from rest_framework import serializers
 
 from .models import (
+    DistributorAdjustment,
     DistributorInvoice,
     DistributorStock,
     StockRequest,
     StockRequestItem,
     StockRequestLog,
+    StockRequestShortage,
 )
+
+
+class StockRequestShortageSerializer(serializers.ModelSerializer):
+    distributor = serializers.IntegerField(source="request.distributor_id", read_only=True)
+    distributor_name = serializers.CharField(source="request.distributor.name", read_only=True)
+    request_number = serializers.CharField(source="request.number", read_only=True)
+    stock_request = serializers.IntegerField(source="request_id", read_only=True)
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StockRequestShortage
+        fields = ["id", "request", "stock_request", "request_number", "distributor",
+                  "distributor_name", "item", "item_name", "shortage_quantity",
+                  "unit_price", "total_price", "status", "payment_status",
+                  "production_plan_id", "invoice", "notes", "created_at", "updated_at"]
+        read_only_fields = ["request", "item", "shortage_quantity", "unit_price",
+                            "status", "created_at", "updated_at"]
+
+    def get_total_price(self, obj):
+        return float(obj.total_price)
+
+
+class DistributorAdjustmentSerializer(serializers.ModelSerializer):
+    distributor_name = serializers.CharField(source="distributor.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True,
+                                            allow_null=True)
+
+    class Meta:
+        model = DistributorAdjustment
+        fields = ["id", "distributor", "distributor_name", "item", "item_name", "quantity",
+                  "reason", "balance_after", "notes", "created_by", "created_by_name",
+                  "created_at"]
+        read_only_fields = ["item_name", "balance_after", "created_by", "created_at"]
 
 
 class DistributorStockSerializer(serializers.ModelSerializer):

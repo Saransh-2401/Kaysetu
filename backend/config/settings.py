@@ -160,6 +160,12 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 if not DEBUG:
     CORS_ALLOWED_ORIGINS = [o for o in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if o]
 
+# Uploaded files (TA claim documents today). Paths are tenant-scoped by the
+# model's upload_to, so one tenant's files never land in another's directory.
+# In production this is served by the reverse proxy / object storage, not Django.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "var" / "media"))
+
 LANGUAGE_CODE = "en-us"
 # Operational wall-clock timezone (attendance day rollover, auto-punchout time).
 # Datetimes are still STORED in UTC (USE_TZ=True); this only sets the default

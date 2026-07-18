@@ -1,6 +1,51 @@
 from rest_framework import serializers
 
-from .models import AllowanceClaim, PolicyConfig, Trip
+from .models import (
+    AgentBankDetail,
+    AllowanceClaim,
+    AllowanceDocument,
+    NotificationPreference,
+    PolicyConfig,
+    Trip,
+)
+
+
+class AgentBankDetailSerializer(serializers.ModelSerializer):
+    agent_name = serializers.CharField(source="agent.full_name", read_only=True)
+    masked_account_number = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = AgentBankDetail
+        fields = ["id", "agent", "agent_name", "account_holder_name", "account_number",
+                  "masked_account_number", "ifsc_code", "bank_name", "upi_id", "updated_at"]
+        read_only_fields = ["agent", "updated_at"]
+        extra_kwargs = {"account_number": {"write_only": True}}   # only the mask is read back
+
+
+class AllowanceDocumentSerializer(serializers.ModelSerializer):
+    request = serializers.IntegerField(source="claim_id", read_only=True)   # portal alias
+    file_url = serializers.SerializerMethodField()
+    doc_type_display = serializers.CharField(source="get_doc_type_display", read_only=True)
+
+    class Meta:
+        model = AllowanceDocument
+        fields = ["id", "claim", "request", "file_url", "file_name", "doc_type",
+                  "doc_type_display", "created_at"]
+        read_only_fields = ["claim", "file_name", "created_at"]
+
+    def get_file_url(self, obj):
+        try:
+            return obj.file.url
+        except ValueError:
+            return ""
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreference
+        fields = ["push_enabled", "email_enabled", "sms_enabled", "in_app_enabled",
+                  "deadline_reminders", "unclaimed_reminders", "updated_at"]
+        read_only_fields = ["updated_at"]
 
 
 class PolicyConfigSerializer(serializers.ModelSerializer):
@@ -23,8 +68,8 @@ class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
         fields = ["id", "agent", "agent_name", "date", "distance_km", "transport_mode",
-                  "source", "notes", "claim", "is_claimed", "created_at"]
-        read_only_fields = ["agent", "source", "claim", "created_at"]
+                  "source", "basis", "notes", "claim", "is_claimed", "created_at"]
+        read_only_fields = ["agent", "source", "basis", "claim", "created_at"]
 
 
 class AllowanceClaimSerializer(serializers.ModelSerializer):

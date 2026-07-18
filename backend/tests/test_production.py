@@ -164,3 +164,50 @@ def test_prod_runs_standalone_without_inv(api, make_tenant, tenant_token):
     with use_tenant(tenant):
         from apps.inventory.models import StockLevel
         assert StockLevel.objects.count() == 0
+
+
+# --------------------------------------------------- planning layer (portal wiring)
+def test_material_availability_aggregates_shared_materials(api, make_tenant, tenant_token):
+    """A material used by TWO planned products must be counted ONCE against one
+    pool of stock — otherwise the same units look available to both."""
+    tenant, _ = make_tenant(package_code="P5")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    wood = _item(api, token, "Wood")
+    chair, table = _item(api, token, "Chair"), _item(api, token, "Table")
+    _bom(client, chair, [(wood, 2)])
+    _bom(client, table, [(wood, 3)])
+    client.post("/api/t/inv/receive", {"item": wood, "quantity": 40, "rate": 10})
+
+    rows = client.post("/api/t/prod/plans/check_material_availability/", {
+        "items": [{"item_id": chair, "quantity": 10},    # 20 wood
+                  {"item_id": table, "quantity": 10}]}).data  # 30 wood -> 50 total
+    assert len(rows) == 1                                # one aggregated row, not two
+    assert rows[0]["qty_needed"] == 50.0 and rows[0]["available_qty"] == 40.0
+    assert rows[0]["shortage"] == 10.0 and rows[0]["is_available"] is False
+
+
+def test_plan_and_job_card_lifecycle(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P5")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    fg, wood = _item(api, token, "Chair"), _item(api, token, "Wood")
+    bom = _bom(client, fg, [(wood, 2)])
+
+    plan = client.post("/api/t/prod/plans/", {
+        "from_date": "2026-07-16", "to_date": "2026-07-31",
+        "items": [{"item": fg, "planned_qty": 10, "priority": "high"}]}).data
+    assert plan["plan_number"] and plan["batch_no"] and plan["status"] == "draft"
+    # stop before start is refused by the state machine
+    assert client.post(f"/api/t/prod/plans/{plan['id']}/stop_production/").status_code == 400
+    assert client.post(f"/api/t/prod/plans/{plan['id']}/start_production/").data["plan_status"] == "in_progress"
+
+    wo = _wo(client, bom["id"], 5)
+    card = client.post("/api/t/prod/job-cards/", {"work_order": wo["id"], "for_quantity": 5}).data
+    assert card["job_card_number"] and card["status"] == "pending"
+    assert client.post(f"/api/t/prod/job-cards/{card['id']}/complete/",
+                       {"quantity": 99}).status_code == 400     # beyond the card
+    done = client.post(f"/api/t/prod/job-cards/{card['id']}/complete/", {"quantity": 5})
+    assert done.status_code == 200 and done.data["status"] == "completed"
+    assert client.post(f"/api/t/prod/job-cards/{card['id']}/complete/",
+                       {"quantity": 5}).status_code == 400      # already complete

@@ -294,3 +294,83 @@ def test_dist_runs_standalone_without_inv_or_books(api, make_tenant, tenant_toke
         from apps.books.models import JournalEntry
         assert StockLevel.objects.count() == 0     # INV not entitled
         assert JournalEntry.objects.count() == 0   # BOOKS not entitled
+
+
+# ------------------------------------------- back-orders + adjustments (wiring)
+def test_shortage_becomes_a_tracked_backorder(api, make_tenant, tenant_token):
+    """Approving short must not silently drop the unmet demand — it becomes a
+    back-order with its own lifecycle that ships separately."""
+    tenant, _ = make_tenant(package_code="P4")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    item, dist = _item(api, token), _distributor(api, token)
+    client.post("/api/t/inv/receive", {"item": item, "quantity": 6, "rate": 20})
+
+    req = _request(client, dist, item, qty=10)
+    client.post(f"/api/t/dist/stock-requests/{req['id']}/approve/")
+    shortages = client.get("/api/t/dist/shortages/").data
+    assert shortages["count"] == 1
+    row = shortages["results"][0]
+    assert str(row["shortage_quantity"]) == "4.000" and row["status"] == "pending"
+
+    # ship what existed, leaving the back-order outstanding
+    client.post(f"/api/t/dist/stock-requests/{req['id']}/dispatch/")
+    ds = client.get(f"/api/t/dist/distributor-stock/?distributor={dist}").data
+    assert str(ds["results"][0]["on_hand"]) == "6.000"
+
+    sid = row["id"]
+    # the lifecycle is enforced: cannot deliver straight from pending
+    assert client.post(f"/api/t/dist/shortages/{sid}/mark_delivered/").status_code == 400
+    client.post(f"/api/t/dist/shortages/{sid}/start_production/")
+    client.post(f"/api/t/dist/shortages/{sid}/complete_production/")
+    client.post(f"/api/t/dist/shortages/{sid}/mark_packed/")
+    client.post(f"/api/t/dist/shortages/{sid}/mark_in_transit/")
+    assert client.post(f"/api/t/dist/shortages/{sid}/mark_delivered/").data["status"] == "delivered"
+
+    # delivering the back-order tops the distributor up to the full 10
+    ds2 = client.get(f"/api/t/dist/distributor-stock/?distributor={dist}").data
+    assert str(ds2["results"][0]["on_hand"]) == "10.000"
+
+
+def test_distributor_adjustment_cannot_go_negative(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P4")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    item, dist = _item(api, token), _distributor(api, token)
+    client.post("/api/t/inv/receive", {"item": item, "quantity": 20, "rate": 20})
+    req = _request(client, dist, item, qty=10)
+    client.post(f"/api/t/dist/stock-requests/{req['id']}/approve/")
+    client.post(f"/api/t/dist/stock-requests/{req['id']}/dispatch/")
+
+    adj = client.post("/api/t/dist/adjustments/", {
+        "distributor": dist, "item": item, "quantity": "-3", "reason": "damage"})
+    assert adj.status_code == 201 and str(adj.data["balance_after"]) == "7.000"
+    # a correction can never drive a distributor's holding below zero
+    assert client.post("/api/t/dist/adjustments/", {
+        "distributor": dist, "item": item, "quantity": "-99"}).status_code == 400
+    assert client.post("/api/t/dist/adjustments/", {
+        "distributor": dist, "item": item, "quantity": "0"}).status_code == 400
+
+
+def test_check_inventory_and_delete_invoice(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P8")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    item, dist = _item(api, token), _distributor(api, token)
+    client.post("/api/t/inv/receive", {"item": item, "quantity": 4, "rate": 20})
+    req = _request(client, dist, item, qty=10)
+
+    chk = client.get(f"/api/t/dist/stock-requests/{req['id']}/check_inventory/").data
+    assert chk["inventory_available"] is True
+    assert chk["items"][0]["available_qty"] == 4.0 and chk["items"][0]["shortage"] == 6.0
+
+    client.post(f"/api/t/dist/stock-requests/{req['id']}/approve/")
+    client.post(f"/api/t/dist/stock-requests/{req['id']}/dispatch/")
+    inv = client.post(f"/api/t/dist/stock-requests/{req['id']}/invoice/", {}).data
+    # an unpaid invoice can be voided so a corrected one can be raised
+    assert client.post(f"/api/t/dist/stock-requests/{req['id']}/delete_invoice/", {}).status_code == 200
+    assert client.post(f"/api/t/dist/stock-requests/{req['id']}/invoice/", {}).status_code == 201
+    # ...but not once it has been part-paid
+    inv2 = client.get("/api/t/dist/invoices/").data["results"][0]
+    client.post(f"/api/t/dist/invoices/{inv2['id']}/mark_paid/", {"amount": "10"})
+    assert client.post(f"/api/t/dist/stock-requests/{req['id']}/delete_invoice/", {}).status_code == 400
