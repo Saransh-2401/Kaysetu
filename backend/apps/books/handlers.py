@@ -110,9 +110,39 @@ def on_distributor_payment(payment_id=None, party_id=None, amount=None, mode=Non
     )
 
 
+def on_ta_claim_paid(claim_id=None, user_id=None, amount=None, reference="", **_):
+    """ta.claim_paid -> Dr Operating Expenses / Cr Cash (a reimbursement payout)."""
+    if not _books_entitled():
+        return
+    if claim_id is None:
+        return
+    from . import services
+
+    expense = services.account_by_key("OPERATING_EXPENSES")
+    cash = services.account_by_key("CASH")
+    if expense is None or cash is None:
+        logger.error("BOOKS: chart missing expense/cash; TA claim %s NOT posted", claim_id)
+        return
+    amt = services._dec(amount, "amount")
+    if amt <= 0:
+        return
+    services.post_journal(
+        posting_date=services.timezone.localdate(),
+        source=services.JournalEntry.Source.MANUAL,
+        source_ref=f"ta.claim:{claim_id}",
+        reference=reference,
+        narration="Travel allowance reimbursement",
+        lines=[
+            {"account": expense, "debit": amt, "description": "Travel allowance"},
+            {"account": cash, "credit": amt, "description": "Reimbursement paid"},
+        ],
+    )
+
+
 def register_all():
     from apps.foundation.integration import events
 
+    events.subscribe("ta.claim_paid", on_ta_claim_paid)
     events.subscribe("orders.invoice_issued", on_invoice_issued)
     events.subscribe("orders.payment_recorded", on_payment_recorded)
     events.subscribe("purchase.bill_issued", on_bill_issued)
