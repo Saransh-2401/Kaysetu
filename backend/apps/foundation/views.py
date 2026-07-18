@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -12,7 +13,7 @@ from apps.tenancy.context import use_tenant
 from .auth import SCOPE_TENANT, decode_token, make_token_pair, resolve_user
 from .module_map import build_effective_permissions
 from .models import CatalogItem, EntitlementSnapshot, OrgSettings, Party, Role, TenantUser
-from .permissions import HasModule, IsTenantUser, get_entitled_modules
+from .permissions import HasModule, IsTenantAdmin, IsTenantUser, get_entitled_modules
 from .serializers import CatalogItemSerializer, PartySerializer, RoleSerializer, TenantUserSerializer
 
 
@@ -324,6 +325,51 @@ class PartyViewSet(viewsets.ModelViewSet):
             default=empty,
         )
         return Response(data)
+
+
+class EventDeliveryView(APIView):
+    """Operational visibility for the event outbox (tenant admin).
+
+    GET  /api/t/event-deliveries         -> undelivered events + counts
+    POST /api/t/event-deliveries/retry   -> replay them now (optionally ?ids=1,2)
+
+    Without this an auto-post that failed (an invoice that never reached the
+    ledger) would only exist as a log line on a server nobody reads.
+    """
+
+    permission_classes = [IsTenantAdmin]
+
+    def get(self, request):
+        from .models import EventDelivery
+
+        qs = EventDelivery.objects.all()
+        status_filter = request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status__in=[s.strip() for s in status_filter.split(",") if s.strip()])
+        else:  # default view is "what still needs attention"
+            qs = qs.exclude(status=EventDelivery.Status.DELIVERED)
+
+        counts = {row["status"]: row["n"] for row in
+                  EventDelivery.objects.values("status").annotate(n=Count("id"))}
+        rows = [{
+            "id": d.pk, "event": d.event, "subscriber": d.subscriber, "status": d.status,
+            "attempts": d.attempts, "last_error": d.last_error,
+            "created_at": d.created_at, "delivered_at": d.delivered_at,
+        } for d in qs[:200]]
+        return Response({"counts": counts, "results": rows})
+
+    def post(self, request):
+        from .integration import redeliver
+
+        raw_ids = request.data.get("ids") or request.query_params.get("ids")
+        ids = None
+        if raw_ids:
+            values = raw_ids if isinstance(raw_ids, list) else str(raw_ids).split(",")
+            try:
+                ids = [int(str(v).strip()) for v in values if str(v).strip()]
+            except ValueError:
+                return Response({"detail": "ids must be integers."}, status=400)
+        return Response(redeliver(delivery_ids=ids))
 
 
 class ModulePingView(APIView):

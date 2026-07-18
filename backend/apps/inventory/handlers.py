@@ -2,11 +2,18 @@
 Event subscriptions INV sets up — INV is the stock authority, so it reacts to
 what the operational modules announce, without either side importing the other:
 
-  * ORDERS emits `orders.dispatched`      -> INV deducts the stock (and releases
-    the matching reservation).
-  * PURCH  emits `purchase.goods_received` -> INV adds the received stock.
+  * ORDERS emits `orders.dispatched`       -> deduct stock (+ release reservation)
+  * DIST   emits `dist.stock_dispatched`   -> deduct stock (distributor channel)
+  * PROD   emits `prod.materials_consumed` -> deduct raw materials
+  * PURCH  emits `purchase.goods_received` -> add received stock
+  * PROD   emits `prod.goods_produced`     -> add finished goods
 
-Both are gated on the INV entitlement, so a tenant without INV ignores them.
+All are gated on the INV entitlement, so a tenant without INV ignores them.
+
+EVERY handler applies its whole payload in ONE transaction. That matters twice
+over: stock can never end up half-applied against a document the emitter already
+considers complete, and — because a failed delivery therefore changed nothing —
+the outbox can safely replay it, applying the effect exactly once.
 """
 
 
@@ -16,43 +23,49 @@ def _inv_entitled() -> bool:
     return "INV" in EntitlementSnapshot.current_modules()
 
 
-def _on_order_dispatched(**payload):
-    if not _inv_entitled():
-        return
-
-    from . import services
-
-    reference = payload.get("order_number", "")
-    for line in payload.get("items", []):
-        item_id = line.get("item_id")
-        if item_id is None:
-            continue
-        services.issue_for_dispatch(item_id, line.get("quantity", 0), reference=reference)
-
-
-def _on_goods_received(**payload):
-    """A GRN was completed in PURCH — receive the accepted quantities into stock.
-
-    The whole receipt is applied in ONE transaction: a failure on any line rolls
-    back the rest, so stock can never end up half-received against a GRN that the
-    emitter already considers complete."""
-    if not _inv_entitled():
-        return
-
+def _tenant_atomic():
     from django.db import transaction
 
     from apps.tenancy.context import require_tenant
     from apps.tenancy.db import ensure_alias
 
-    from .models import Warehouse
-    from . import services
+    return transaction.atomic(using=ensure_alias(require_tenant()))
 
-    lines = [ln for ln in payload.get("items", []) if ln.get("item_id") is not None]
+
+def _lines(payload):
+    return [ln for ln in payload.get("items", []) if ln.get("item_id") is not None]
+
+
+def _issue_all(payload, reference_key):
+    """Deduct every line of a dispatch/consumption in a single transaction."""
+    if not _inv_entitled():
+        return
+    lines = _lines(payload)
     if not lines:
         return
 
-    reference = payload.get("receipt_number", "")
-    with transaction.atomic(using=ensure_alias(require_tenant())):
+    from . import services
+
+    reference = payload.get(reference_key, "")
+    with _tenant_atomic():
+        for line in lines:
+            services.issue_for_dispatch(line["item_id"], line.get("quantity", 0),
+                                        reference=reference)
+
+
+def _receive_all(payload, reference_key):
+    """Receive every line of a GRN/production run in a single transaction."""
+    if not _inv_entitled():
+        return
+    lines = _lines(payload)
+    if not lines:
+        return
+
+    from .models import Warehouse
+    from . import services
+
+    reference = payload.get(reference_key, "")
+    with _tenant_atomic():
         warehouse = None
         warehouse_id = payload.get("warehouse_id")
         if warehouse_id:
@@ -61,50 +74,28 @@ def _on_goods_received(**payload):
             warehouse = services.default_warehouse()
 
         for line in lines:
-            services.receive_stock(
-                line["item_id"], warehouse, line.get("quantity", 0),
-                rate=line.get("rate", 0), reference=reference,
-            )
+            services.receive_stock(line["item_id"], warehouse, line.get("quantity", 0),
+                                   rate=line.get("rate", 0), reference=reference)
+
+
+def _on_order_dispatched(**payload):
+    _issue_all(payload, "order_number")
 
 
 def _on_dist_dispatched(**payload):
-    """DIST shipped stock to a distributor — deduct it from the company's stock.
-    Same effect as an order dispatch, just a different channel."""
-    if not _inv_entitled():
-        return
-
-    from . import services
-
-    reference = payload.get("request_number", "")
-    for line in payload.get("items", []):
-        item_id = line.get("item_id")
-        if item_id is None:
-            continue
-        services.issue_for_dispatch(item_id, line.get("quantity", 0), reference=reference)
+    _issue_all(payload, "request_number")
 
 
 def _on_materials_consumed(**payload):
-    """PROD consumed raw materials on a completed work order — deduct them."""
-    if not _inv_entitled():
-        return
+    _issue_all(payload, "order_number")
 
-    from . import services
 
-    reference = payload.get("order_number", "")
-    for line in payload.get("items", []):
-        item_id = line.get("item_id")
-        if item_id is None:
-            continue
-        services.issue_for_dispatch(item_id, line.get("quantity", 0), reference=reference)
+def _on_goods_received(**payload):
+    _receive_all(payload, "receipt_number")
 
 
 def _on_goods_produced(**payload):
-    """PROD finished goods — receive them into stock (same path as a GRN)."""
-    _on_goods_received(
-        receipt_number=payload.get("order_number", ""),
-        warehouse_id=payload.get("warehouse_id"),
-        items=payload.get("items", []),
-    )
+    _receive_all(payload, "order_number")
 
 
 def register_all():

@@ -198,6 +198,49 @@ class Party(models.Model):
         return self.name
 
 
+class EventDelivery(models.Model):
+    """Durable record of ONE domain event delivered to ONE subscriber.
+
+    The event bus is fire-and-forget by design (a failing subscriber must never
+    break the emitter), which previously meant a failed auto-post — an invoice
+    that never reached the ledger, a dispatch that never left stock — vanished
+    into a log line. Every delivery is now written here BEFORE it is attempted,
+    so a crash mid-handler leaves a `pending` row rather than nothing at all, and
+    anything not `delivered` can be retried and reconciled.
+
+    Retry is safe because handlers apply their whole effect in one transaction:
+    a failed delivery changed nothing, so replaying it applies it exactly once.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        DELIVERED = "delivered", "Delivered"
+        FAILED = "failed", "Failed (will retry)"
+        ABANDONED = "abandoned", "Abandoned (max attempts)"
+
+    event = models.CharField(max_length=100, db_index=True)
+    subscriber = models.CharField(max_length=255, db_index=True)
+    payload = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices,
+                              default=Status.PENDING, db_index=True)
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["event", "status"]),
+        ]
+        verbose_name_plural = "Event deliveries"
+
+    def __str__(self):
+        return f"{self.event} -> {self.subscriber} ({self.status})"
+
+
 class AuditLog(models.Model):
     """Tenant-side audit trail: who did what, when, old -> new."""
 

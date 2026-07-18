@@ -18,6 +18,9 @@ urlpatterns = [
     path("auth/users/<int:pk>/change_password/", views.ChangePasswordView.as_view()),
     path("core/role-permissions/me/", views.RolePermissionsMeView.as_view()),
     path("t/org", views.OrgSettingsView.as_view()),
+    # Event outbox: what failed to deliver, and a manual replay
+    path("t/event-deliveries", views.EventDeliveryView.as_view()),
+    path("t/event-deliveries/retry", views.EventDeliveryView.as_view()),
     path("t/", include(router.urls)),
     # Module gate pings (entitlement smoke checks)
     path("t/track/ping", views.ModulePingView.as_view(module_code="TRACK")),
