@@ -257,7 +257,9 @@ def test_partial_work_rolls_back_with_the_claim(api, make_tenant, tenant_token):
         assert str(levels[0]["on_hand"]) == "100.000"
         with use_tenant(tenant):
             from apps.foundation.models import EventDelivery
-            row = EventDelivery.objects.get(event="orders.dispatched")
+            # NOTIFY also subscribes to this event — scope to the handler under test
+            row = EventDelivery.objects.get(event="orders.dispatched",
+                                            subscriber=subscriber_key(real))
             assert row.status == EventDelivery.Status.FAILED and row.attempts == 1
 
             assert redeliver()["delivered"] == 1
@@ -285,7 +287,9 @@ def test_claiming_is_atomic_so_a_second_runner_skips(api, make_tenant, tenant_to
         from apps.foundation.models import EventDelivery
         from apps.inventory import handlers as inv_handlers
 
-        row = EventDelivery.objects.get(event="orders.dispatched")
+        row = EventDelivery.objects.get(
+            event="orders.dispatched",
+            subscriber=subscriber_key(inv_handlers._on_order_dispatched))
         assert row.status == EventDelivery.Status.DELIVERED
         # a second runner re-applying the SAME row is refused by the claim
         assert apply_delivery(row, inv_handlers._on_order_dispatched, row.payload) == "skipped"
@@ -406,7 +410,10 @@ def test_committed_work_always_leaves_a_replayable_record(api, make_tenant, tena
     with use_tenant(tenant):
         from apps.foundation.models import EventDelivery
         # the dispatch committed, so its delivery record exists and is settled
-        row = EventDelivery.objects.get(event="orders.dispatched")
+        from apps.inventory import handlers as inv_handlers
+        row = EventDelivery.objects.get(
+            event="orders.dispatched",
+            subscriber=subscriber_key(inv_handlers._on_order_dispatched))
         assert row.status == EventDelivery.Status.DELIVERED
         assert float(row.payload["items"][0]["quantity"]) == 5.0   # replayable payload
 
