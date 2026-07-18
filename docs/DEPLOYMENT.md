@@ -36,6 +36,55 @@ backend ──(CREATE DATABASE only)──────────────�
   reverse proxy; the backend is stateless (JWT auth, no sessions, no local
   files) so replicas need no coordination.
 
+## Periodic jobs (REQUIRED — not optional)
+
+The `scheduler` service runs the platform's recurring work in one supervised
+process. **It is not decorative:** the event outbox records a failed auto-post
+(an invoice that never reached the ledger, a dispatch that never left stock) but
+only ever retries it when `deliver_events` runs. Without the scheduler those
+rows sit as `failed` forever.
+
+| Job | Every | What breaks without it |
+|---|---|---|
+| `deliver_events` | 2 min | Failed ledger/stock posts are never retried — books and stock silently drift |
+| `track_maintenance` | 15 min | Agents never flagged offline; duty days never auto-close |
+| `attendance_maintenance` | daily | Forgotten punch-outs leave open rows, so working hours never compute |
+| `billing_maintenance` | daily | Lapsed trials and past-due subscriptions are never suspended |
+
+It comes up automatically with the stack:
+
+```bash
+docker compose up -d            # includes `scheduler`
+docker compose logs -f scheduler
+```
+
+Verify it by hand at any time:
+
+```bash
+docker compose exec backend python manage.py run_scheduler --once
+docker compose exec backend python manage.py run_scheduler --once --only deliver_events
+docker compose exec backend python manage.py deliver_events --org-code SLX-ABC123
+```
+
+**Without Docker**, run the same commands from cron — each is independently
+runnable and safe to re-run (they iterate tenants and isolate per-tenant
+failures):
+
+```cron
+*/2  * * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py deliver_events
+*/15 * * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py track_maintenance
+15   0 * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py attendance_maintenance
+30   0 * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py billing_maintenance
+```
+
+Deliberately not Celery: these are a handful of periodic commands with no
+fan-out, so a single process avoids deploying and operating a broker. When
+async task queues do arrive (async provisioning, bulk imports), move these onto
+Celery beat — the management commands themselves stay unchanged.
+
+Operational check: `GET /api/t/event-deliveries` (tenant admin) shows anything
+undelivered; `POST /api/t/event-deliveries/retry` forces a sweep now.
+
 ## Kubernetes migration path (when needed)
 
 Everything is 12-factor already, so the move is mechanical:
@@ -43,6 +92,7 @@ Everything is 12-factor already, so the move is mechanical:
 | Compose service | K8s shape |
 |---|---|
 | backend | Deployment + HPA; `migrate` moves from entrypoint to an initContainer/Job; probes = `/api/health` |
+| scheduler | Deployment with **replicas: 1** (a second replica would duplicate sweeps), or split the jobs into CronJobs |
 | frontend | Deployment (standalone Next server) |
 | pgbouncer | Deployment/sidecar (or the cloud DB's built-in pooler) |
 | postgres | Managed Postgres (RDS/Cloud SQL) or StatefulSet |

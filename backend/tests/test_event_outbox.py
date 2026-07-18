@@ -424,3 +424,55 @@ def test_outbox_api_is_admin_only(api, make_tenant, tenant_token):
     assert auth(api, staff).get("/api/t/event-deliveries").status_code == 403
     assert auth(api, staff).post("/api/t/event-deliveries/retry", {}).status_code == 403
     assert auth(api, owner).get("/api/t/event-deliveries").status_code == 200
+
+
+def test_scheduler_redelivers_a_failed_post(api, make_tenant, tenant_token):
+    """The durability guarantee only pays off if something actually retries.
+    `run_scheduler` is that something — prove it recovers a lost ledger post."""
+    from django.core.management import call_command
+
+    tenant, _ = make_tenant(package_code="P8")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    item, party = _item(api, token), _party(api, token)
+
+    from apps.books import handlers as books_handlers
+
+    real = books_handlers.on_invoice_issued
+    state = {"fail": True}
+
+    def flaky(**payload):
+        if state["fail"]:
+            state["fail"] = False
+            raise RuntimeError("ledger unavailable")
+        return real(**payload)
+
+    flaky.__module__, flaky.__qualname__ = real.__module__, real.__qualname__
+    subs = events._subs["orders.invoice_issued"]
+    subs[subs.index(real)] = flaky
+    try:
+        order = client.post("/api/t/sales-orders/", {
+            "customer": party,
+            "items": [{"item": item, "item_name": "Widget", "quantity": 2, "rate": "100"}]}).data
+        _deliver_and_invoice(client, order["id"])
+
+        with use_tenant(tenant):
+            from apps.books.models import JournalEntry
+            from apps.foundation.models import EventDelivery
+            assert EventDelivery.objects.get(
+                event="orders.invoice_issued",
+                subscriber=subscriber_key(real)).status == EventDelivery.Status.FAILED
+            assert JournalEntry.objects.count() == 0     # the post is missing
+
+        # the scheduler sweeps every tenant — no tenant context needed here
+        call_command("run_scheduler", once=True, only=["deliver_events"], verbosity=0)
+
+        with use_tenant(tenant):
+            from apps.books.models import JournalEntry
+            from apps.foundation.models import EventDelivery
+            assert EventDelivery.objects.get(
+                event="orders.invoice_issued",
+                subscriber=subscriber_key(real)).status == EventDelivery.Status.DELIVERED
+            assert JournalEntry.objects.filter(source="sales_invoice").count() == 1  # recovered
+    finally:
+        subs[subs.index(flaky)] = real

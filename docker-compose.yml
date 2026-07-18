@@ -42,7 +42,7 @@ services:
 
   backend:
     build: ./backend
-    environment:
+    environment: &backend-env
       SECRET_KEY: ${SECRET_KEY:-compose-dev-secret-change-me}
       DEBUG: "0"
       ALLOWED_HOSTS: "*"
@@ -70,6 +70,19 @@ services:
       postgres:
         condition: service_healthy
       pgbouncer:
+        condition: service_started
+
+  # Periodic jobs. Without this the event outbox records failed auto-posts but
+  # never retries them, so a lost ledger entry or stock movement stays lost.
+  # Same image as the backend; overrides the entrypoint (which runs gunicorn)
+  # and waits for the backend so control-plane migrations land first.
+  scheduler:
+    build: ./backend
+    entrypoint: ["python", "manage.py", "run_scheduler"]
+    environment: *backend-env
+    restart: unless-stopped
+    depends_on:
+      backend:
         condition: service_started
 
   frontend:
