@@ -153,7 +153,8 @@ def post_journal(*, posting_date, lines, narration="", reference="",
 
 
 def post_sales_invoice(*, invoice_id, party_id, total, subtotal=None, tax_amount=None,
-                       order_id=None, posting_date=None) -> JournalEntry | None:
+                       order_id=None, posting_date=None,
+                       source_key="orders.invoice") -> JournalEntry | None:
     """Post an issued sales invoice to the ledger, splitting GST out of revenue:
         Dr Accounts Receivable  (grand total)
         Cr Sales Revenue        (taxable value)
@@ -187,7 +188,10 @@ def post_sales_invoice(*, invoice_id, party_id, total, subtotal=None, tax_amount
     return post_journal(
         posting_date=posting_date or timezone.localdate(),
         source=JournalEntry.Source.SALES_INVOICE,
-        source_ref=f"orders.invoice:{invoice_id}",
+        # source_key namespaces the idempotency key per emitter — an ORDERS
+        # invoice #5 and a DIST invoice #5 must not collide (the second would
+        # otherwise be treated as a duplicate and silently skipped).
+        source_ref=f"{source_key}:{invoice_id}",
         reference=f"Order {order_id}" if order_id else "",
         narration="Sales invoice",
         lines=lines,
@@ -195,7 +199,7 @@ def post_sales_invoice(*, invoice_id, party_id, total, subtotal=None, tax_amount
 
 
 def post_customer_receipt(*, payment_id, party_id, amount, order_id=None, into="CASH",
-                          posting_date=None) -> JournalEntry | None:
+                          posting_date=None, source_key="orders.payment") -> JournalEntry | None:
     """Dr Cash/Bank / Cr Accounts Receivable for a customer payment.
     Called from the orders.payment_recorded subscriber. Idempotent per payment."""
     ar = account_by_key("ACCOUNTS_RECEIVABLE")
@@ -207,7 +211,7 @@ def post_customer_receipt(*, payment_id, party_id, amount, order_id=None, into="
     return post_journal(
         posting_date=posting_date or timezone.localdate(),
         source=JournalEntry.Source.PAYMENT,
-        source_ref=f"orders.payment:{payment_id}",
+        source_ref=f"{source_key}:{payment_id}",   # namespaced per emitter
         reference=f"Order {order_id}" if order_id else "",
         narration="Customer receipt",
         lines=[

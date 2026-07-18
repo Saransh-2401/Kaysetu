@@ -67,8 +67,25 @@ def _on_goods_received(**payload):
             )
 
 
+def _on_dist_dispatched(**payload):
+    """DIST shipped stock to a distributor — deduct it from the company's stock.
+    Same effect as an order dispatch, just a different channel."""
+    if not _inv_entitled():
+        return
+
+    from . import services
+
+    reference = payload.get("request_number", "")
+    for line in payload.get("items", []):
+        item_id = line.get("item_id")
+        if item_id is None:
+            continue
+        services.issue_for_dispatch(item_id, line.get("quantity", 0), reference=reference)
+
+
 def register_all():
     from apps.foundation.integration import events
 
     events.subscribe("orders.dispatched", _on_order_dispatched)
     events.subscribe("purchase.goods_received", _on_goods_received)
+    events.subscribe("dist.stock_dispatched", _on_dist_dispatched)

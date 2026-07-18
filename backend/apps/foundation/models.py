@@ -63,6 +63,11 @@ class TenantUser(models.Model):
     business_name = models.CharField(max_length=200, blank=True)
     gst_number = models.CharField(max_length=15, blank=True)
     shipping_address = models.TextField(blank=True)
+    # Links a login to the Party it acts for (a distributor's own user account,
+    # a customer portal login). Lets a module scope that user to their own rows.
+    party = models.ForeignKey(
+        "foundation.Party", null=True, blank=True, on_delete=models.SET_NULL, related_name="users"
+    )
 
     # Geo — work + home (home feeds the Travel Allowance distance basis)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

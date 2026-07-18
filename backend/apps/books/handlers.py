@@ -76,6 +76,40 @@ def on_supplier_payment(payment_id=None, party_id=None, amount=None, mode=None, 
     )
 
 
+def on_distributor_invoice(invoice_id=None, party_id=None, total=None, subtotal=None,
+                           tax_amount=None, reference="", **_):
+    """dist.invoice_issued -> Dr Accounts Receivable / Cr Sales (distributor channel)."""
+    if not _books_entitled():
+        return
+    from . import services
+
+    services.post_sales_invoice(
+        invoice_id=invoice_id, party_id=party_id, total=total,
+        subtotal=subtotal, tax_amount=tax_amount,
+        source_key="dist.invoice",   # namespaced so it can't collide with ORDERS ids
+    )
+
+
+def on_distributor_payment(payment_id=None, party_id=None, amount=None, mode=None,
+                           invoice_id=None, **_):
+    """dist.payment_received -> Dr Cash|Bank / Cr Accounts Receivable.
+
+    Without this the receivable raised by dist.invoice_issued would never be
+    cleared and distributor AR would overstate forever."""
+    if not _books_entitled():
+        return
+    if payment_id is None:
+        logger.warning("BOOKS: distributor payment without payment_id (invoice %s)", invoice_id)
+        return
+    from . import services
+
+    into = "BANK" if (mode or "").lower() in _BANK_MODES else "CASH"
+    services.post_customer_receipt(
+        payment_id=payment_id, party_id=party_id, amount=amount, into=into,
+        source_key="dist.payment",   # namespaced so it can't collide with ORDERS ids
+    )
+
+
 def register_all():
     from apps.foundation.integration import events
 
@@ -83,3 +117,5 @@ def register_all():
     events.subscribe("orders.payment_recorded", on_payment_recorded)
     events.subscribe("purchase.bill_issued", on_bill_issued)
     events.subscribe("purchase.payment_made", on_supplier_payment)
+    events.subscribe("dist.invoice_issued", on_distributor_invoice)
+    events.subscribe("dist.payment_received", on_distributor_payment)
