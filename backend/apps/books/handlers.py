@@ -48,8 +48,38 @@ def on_payment_recorded(order_id=None, payment_id=None, party_id=None, amount=No
     )
 
 
+def on_bill_issued(bill_id=None, party_id=None, total=None, subtotal=None,
+                   tax_amount=None, reference="", **_):
+    """purchase.bill_issued -> Dr Inventory / Dr GST Input / Cr Accounts Payable."""
+    if not _books_entitled():
+        return
+    from . import services
+
+    services.post_purchase_bill(
+        bill_id=bill_id, party_id=party_id, total=total,
+        subtotal=subtotal, tax_amount=tax_amount, reference=reference,
+    )
+
+
+def on_supplier_payment(payment_id=None, party_id=None, amount=None, mode=None, bill_id=None, **_):
+    """purchase.payment_made -> Dr Accounts Payable / Cr Cash|Bank."""
+    if not _books_entitled():
+        return
+    if payment_id is None:
+        logger.warning("BOOKS: purchase payment without payment_id (bill %s) — not posted", bill_id)
+        return
+    from . import services
+
+    out_of = "BANK" if (mode or "").lower() in _BANK_MODES else "CASH"
+    services.post_supplier_payment(
+        payment_id=payment_id, party_id=party_id, amount=amount, out_of=out_of,
+    )
+
+
 def register_all():
     from apps.foundation.integration import events
 
     events.subscribe("orders.invoice_issued", on_invoice_issued)
     events.subscribe("orders.payment_recorded", on_payment_recorded)
+    events.subscribe("purchase.bill_issued", on_bill_issued)
+    events.subscribe("purchase.payment_made", on_supplier_payment)

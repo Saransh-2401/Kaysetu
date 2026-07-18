@@ -273,8 +273,10 @@ export const accountsApi = {
   getSalesInvoices: (params: Record<string, string>) =>
     apiClient.get<PaginatedResponse<SalesInvoiceResult>>('/sales/invoices/', params),
 
+  // Supplier bills — PURCH module (serves invoice_number/supplier_name/total/
+  // outstanding_amount/payment_status, the shape this screen reads).
   getPurchaseInvoices: (params: Record<string, string>) =>
-    apiClient.get<PaginatedResponse<PurchaseInvoiceResult>>('/purchase/purchase-invoices/', params),
+    apiClient.get<PaginatedResponse<PurchaseInvoiceResult>>('/t/purchase/bills/', params),
 
   getStockRequestInvoices: (params: Record<string, string>) =>
     apiClient.get<PaginatedResponse<StockRequestInvoiceResult>>('/distributor-inventory/invoices/', params),

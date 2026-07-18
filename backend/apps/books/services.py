@@ -49,6 +49,7 @@ SEED_ACCOUNTS = [
     ("1200", "Bank", "asset", "BANK", "1000", False),
     ("1300", "Accounts Receivable", "asset", "ACCOUNTS_RECEIVABLE", "1000", False),
     ("1400", "Inventory", "asset", "INVENTORY", "1000", False),
+    ("1500", "GST Input Credit", "asset", "GST_INPUT", "1000", False),
     ("2000", "Liabilities", "liability", "", None, True),
     ("2100", "Accounts Payable", "liability", "ACCOUNTS_PAYABLE", "2000", False),
     ("2200", "GST Payable", "liability", "GST_OUTPUT", "2000", False),
@@ -212,6 +213,66 @@ def post_customer_receipt(*, payment_id, party_id, amount, order_id=None, into="
         lines=[
             {"account": cash, "debit": amt, "description": "Cash/Bank received"},
             {"account": ar, "party": _party(party_id), "credit": amt, "description": "Against receivable"},
+        ],
+    )
+
+
+def post_purchase_bill(*, bill_id, party_id, total, subtotal=None, tax_amount=None,
+                       reference="", posting_date=None) -> JournalEntry | None:
+    """Post a supplier bill — the buy-side mirror of post_sales_invoice:
+        Dr Inventory      (taxable value)
+        Dr GST Input      (recoverable input tax, only when > 0)
+        Cr Accounts Payable (grand total, tagged to the supplier party)
+    Called from the purchase.bill_issued subscriber. Idempotent per bill."""
+    ap = account_by_key("ACCOUNTS_PAYABLE")
+    inventory = account_by_key("INVENTORY")
+    if ap is None or inventory is None:
+        logger.error("BOOKS: chart missing AP/INVENTORY; purchase bill %s NOT posted", bill_id)
+        return None
+    total = _dec(total, "total")
+    tax = _dec(tax_amount, "tax_amount") if tax_amount is not None else Decimal("0")
+    net = _dec(subtotal, "subtotal") if subtotal is not None else (total - tax)
+    if (net + tax - total).copy_abs() > TWO:
+        net, tax = total, Decimal("0")
+
+    lines = [{"account": inventory, "debit": net, "description": "Goods purchased"}]
+    if tax > 0:
+        gst_in = account_by_key("GST_INPUT")
+        if gst_in is not None:
+            lines.append({"account": gst_in, "debit": tax, "description": "Input GST credit"})
+        else:
+            lines[0]["debit"] = total  # no GST account -> keep it in the asset value
+    lines.append({"account": ap, "party": _party(party_id), "credit": total,
+                  "description": "Accounts payable"})
+    return post_journal(
+        posting_date=posting_date or timezone.localdate(),
+        source=JournalEntry.Source.PURCHASE_BILL,
+        source_ref=f"purchase.bill:{bill_id}",
+        reference=reference,
+        narration="Purchase bill",
+        lines=lines,
+    )
+
+
+def post_supplier_payment(*, payment_id, party_id, amount, out_of="BANK",
+                          reference="", posting_date=None) -> JournalEntry | None:
+    """Dr Accounts Payable / Cr Cash|Bank for a payment made to a supplier.
+    Called from the purchase.payment_made subscriber. Idempotent per payment."""
+    ap = account_by_key("ACCOUNTS_PAYABLE")
+    cash = account_by_key(out_of) or account_by_key("CASH")
+    if ap is None or cash is None:
+        logger.error("BOOKS: chart missing AP/CASH; supplier payment %s NOT posted", payment_id)
+        return None
+    amt = _dec(amount, "amount")
+    return post_journal(
+        posting_date=posting_date or timezone.localdate(),
+        source=JournalEntry.Source.PAYMENT,
+        source_ref=f"purchase.payment:{payment_id}",
+        reference=reference,
+        narration="Supplier payment",
+        lines=[
+            {"account": ap, "party": _party(party_id), "debit": amt, "description": "Against payable"},
+            {"account": cash, "credit": amt, "description": "Cash/Bank paid"},
         ],
     )
 
