@@ -40,6 +40,28 @@ def tenant_db_sandbox(tmp_path, settings):
         forget_alias(alias)
 
 
+@pytest.fixture(autouse=True)
+def run_on_commit_hooks(monkeypatch):
+    """Execute transaction.on_commit callbacks immediately during tests.
+
+    The event bus defers handler dispatch to on_commit so an event can never be
+    delivered for a change that later rolls back. pytest-django wraps each test
+    in a transaction that is never committed, so those callbacks would otherwise
+    NEVER run and every integration assertion (stock moved, ledger posted) would
+    silently pass on a no-op. Running them inline keeps the effects observable;
+    the deferral itself is covered explicitly in tests/test_event_outbox.py.
+    """
+    from django.db import transaction
+
+    real_on_commit = transaction.on_commit
+
+    def _immediate(func, using=None, robust=False):
+        func()
+
+    monkeypatch.setattr(transaction, "on_commit", _immediate)
+    yield real_on_commit
+
+
 @pytest.fixture()
 def api():
     return APIClient()

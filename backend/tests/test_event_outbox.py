@@ -359,6 +359,58 @@ def test_abandoned_row_can_be_retried_when_named_explicitly(api, make_tenant, te
         subs[subs.index(flaky)] = real
 
 
+def test_rolled_back_work_emits_nothing(api, make_tenant, tenant_token):
+    """TRANSACTIONAL OUTBOX: the delivery record is written inside the emitter's
+    transaction, so an operation that rolls back leaves NO event behind — no
+    phantom ledger post for a document that never existed."""
+    tenant, _ = make_tenant(package_code="P8")
+    token = tenant_token(tenant)["access"]
+    party = _party(api, token)
+
+    with use_tenant(tenant):
+        from django.db import transaction
+
+        from apps.foundation.integration import events as bus
+        from apps.foundation.models import EventDelivery
+        from apps.tenancy.context import require_tenant
+        from apps.tenancy.db import ensure_alias
+
+        before = EventDelivery.objects.count()
+        alias = ensure_alias(require_tenant())
+        with pytest.raises(RuntimeError):
+            with transaction.atomic(using=alias):
+                bus.emit("orders.invoice_issued", invoice_id=4242, order_id=1,
+                         party_id=party, total="500", subtotal="500", tax_amount="0")
+                raise RuntimeError("business logic failed after emitting")
+
+        # the delivery row rolled back with the work that emitted it
+        assert EventDelivery.objects.count() == before
+        from apps.books.models import JournalEntry
+        assert not JournalEntry.objects.filter(source_ref="orders.invoice:4242").exists()
+
+
+def test_committed_work_always_leaves_a_replayable_record(api, make_tenant, tenant_token):
+    """The other half: once the business change commits, the event is durable.
+    Even if dispatch never ran, the row is there for the retry sweep."""
+    tenant, _ = make_tenant(package_code="P8")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    item, party = _item(api, token), _party(api, token)
+    client.post("/api/t/inv/receive", {"item": item, "quantity": 50, "rate": 10})
+    order = client.post("/api/t/sales-orders/", {
+        "customer": party,
+        "items": [{"item": item, "item_name": "Widget", "quantity": 5, "rate": "100"}]}).data
+    client.post(f"/api/t/sales-orders/{order['id']}/confirm/")
+    client.post(f"/api/t/sales-orders/{order['id']}/delivery-note/", {})
+
+    with use_tenant(tenant):
+        from apps.foundation.models import EventDelivery
+        # the dispatch committed, so its delivery record exists and is settled
+        row = EventDelivery.objects.get(event="orders.dispatched")
+        assert row.status == EventDelivery.Status.DELIVERED
+        assert float(row.payload["items"][0]["quantity"]) == 5.0   # replayable payload
+
+
 def test_outbox_api_is_admin_only(api, make_tenant, tenant_token):
     tenant, _ = make_tenant(package_code="P8")
     owner = tenant_token(tenant)["access"]

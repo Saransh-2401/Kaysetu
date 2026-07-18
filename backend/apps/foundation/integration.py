@@ -137,11 +137,47 @@ class EventBus:
                 except Exception:
                     logger.exception("subscriber for %s failed", event)
                 continue
-            try:
-                apply_delivery(delivery, fn, safe_payload)
-            except Exception as exc:
-                logger.exception("subscriber for %s failed", event)
-                _record_failure(delivery, exc)
+            _dispatch_after_commit(delivery, fn, safe_payload, event)
+
+
+def _dispatch_after_commit(delivery, fn, payload, event):
+    """Run the handler — but only once the emitter's transaction has COMMITTED.
+
+    Called inside an emitter's transaction, the delivery row above was written in
+    that same transaction, which is what makes this a real outbox:
+
+      * the business change rolls back  -> the delivery row rolls back with it,
+        so no phantom event survives a failed operation;
+      * the business change commits     -> the row is durable BEFORE any handler
+        runs, so a crash before/inside dispatch leaves a row the retry sweep
+        picks up. There is no window where the change is committed but the
+        event is lost.
+
+    Outside a transaction it dispatches immediately (still durably recorded).
+    """
+    from django.db import connections, transaction
+
+    from apps.tenancy.context import require_tenant
+    from apps.tenancy.db import ensure_alias
+
+    def _run():
+        try:
+            apply_delivery(delivery, fn, payload)
+        except Exception as exc:
+            logger.exception("subscriber for %s failed", event)
+            _record_failure(delivery, exc)
+
+    try:
+        alias = ensure_alias(require_tenant())
+        in_transaction = connections[alias].in_atomic_block
+    except Exception:
+        in_transaction = False
+        alias = None
+
+    if in_transaction:
+        transaction.on_commit(_run, using=alias)
+    else:
+        _run()
 
 
 def _tenant_present() -> bool:

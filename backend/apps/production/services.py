@@ -224,14 +224,16 @@ def complete_order(order, *, produced_quantity=None, consumption=None):
         unit_cost = (locked.bom.material_cost / locked.bom.output_quantity
                      if locked.bom.output_quantity else Decimal("0"))
 
-    # INV subscribes to both (entitlement-gated there): raw stock out, finished in.
-    if consumed_payload:
-        events.emit("prod.materials_consumed", order_id=order.pk, order_number=number,
-                    items=consumed_payload)
-    events.emit(
-        "prod.goods_produced", order_id=order.pk, order_number=number,
-        warehouse_id=warehouse_id,
-        items=[{"item_id": item_id, "quantity": str(produced), "rate": str(unit_cost)}],
-    )
+        # INV subscribes to both (entitlement-gated there): raw stock out,
+        # finished in. Emitted INSIDE the transaction so a completed run can
+        # never lose half its stock movements — and a rolled-back one moves none.
+        if consumed_payload:
+            events.emit("prod.materials_consumed", order_id=locked.pk, order_number=number,
+                        items=consumed_payload)
+        events.emit(
+            "prod.goods_produced", order_id=locked.pk, order_number=number,
+            warehouse_id=warehouse_id,
+            items=[{"item_id": item_id, "quantity": str(produced), "rate": str(unit_cost)}],
+        )
     order.refresh_from_db()
     return order

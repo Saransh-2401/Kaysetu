@@ -126,24 +126,27 @@ def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") 
                     order=order, item_id=item_id, item_name=item_name,
                     quantity=qty, rate=rate, tax_rate=tax_rate, amount=line_amount,
                 )
+            # Carry the full order in the event so a subscribing module (ORDERS)
+            # can build its own record with no import back into FIELD. Emitted
+            # INSIDE the transaction so a booked order can never lose its
+            # back-office counterpart, and a rolled-back one never creates one.
+            events.emit(
+                "field.order_booked",
+                order_id=order.pk, order_number=order.order_number,
+                agent_id=agent.pk, party_id=party_id,
+                subtotal=str(order.subtotal), tax_amount=str(order.tax_amount),
+                total=str(order.total),
+                items=[
+                    {"item_id": i, "item_name": n, "quantity": str(q), "rate": str(r),
+                     "tax_rate": str(tr), "amount": str(a)}
+                    for (i, n, q, r, tr, a) in prepared
+                ],
+            )
     except IntegrityError:
         if client_uuid:
             return FieldOrder.objects.get(client_uuid=client_uuid)  # lost the idempotency race
         raise
 
-    # Carry the full order in the event so a subscribing module (ORDERS) can
-    # build its own record with no import back into FIELD.
-    events.emit(
-        "field.order_booked",
-        order_id=order.pk, order_number=order.order_number,
-        agent_id=agent.pk, party_id=party_id,
-        subtotal=str(order.subtotal), tax_amount=str(order.tax_amount), total=str(order.total),
-        items=[
-            {"item_id": i, "item_name": n, "quantity": str(q), "rate": str(r),
-             "tax_rate": str(tr), "amount": str(a)}
-            for (i, n, q, r, tr, a) in prepared
-        ],
-    )
     return order
 
 

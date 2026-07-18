@@ -257,12 +257,15 @@ def receive_goods(po, *, lines, receipt_date=None, warehouse_id=None, notes=""):
                 })
         _refresh_receipt_status(po)
 
-    # INV subscribes and adds the stock (entitlement-gated on its side).
-    events.emit(
-        "purchase.goods_received",
-        receipt_id=grn.pk, receipt_number=grn.number, order_id=po.pk,
-        warehouse_id=warehouse_id, items=payload_items,
-    )
+        # INV subscribes and adds the stock (entitlement-gated on its side).
+        # Emitted INSIDE the transaction so the receipt and the stock it owes
+        # commit together: a rolled-back GRN adds nothing, and a committed one
+        # can never lose its stock movement (handlers run on_commit).
+        events.emit(
+            "purchase.goods_received",
+            receipt_id=grn.pk, receipt_number=grn.number, order_id=po.pk,
+            warehouse_id=warehouse_id, items=payload_items,
+        )
     return grn
 
 
@@ -314,13 +317,14 @@ def create_bill(*, supplier_id, invoice_date, purchase_order=None, supplier_invo
             supplier_invoice_no=supplier_invoice_no, invoice_date=invoice_date, due_date=due_date,
             subtotal=net, tax_amount=tax, total=net + tax,
         )
-    # BOOKS subscribes: Dr Inventory / Dr GST Input / Cr Accounts Payable.
-    events.emit(
-        "purchase.bill_issued",
-        bill_id=bill.pk, party_id=bill.supplier_id, subtotal=str(net),
-        tax_amount=str(tax), total=str(bill.total),
-        reference=purchase_order.number if purchase_order else bill.number,
-    )
+        # BOOKS subscribes: Dr Inventory / Dr GST Input / Cr Accounts Payable.
+        # Inside the transaction so the bill and its payable commit together.
+        events.emit(
+            "purchase.bill_issued",
+            bill_id=bill.pk, party_id=bill.supplier_id, subtotal=str(net),
+            tax_amount=str(tax), total=str(bill.total),
+            reference=purchase_order.number if purchase_order else bill.number,
+        )
     return bill
 
 
@@ -346,12 +350,12 @@ def record_bill_payment(bill, *, amount, mode="bank", reference=""):
         if locked.purchase_order_id:
             _refresh_po_payment(locked.purchase_order_id)
 
-    # BOOKS subscribes: Dr Accounts Payable / Cr Cash|Bank.
-    events.emit(
-        "purchase.payment_made",
-        payment_id=payment.pk, bill_id=bill.pk, party_id=locked.supplier_id,
-        amount=str(amount), mode=mode,
-    )
+        # BOOKS subscribes: Dr Accounts Payable / Cr Cash|Bank.
+        events.emit(
+            "purchase.payment_made",
+            payment_id=payment.pk, bill_id=bill.pk, party_id=locked.supplier_id,
+            amount=str(amount), mode=mode,
+        )
     bill.refresh_from_db()
     return payment
 

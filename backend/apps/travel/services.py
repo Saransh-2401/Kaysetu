@@ -186,10 +186,12 @@ def _advance(claim, target, *, actor=None, note="", approved_amount=None, refere
         locked.save(update_fields=fields)
         paid_amount, agent_id, number = locked.approved_amount, locked.agent_id, locked.number
 
-    if target == AllowanceClaim.Status.PAID and paid_amount > 0:
-        # BOOKS records the payout: Dr Operating Expenses / Cr Cash.
-        events.emit("ta.claim_paid", claim_id=claim.pk, claim_number=number,
-                    user_id=agent_id, amount=str(paid_amount), reference=reference)
+        if target == AllowanceClaim.Status.PAID and paid_amount > 0:
+            # BOOKS records the payout: Dr Operating Expenses / Cr Cash.
+            # Inside the transaction so the payout and its ledger entry commit
+            # together — the reimbursement can't be paid without being booked.
+            events.emit("ta.claim_paid", claim_id=locked.pk, claim_number=number,
+                        user_id=agent_id, amount=str(paid_amount), reference=reference)
     claim.refresh_from_db()
     return claim
 

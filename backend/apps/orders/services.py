@@ -133,14 +133,18 @@ def make_pick_list(order: SalesOrder, picker=None) -> PickList:
 
 
 def make_delivery_note(order: SalesOrder, **fields) -> DeliveryNote:
-    dn = DeliveryNote.objects.create(order=order, note_number=_num("DN"), **fields)
-    _transition(order, SalesOrder.Status.IN_TRANSIT, note="delivery note created")
-    # Carry line items so INV can deduct stock (no import back into ORDERS).
-    events.emit(
-        "orders.dispatched",
-        order_id=order.pk, order_number=order.order_number,
-        items=[{"item_id": i.item_id, "quantity": str(i.quantity)} for i in order.items.all()],
-    )
+    # The emit sits INSIDE the transaction: its delivery record commits with the
+    # dispatch itself, so the stock deduction can neither be lost (crash after
+    # commit) nor applied for a note that rolled back (handlers run on_commit).
+    with transaction.atomic(using=ensure_alias(require_tenant())):
+        dn = DeliveryNote.objects.create(order=order, note_number=_num("DN"), **fields)
+        _transition(order, SalesOrder.Status.IN_TRANSIT, note="delivery note created")
+        # Carry line items so INV can deduct stock (no import back into ORDERS).
+        events.emit(
+            "orders.dispatched",
+            order_id=order.pk, order_number=order.order_number,
+            items=[{"item_id": i.item_id, "quantity": str(i.quantity)} for i in order.items.all()],
+        )
     return dn
 
 
@@ -155,16 +159,20 @@ def issue_invoice(order: SalesOrder) -> Invoice:
         raise ValidationError("Order must be delivered before invoicing.")
     if order.invoices.exists():
         raise ValidationError("Invoice already issued for this order.")
-    invoice = Invoice.objects.create(
-        order=order, invoice_number=_num("INV"), invoice_date=timezone.localdate(), total=order.total,
-    )
-    # BOOKS subscribes to post this to the ledger when present. subtotal + tax_amount
-    # let it split output GST out of revenue (Dr AR / Cr Sales / Cr GST Payable).
-    events.emit(
-        "orders.invoice_issued",
-        invoice_id=invoice.pk, order_id=order.pk, party_id=order.customer_id,
-        total=str(order.total), subtotal=str(order.subtotal), tax_amount=str(order.tax_amount),
-    )
+    with transaction.atomic(using=ensure_alias(require_tenant())):
+        invoice = Invoice.objects.create(
+            order=order, invoice_number=_num("INV"),
+            invoice_date=timezone.localdate(), total=order.total,
+        )
+        # BOOKS subscribes to post this to the ledger when present. subtotal + tax_amount
+        # let it split output GST out of revenue (Dr AR / Cr Sales / Cr GST Payable).
+        # Emitted inside the transaction so the invoice and its ledger obligation
+        # are recorded together — the post can never be silently lost.
+        events.emit(
+            "orders.invoice_issued",
+            invoice_id=invoice.pk, order_id=order.pk, party_id=order.customer_id,
+            total=str(order.total), subtotal=str(order.subtotal), tax_amount=str(order.tax_amount),
+        )
     return invoice
 
 
@@ -190,12 +198,13 @@ def record_payment(order: SalesOrder, *, amount, mode="cash", reference="") -> P
         else:
             locked.payment_status = SalesOrder.PaymentStatus.PENDING
         locked.save(update_fields=["amount_paid", "payment_status", "updated_at"])
-    # party_id + payment_id let BOOKS post an idempotent receipt against the
-    # right customer's receivable; mode routes it to Cash vs Bank (no import back).
-    events.emit(
-        "orders.payment_recorded",
-        order_id=order.pk, payment_id=payment.pk, party_id=order.customer_id,
-        amount=str(amount), mode=mode,
-    )
+        # party_id + payment_id let BOOKS post an idempotent receipt against the
+        # right customer's receivable; mode routes it to Cash vs Bank (no import
+        # back). Inside the lock so the receipt is recorded with the payment.
+        events.emit(
+            "orders.payment_recorded",
+            order_id=order.pk, payment_id=payment.pk, party_id=order.customer_id,
+            amount=str(amount), mode=mode,
+        )
     order.refresh_from_db()
     return payment

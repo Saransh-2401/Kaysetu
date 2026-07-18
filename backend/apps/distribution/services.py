@@ -233,10 +233,13 @@ def dispatch_request(req, *, actor=None):
         locked.status = StockRequest.Status.DISPATCHED
         locked.save(update_fields=["status", "updated_at"])
         _log(locked, previous, "dispatched", actor)
-    req.refresh_from_db()
 
-    # INV subscribes and deducts the company's stock (entitlement-gated there).
-    events.emit("dist.stock_dispatched", request_id=req.pk, request_number=req.number, items=payload)
+        # INV subscribes and deducts the company's stock (entitlement-gated
+        # there). Inside the transaction so the dispatch and the stock it owes
+        # commit together — handlers themselves run only after the commit.
+        events.emit("dist.stock_dispatched", request_id=locked.pk,
+                    request_number=locked.number, items=payload)
+    req.refresh_from_db()
     return req
 
 
@@ -273,11 +276,13 @@ def issue_invoice(req, *, invoice_date=None, due_date=None):
         req.payment_status = StockRequest.PaymentStatus.INVOICED
         req.save(update_fields=["payment_status", "updated_at"])
 
-    events.emit(
-        "dist.invoice_issued",
-        invoice_id=invoice.pk, party_id=req.distributor_id,
-        total=str(invoice.total_amount), reference=req.number,
-    )
+        # BOOKS subscribes (Dr AR / Cr Sales) — inside the transaction so the
+        # invoice and its receivable are recorded together.
+        events.emit(
+            "dist.invoice_issued",
+            invoice_id=invoice.pk, party_id=req.distributor_id,
+            total=str(invoice.total_amount), reference=req.number,
+        )
     return invoice
 
 
@@ -301,13 +306,13 @@ def record_invoice_payment(invoice, *, amount, mode="bank", reference=""):
         locked.save(update_fields=["paid_amount", "status", "payment_reference"])
         _sync_request_payment(locked.request_id)
 
-    # BOOKS subscribes: Dr Cash|Bank / Cr Accounts Receivable — otherwise the
-    # receivable raised by dist.invoice_issued would never be cleared.
-    events.emit(
-        "dist.payment_received",
-        payment_id=payment.pk, invoice_id=invoice.pk,
-        party_id=locked.distributor_id, amount=str(amount), mode=mode,
-    )
+        # BOOKS subscribes: Dr Cash|Bank / Cr Accounts Receivable — otherwise the
+        # receivable raised by dist.invoice_issued would never be cleared.
+        events.emit(
+            "dist.payment_received",
+            payment_id=payment.pk, invoice_id=invoice.pk,
+            party_id=locked.distributor_id, amount=str(amount), mode=mode,
+        )
     invoice.refresh_from_db()
     return invoice
 
