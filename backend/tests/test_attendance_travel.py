@@ -36,17 +36,27 @@ def test_attendance_check_in_out_cycle(api, make_tenant, tenant_token):
     token = tenant_token(tenant)["access"]
     client = auth(api, token)
 
+    # the punch endpoints serve the flat status shape the portal widget reads
     assert client.post("/api/t/att/attendance/check-out/").status_code == 400  # not in yet
     first = client.post("/api/t/att/attendance/check-in/", {})
-    assert first.status_code == 201 and first.data["is_open"] is True
-    # checking in twice the same day is a no-op, not a duplicate row
-    assert client.post("/api/t/att/attendance/check-in/", {}).data["id"] == first.data["id"]
+    assert first.status_code == 201 and first.data["success"] is True
+    assert first.data["checked_in"] is True and first.data["checked_out"] is False
+
+    # checking in twice the same day is a no-op, not a second row
+    again = client.post("/api/t/att/attendance/check-in/", {})
+    assert again.data["check_in_time"] == first.data["check_in_time"]
+    with use_tenant(tenant):
+        from apps.attendance.models import OfficeAttendance
+        assert OfficeAttendance.objects.count() == 1
 
     out = client.post("/api/t/att/attendance/check-out/")
-    assert out.status_code == 200 and out.data["is_open"] is False
-    assert out.data["check_out_type"] == "manual"
+    assert out.status_code == 200 and out.data["success"] is True
+    assert out.data["checked_out"] is True and out.data["check_out_type"] == "manual"
+    assert "working_hours" in out.data
     assert client.post("/api/t/att/attendance/check-out/").status_code == 400  # already out
-    assert client.get("/api/t/att/attendance/today/").data["id"] == first.data["id"]
+
+    today = client.get("/api/t/att/attendance/today/").data
+    assert today["applicable"] and today["checked_in"] and today["checked_out"]
 
 
 def test_leave_days_exclude_weekends_and_holidays(api, make_tenant, tenant_token):

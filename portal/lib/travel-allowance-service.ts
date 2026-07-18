@@ -155,7 +155,7 @@ interface Paginated<T> {
   results: T[];
 }
 
-const BASE = "/travel-allowance";
+const BASE = "/t/ta";
 
 function unwrap<T>(res: Paginated<T> | T[]): T[] {
   if (Array.isArray(res)) return res;

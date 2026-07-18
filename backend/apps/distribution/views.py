@@ -132,6 +132,27 @@ class StockRequestViewSet(viewsets.ModelViewSet):
         )
         return Response(DistributorInvoiceSerializer(inv).data, status=201)
 
+    # --- aliases for the imported portal, which uses the Old Project's action
+    # names (snake_case, and "in transit"/"cancel" for dispatch/reject) ---
+    @action(detail=True, methods=["post"], url_path="mark_in_transit",
+            permission_classes=[DistModule, IsDistManager])
+    def mark_in_transit(self, request, pk=None):
+        return self.dispatch_stock(request, pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="mark_delivered",
+            permission_classes=[DistModule, IsDistManager])
+    def mark_delivered_alias(self, request, pk=None):
+        return self.mark_delivered(request, pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="generate_invoice",
+            permission_classes=[DistModule, IsDistManager])
+    def generate_invoice(self, request, pk=None):
+        return self.invoice(request, pk=pk)
+
+    @action(detail=True, methods=["post"], permission_classes=[DistModule, IsDistManager])
+    def cancel(self, request, pk=None):
+        return self.reject(request, pk=pk)
+
 
 class DistributorInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [DistModule]
@@ -147,6 +168,14 @@ class DistributorInvoiceViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get("distributor"):
             qs = qs.filter(distributor_id=params["distributor"])
         return _scope_to_own_party(qs, self.request.user)
+
+    @action(detail=False, methods=["get"], url_path="my_invoices")
+    def my_invoices(self, request):
+        """Portal alias: a distributor's own invoices (get_queryset already
+        scopes a party-linked login to their own rows)."""
+        page = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
+        serializer = DistributorInvoiceSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="mark_paid",
             permission_classes=[DistModule, IsDistManager])

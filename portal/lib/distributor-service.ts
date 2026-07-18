@@ -144,72 +144,72 @@ export interface StockRequest {
 export const distributorService = {
     // Inventory
     getInventory: async () => {
-        return await apiClient.get<DistributorInventory[]>('/distributor-inventory/inventory/');
+        return await apiClient.get<DistributorInventory[]>('/t/dist/inventory/');
     },
 
     getProductMaster: async (distributorId?: number) => {
         const params: Record<string, string> | undefined = distributorId ? { distributor_id: distributorId.toString() } : undefined;
-        return await apiClient.get<Product[]>('/distributor-inventory/inventory/products/', params);
+        return await apiClient.get<Product[]>('/t/dist/inventory/products/', params);
     },
 
     getAdjustments: async (params?: Record<string, string>) => {
-        return await apiClient.get<any>('/distributor-inventory/adjustments/', params);
+        return await apiClient.get<any>('/t/dist/adjustments/', params);
     },
 
     createAdjustment: async (data: any) => {
-        return await apiClient.post<any>('/distributor-inventory/adjustments/', data);
+        return await apiClient.post<any>('/t/dist/adjustments/', data);
     },
 
     // Stock Requests
     getStockRequests: async (params?: Record<string, string>) => {
-        return await apiClient.get<StockRequest[]>('/distributor-inventory/requests/', params);
+        return await apiClient.get<StockRequest[]>('/t/dist/requests/', params);
     },
 
     createStockRequest: async (data: { description: string; items: { product: number; requested_quantity: number }[] }) => {
-        return await apiClient.post<StockRequest>('/distributor-inventory/requests/', data);
+        return await apiClient.post<StockRequest>('/t/dist/requests/', data);
     },
 
     getStockRequest: async (id: number) => {
-        return await apiClient.get<StockRequest>(`/distributor-inventory/requests/${id}/`);
+        return await apiClient.get<StockRequest>(`/t/dist/requests/${id}/`);
     },
     updateStockRequest: async (id: number, data: { description: string; items: { product: number; requested_quantity: number }[] }) => {
-        return await apiClient.put<StockRequest>(`/distributor-inventory/requests/${id}/`, data);
+        return await apiClient.put<StockRequest>(`/t/dist/requests/${id}/`, data);
     },
 
     checkStockInventory: async (id: number) => {
-        return await apiClient.get<any[]>(`/distributor-inventory/requests/${id}/check_inventory/`);
+        return await apiClient.get<any[]>(`/t/dist/requests/${id}/check_inventory/`);
     },
 
     approveStockRequest: async (id: number, notes?: string) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/approve/`, { notes });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/approve/`, { notes });
     },
 
     cancelStockRequest: async (id: number, notes?: string) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/cancel/`, { notes });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/cancel/`, { notes });
     },
 
     markPacked: async (id: number, notes?: string) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/mark_packed/`, { notes });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/mark_packed/`, { notes });
     },
 
     markInTransit: async (id: number, notes?: string) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/mark_in_transit/`, { notes });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/mark_in_transit/`, { notes });
     },
 
     markDelivered: async (id: number, notes?: string) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/mark_delivered/`, { notes });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/mark_delivered/`, { notes });
     },
 
     updatePaymentStatus: async (id: number, status: 'paid' | 'unpaid' | 'invoiced' | 'overdue', reference?: string, notes?: string) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/update_payment_status/`, { status, notes, reference });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/update_payment_status/`, { status, notes, reference });
     },
 
     generateInvoice: async (id: number, data: any) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${id}/generate_invoice/`, data);
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${id}/generate_invoice/`, data);
     },
 
     deleteInvoice: async (requestId: number, invoiceId: number) => {
-        return await apiClient.post<StockRequest>(`/distributor-inventory/requests/${requestId}/delete_invoice/`, { invoice_id: invoiceId });
+        return await apiClient.post<StockRequest>(`/t/dist/requests/${requestId}/delete_invoice/`, { invoice_id: invoiceId });
     },
 
     getCompanyDetails: async () => {
@@ -218,49 +218,49 @@ export const distributorService = {
 
     // Shortages & Production
     getShortages: async () => {
-        return await apiClient.get<any[]>('/distributor-inventory/shortages/');
+        return await apiClient.get<any[]>('/t/dist/shortages/');
     },
 
     startShortageProduction: async (id: number) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/start_production/`, {});
+        return await apiClient.post(`/t/dist/shortages/${id}/start_production/`, {});
     },
 
     completeShortageProduction: async (id: number) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/complete_production/`, {});
+        return await apiClient.post(`/t/dist/shortages/${id}/complete_production/`, {});
     },
 
     generateShortageInvoice: async (id: number) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/generate_invoice/`, {});
+        return await apiClient.post(`/t/dist/shortages/${id}/generate_invoice/`, {});
     },
 
     markShortagePaid: async (id: number, data?: { payment_reference?: string }) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/mark_paid/`, data || {});
+        return await apiClient.post(`/t/dist/shortages/${id}/mark_paid/`, data || {});
     },
     packShortage: async (id: number, notes?: string) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/mark_packed/`, { notes });
+        return await apiClient.post(`/t/dist/shortages/${id}/mark_packed/`, { notes });
     },
     shipShortage: async (id: number, notes?: string) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/mark_in_transit/`, { notes });
+        return await apiClient.post(`/t/dist/shortages/${id}/mark_in_transit/`, { notes });
     },
     deliverShortage: async (id: number, notes?: string) => {
-        return await apiClient.post(`/distributor-inventory/shortages/${id}/mark_delivered/`, { notes });
+        return await apiClient.post(`/t/dist/shortages/${id}/mark_delivered/`, { notes });
     },
 
     // Batch operations — act on ALL eligible items under a stock request in one call
     batchPackShortages: async (stockRequestId: number): Promise<{ results: any[]; any_packed: boolean }> => {
-        return await apiClient.post(`/distributor-inventory/shortages/batch_pack/`, { stock_request_id: stockRequestId });
+        return await apiClient.post(`/t/dist/shortages/batch_pack/`, { stock_request_id: stockRequestId });
     },
     batchShipShortages: async (stockRequestId: number): Promise<{ results: any[]; any_shipped: boolean }> => {
-        return await apiClient.post(`/distributor-inventory/shortages/batch_ship/`, { stock_request_id: stockRequestId });
+        return await apiClient.post(`/t/dist/shortages/batch_ship/`, { stock_request_id: stockRequestId });
     },
     batchDeliverShortages: async (stockRequestId: number): Promise<{ results: any[]; any_delivered: boolean }> => {
-        return await apiClient.post(`/distributor-inventory/shortages/batch_deliver/`, { stock_request_id: stockRequestId });
+        return await apiClient.post(`/t/dist/shortages/batch_deliver/`, { stock_request_id: stockRequestId });
     },
 
 
     // Invoices
     getMyInvoices: async () => {
-        return await apiClient.get<any[]>('/distributor-inventory/invoices/my_invoices/');
+        return await apiClient.get<any[]>('/t/dist/invoices/my_invoices/');
     },
 
     downloadInvoicePDF: async (invoiceId: number, invoiceNumber: string) => {

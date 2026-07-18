@@ -63,20 +63,37 @@ class AttendanceViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(date__lte=params["to_date"])
         return _scope(qs, self.request.user)
 
+    # The imported portal punch widget reads a flat status shape
+    # ({applicable, checked_in, checked_out, ...}) rather than the model row —
+    # serve exactly that so the screen works unchanged.
+    @staticmethod
+    def _status(row):
+        return {
+            "applicable": True,
+            "checked_in": bool(row and row.check_in_time),
+            "checked_out": bool(row and row.check_out_time),
+            "check_in_time": row.check_in_time if row else None,
+            "check_out_time": row.check_out_time if row else None,
+            "check_out_type": (row.check_out_type or None) if row else None,
+            "working_hours": float(row.working_hours) if row else 0.0,
+        }
+
     @action(detail=False, methods=["post"], url_path="check-in")
     def check_in(self, request):
         row = services.check_in(request.user, notes=request.data.get("notes", ""))
-        return Response(OfficeAttendanceSerializer(row).data, status=201)
+        return Response({"success": True, "check_in_time": row.check_in_time,
+                         **self._status(row)}, status=201)
 
     @action(detail=False, methods=["post"], url_path="check-out")
     def check_out(self, request):
         row = services.check_out(request.user, actor=request.user)
-        return Response(OfficeAttendanceSerializer(row).data)
+        return Response({"success": True, "check_out_time": row.check_out_time,
+                         "working_hours": float(row.working_hours), **self._status(row)})
 
     @action(detail=False, methods=["get"])
     def today(self, request):
         row = OfficeAttendance.objects.filter(user=request.user, date=timezone.localdate()).first()
-        return Response(OfficeAttendanceSerializer(row).data if row else {})
+        return Response(self._status(row))
 
 
 class LeaveRequestViewSet(viewsets.ModelViewSet):

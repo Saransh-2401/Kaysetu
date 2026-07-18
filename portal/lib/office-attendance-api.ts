@@ -12,13 +12,13 @@ export interface AttendanceStatus {
 
 export const officeAttendanceApi = {
   getToday: () =>
-    apiClient.get<AttendanceStatus>('/office-attendance/today/'),
+    apiClient.get<AttendanceStatus>('/t/att/attendance/today/'),
 
   checkIn: () =>
-    apiClient.post<{ success: boolean; check_in_time: string }>('/office-attendance/check-in/', {}),
+    apiClient.post<{ success: boolean; check_in_time: string }>('/t/att/attendance/check-in/', {}),
 
   checkOut: () =>
-    apiClient.post<{ success: boolean; check_out_time: string; working_hours: number }>('/office-attendance/check-out/', {}),
+    apiClient.post<{ success: boolean; check_out_time: string; working_hours: number }>('/t/att/attendance/check-out/', {}),
 };
 
 /** Format working_hours (decimal) → "Xh Ym" */

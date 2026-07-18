@@ -152,3 +152,30 @@ class AllowanceClaimViewSet(viewsets.ModelViewSet):
             return Response({"detail": "A reason is required."}, status=400)
         services.reject_claim(self.get_object(), actor=request.user, note=note)
         return self._fresh()
+
+    # --- aliases for the imported portal, which uses the Old Project's
+    # snake_case action names ---
+    @action(detail=True, methods=["post"], url_path="manager_approve",
+            permission_classes=[TaModule, IsTaManager])
+    def manager_approve_alias(self, request, pk=None):
+        return self.manager_approve(request, pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="finance_approve",
+            permission_classes=[TaModule, IsFinance])
+    def finance_approve_alias(self, request, pk=None):
+        return self.finance_approve(request, pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="record_payment",
+            permission_classes=[TaModule, IsFinance])
+    def record_payment(self, request, pk=None):
+        return self.mark_paid(request, pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="manager_reject",
+            permission_classes=[TaModule, IsTaManager])
+    def manager_reject(self, request, pk=None):
+        return self.reject(request, pk=pk)
+
+    @action(detail=True, methods=["post"], url_path="finance_reject",
+            permission_classes=[TaModule, IsFinance])
+    def finance_reject(self, request, pk=None):
+        return self.reject(request, pk=pk)

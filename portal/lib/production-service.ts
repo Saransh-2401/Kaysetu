@@ -140,71 +140,71 @@ export interface JobCard {
 export const productionService = {
     // ===== Bill Of Materials =====
     async getBOMs(params?: Record<string, any>) {
-        return apiClient.get<{ results: BillOfMaterials[] }>('/production/bom/', params);
+        return apiClient.get<{ results: BillOfMaterials[] }>('/t/prod/bom/', params);
     },
 
     async getBOM(id: number) {
-        return apiClient.get<BillOfMaterials>(`/production/bom/${id}/`);
+        return apiClient.get<BillOfMaterials>(`/t/prod/bom/${id}/`);
     },
 
     async createBOM(data: Partial<BillOfMaterials>) {
-        return apiClient.post<BillOfMaterials>('/production/bom/', data);
+        return apiClient.post<BillOfMaterials>('/t/prod/bom/', data);
     },
 
     async updateBOM(id: number, data: Partial<BillOfMaterials>) {
-        return apiClient.patch<BillOfMaterials>(`/production/bom/${id}/`, data);
+        return apiClient.patch<BillOfMaterials>(`/t/prod/bom/${id}/`, data);
     },
 
     async deleteBOM(id: number) {
-        return apiClient.delete(`/production/bom/${id}/`);
+        return apiClient.delete(`/t/prod/bom/${id}/`);
     },
 
     // ===== Workstations =====
     async getWorkstations(params?: Record<string, any>) {
-        return apiClient.get<{ results: any[] }>('/production/workstations/', params);
+        return apiClient.get<{ results: any[] }>('/t/prod/workstations/', params);
     },
 
     // ===== Production Plans =====
     async getProductionPlans(params?: Record<string, any>) {
-        return apiClient.get<{ results: ProductionPlan[] }>('/production/plans/', params);
+        return apiClient.get<{ results: ProductionPlan[] }>('/t/prod/plans/', params);
     },
 
     async getProductionPlan(id: number | string) {
-        return apiClient.get<ProductionPlan>(`/production/plans/${id}/`);
+        return apiClient.get<ProductionPlan>(`/t/prod/plans/${id}/`);
     },
 
     async createProductionPlan(data: Partial<ProductionPlan>) {
-        return apiClient.post<ProductionPlan>('/production/plans/', data);
+        return apiClient.post<ProductionPlan>('/t/prod/plans/', data);
     },
 
     async checkMaterialAvailability(items: { item_id: number, quantity: number }[]) {
-        return apiClient.post<MaterialCheckResult[]>('/production/plans/check_material_availability/', { items });
+        return apiClient.post<MaterialCheckResult[]>('/t/prod/plans/check_material_availability/', { items });
     },
 
     async startProduction(id: number) {
-        return apiClient.post<{ message: string, plan_status: string }>(`/production/plans/${id}/start_production/`, {});
+        return apiClient.post<{ message: string, plan_status: string }>(`/t/prod/plans/${id}/start_production/`, {});
     },
 
     async stopProduction(id: number) {
-        return apiClient.post<{ message: string, plan_status: string }>(`/production/plans/${id}/stop_production/`, {});
+        return apiClient.post<{ message: string, plan_status: string }>(`/t/prod/plans/${id}/stop_production/`, {});
     },
 
     async updatePlan(id: number, data: Partial<ProductionPlan>) {
-        return apiClient.patch<ProductionPlan>(`/production/plans/${id}/`, data);
+        return apiClient.patch<ProductionPlan>(`/t/prod/plans/${id}/`, data);
     },
 
     // ===== Work Orders =====
     async getWorkOrders(params?: Record<string, any>) {
-        return apiClient.get<{ results: WorkOrder[] }>('/production/work-orders/', params);
+        return apiClient.get<{ results: WorkOrder[] }>('/t/prod/work-orders/', params);
     },
 
     // ===== Job Cards =====
     async getJobCards(params?: Record<string, any>) {
-        return apiClient.get<{ results: JobCard[] }>('/production/job-cards/', params);
+        return apiClient.get<{ results: JobCard[] }>('/t/prod/job-cards/', params);
     },
 
     async completeJobCard(id: number, quantity?: number) {
-        return apiClient.post<{ message: string }>(`/production/job-cards/${id}/complete/`, { quantity });
+        return apiClient.post<{ message: string }>(`/t/prod/job-cards/${id}/complete/`, { quantity });
     },
 
     async printJobCard(id: number) {
