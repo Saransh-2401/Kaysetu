@@ -82,19 +82,19 @@ export const coreService = {
 
     // --- User Management ---
     async getUsers(params?: Record<string, string>) {
-        return apiClient.get<User[]>('/auth/users/', params);
+        return apiClient.get<User[]>('/t/users/', params);
     },
 
     async createUser(data: Partial<User> | FormData) {
-        return apiClient.post<User>('/auth/users/', data);
+        return apiClient.post<User>('/t/users/', data);
     },
 
     async updateUser(id: number, data: Partial<User> | FormData) {
-        return apiClient.patch<User>(`/auth/users/${id}/`, data);
+        return apiClient.patch<User>(`/t/users/${id}/`, data);
     },
 
     async deleteUser(id: number) {
-        return apiClient.delete(`/auth/users/${id}/`);
+        return apiClient.delete(`/t/users/${id}/`);
     },
 
     // --- Email Templates ---

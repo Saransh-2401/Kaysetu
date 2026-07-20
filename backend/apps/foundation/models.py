@@ -15,10 +15,16 @@ class Role(models.Model):
 
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=64, unique=True)
+    description = models.CharField(max_length=255, blank=True)
     is_system = models.BooleanField(default=False)
+    # A full-access role bypasses the matrix entirely; storing it as a flag keeps
+    # "admin sees everything" from depending on the matrix being kept in sync.
+    is_full_access = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     # {"<MODULE_CODE>|*": ["<action>|*", ...]} — full matrix arrives with the permission UI.
     permissions = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.slug
@@ -107,10 +113,34 @@ class OrgSettings(models.Model):
 
     company_name = models.CharField(max_length=200)
     legal_name = models.CharField(max_length=200, blank=True)
+    abbreviation = models.CharField(max_length=20, blank=True)
     gstin = models.CharField(max_length=15, blank=True)
+    registration_number = models.CharField(max_length=64, blank=True)
     industry = models.CharField(max_length=32, default="generic")
-    logo_url = models.URLField(blank=True)
+    logo_url = models.URLField(max_length=1000, blank=True)
+
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    website = models.URLField(max_length=500, blank=True)
+    address = models.JSONField(default=dict, blank=True)   # {line1,line2,city,state,postal_code}
+    country = models.CharField(max_length=100, default="India")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+
+    # Territory. A single default plus the list the tenant actually operates in —
+    # analytics groups agents by their own `city`, this is the pick-list.
+    operating_cities = models.JSONField(default=list, blank=True)
+    default_operating_city = models.CharField(max_length=100, blank=True)
+
+    default_currency = models.CharField(max_length=3, default="INR")
+    timezone = models.CharField(max_length=64, default="Asia/Kolkata")
+    date_format = models.CharField(max_length=32, default="dd/MM/yyyy")
     fy_start_month = models.PositiveSmallIntegerField(default=4)
+    fiscal_day_start = models.PositiveSmallIntegerField(default=1)
+    office_start_time = models.TimeField(null=True, blank=True)
+    office_end_time = models.TimeField(null=True, blank=True)
+    active_font = models.CharField(max_length=64, default="roboto")
+    is_active = models.BooleanField(default=True)
     # Terminology dictionary — how THIS tenant names things (Product/Service/...).
     labels = models.JSONField(default=dict, blank=True)
     numbering = models.JSONField(default=dict, blank=True)
@@ -217,11 +247,19 @@ class EventDelivery(models.Model):
         DELIVERED = "delivered", "Delivered"
         FAILED = "failed", "Failed (will retry)"
         ABANDONED = "abandoned", "Abandoned (max attempts)"
+        # A replay whose handler no longer applies because the tenant's
+        # entitlements changed between the emit and the retry. Distinct from
+        # DELIVERED on purpose: nothing was posted, and calling that "delivered"
+        # would hide a real gap in the ledger.
+        SKIPPED_UNENTITLED = "skipped_unentitled", "Skipped (module no longer entitled)"
 
     event = models.CharField(max_length=100, db_index=True)
     subscriber = models.CharField(max_length=255, db_index=True)
     payload = models.JSONField(default=dict, blank=True)
-    status = models.CharField(max_length=12, choices=Status.choices,
+    # Entitlements AS AT the emit. A retry compares against this so a tenant who
+    # downgraded doesn't have their backlog silently marked done.
+    modules_at_emit = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices,
                               default=Status.PENDING, db_index=True)
     attempts = models.PositiveIntegerField(default=0)
     last_error = models.TextField(blank=True)
@@ -255,3 +293,167 @@ class AuditLog(models.Model):
 
     class Meta:
         ordering = ["-at"]
+
+
+# --------------------------------------------------------------- messaging config
+class EmailConfiguration(models.Model):
+    """Singleton (pk=1): the tenant's own SMTP credentials.
+
+    Per-tenant rather than platform-wide on purpose — invoices and alerts should
+    arrive from the tenant's own domain, not ours.
+    """
+
+    host = models.CharField(max_length=200, default="smtp.gmail.com")
+    port = models.PositiveIntegerField(default=587)
+    username = models.CharField(max_length=200, blank=True)
+    # Stored as-is. Encrypting it would need a key the tenant DB doesn't hold;
+    # the honest position is that this is a secret in the database, protected by
+    # DB access control, and it is never returned by the API.
+    password = models.CharField(max_length=500, blank=True)
+    use_tls = models.BooleanField(default=True)
+    use_ssl = models.BooleanField(default=False)
+    default_from_email = models.EmailField(blank=True)
+    from_name = models.CharField(max_length=200, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email configuration"
+
+
+class EmailTemplate(models.Model):
+    """A message body keyed to an event. `trigger_key` matches the notification
+    catalog's event key, so a template and its trigger can't drift apart."""
+
+    name = models.CharField(max_length=200, unique=True)
+    trigger_key = models.CharField(max_length=100, unique=True)
+    subject = models.CharField(max_length=300)
+    body = models.TextField(blank=True)
+    available_variables = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class SMSConfiguration(models.Model):
+    """Singleton (pk=1). `entity_id` is the DLT entity — Indian SMS cannot be
+    sent without one, so a blank value here means SMS is simply off."""
+
+    api_key = models.CharField(max_length=500, blank=True)
+    sender_id = models.CharField(max_length=20, blank=True)
+    entity_id = models.CharField(max_length=64, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "SMS configuration"
+
+
+class SMSTemplate(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    trigger_key = models.CharField(max_length=100, unique=True)
+    content = models.TextField()
+    # The DLT-registered template id. Without it the carrier rejects the send,
+    # so a template with no id is stored but never dispatched.
+    dlt_template_id = models.CharField(max_length=64, blank=True)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class AppVersion(models.Model):
+    """Mobile release channel. `version_code` is the ordering authority —
+    version STRINGS sort wrongly ("1.10" < "1.9" as text)."""
+
+    version = models.CharField(max_length=32)
+    version_code = models.PositiveIntegerField(unique=True)
+    apk_url = models.URLField(max_length=1000, blank=True)
+    release_notes = models.TextField(blank=True)
+    force_update = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    uploaded_by = models.ForeignKey(TenantUser, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="app_versions")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-version_code"]
+
+    def __str__(self):
+        return f"{self.version} ({self.version_code})"
+
+
+# ------------------------------------------------------------------ quick links
+class RoleQuickLink(models.Model):
+    """A shortcut an admin pins for a whole role."""
+
+    role_slug = models.CharField(max_length=64, db_index=True)
+    label = models.CharField(max_length=60)
+    path = models.CharField(max_length=200)
+    module_key = models.CharField(max_length=50, blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("role_slug", "path")
+        ordering = ["role_slug", "order", "id"]
+
+
+class UserQuickLink(models.Model):
+    """A shortcut someone pinned for themselves."""
+
+    user = models.ForeignKey(TenantUser, on_delete=models.CASCADE, related_name="quick_links")
+    label = models.CharField(max_length=60)
+    path = models.CharField(max_length=200)
+    module_key = models.CharField(max_length=50, blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("user", "path")
+        ordering = ["user", "order", "id"]
+
+
+# ------------------------------------------------------------------- masters
+class UOM(models.Model):
+    """Unit of measure. Reference data shared by every module that counts
+    something, which is why it lives in foundation and not in INV."""
+
+    uom_name = models.CharField(max_length=50, unique=True)
+    symbol = models.CharField(max_length=10, blank=True)
+    is_base_unit = models.BooleanField(default=False)
+    conversion_factor = models.DecimalField(max_digits=10, decimal_places=4, default=1)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["uom_name"]
+        verbose_name = "UOM"
+
+    def __str__(self):
+        return self.uom_name
+
+
+class TaxSlab(models.Model):
+    """A GST rate and the HSN codes it applies to. Invoice screens look a rate
+    up by HSN from here rather than each screen hardcoding the rate table."""
+
+    name = models.CharField(max_length=100, unique=True)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    hsn_codes = models.JSONField(default=list, blank=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-percentage"]
+
+    def __str__(self):
+        return f"{self.name} ({self.percentage}%)"

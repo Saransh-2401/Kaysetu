@@ -29,11 +29,11 @@ export default function Footer() {
             duration={2.2}
             delay={0}
           >
-            SALEXA
+            KAYSETU
           </FlipText>
           <Box>
             <Typography variant="caption" sx={{ color: alpha(footerMuted, 0.4), letterSpacing: '0.4em', textTransform: 'uppercase', fontWeight: 600 }}>
-              © {new Date().getFullYear()} Salexa Enterprise • Built for Excellence
+              © {new Date().getFullYear()} KaySetu Enterprise • Built for Excellence
             </Typography>
           </Box>
         </Box>

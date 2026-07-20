@@ -77,7 +77,7 @@ export default function EcosystemFlow() {
                         variant="h6"
                         sx={{ color: alpha("#fff", 0.6), maxWidth: 700, fontWeight: 400, opacity: 0.8 }}
                     >
-                        From the field to the balance sheet, Salexa automates every heartbeat of your business operations.
+                        From the field to the balance sheet, KaySetu automates every heartbeat of your business operations.
                     </Typography>
                 </Stack>
 

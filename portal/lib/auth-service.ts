@@ -111,7 +111,7 @@ export const authService = {
         tokenManager.setRefreshToken(response.refresh);
         if (credentials.org_code) tokenManager.setOrgCode(credentials.org_code);
         if (response.org && typeof window !== 'undefined') {
-            localStorage.setItem('salexa_org_context', JSON.stringify(response.org));
+            localStorage.setItem('kaysetu_org_context', JSON.stringify(response.org));
         }
 
         return response;
@@ -122,7 +122,7 @@ export const authService = {
      */
     getOrgContext(): OrgContext | null {
         if (typeof window === 'undefined') return null;
-        const raw = localStorage.getItem('salexa_org_context');
+        const raw = localStorage.getItem('kaysetu_org_context');
         return raw ? (JSON.parse(raw) as OrgContext) : null;
     },
 
@@ -136,7 +136,7 @@ export const authService = {
         this.clearCache();
         tokenManager.clearTokens();
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('salexa_org_context');
+            localStorage.removeItem('kaysetu_org_context');
         }
     },
 

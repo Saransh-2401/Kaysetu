@@ -24,7 +24,7 @@ the active tenant's EntitlementSnapshot.
 import logging
 from collections import defaultdict
 
-logger = logging.getLogger("salexa.integration")
+logger = logging.getLogger("kaysetu.integration")
 
 
 class CapabilityRegistry:
@@ -63,6 +63,12 @@ class CapabilityRegistry:
         except Exception:
             logger.exception("capability %s raised; returning default", name)
             return default
+
+    def available(self, name: str, entitled_modules=None) -> bool:
+        """Whether a capability can be called right now. Lets a caller tell a
+        screen 'this section isn't available' instead of showing an empty one
+        that looks like real, empty data."""
+        return self.get(name, entitled_modules) is not None
 
     def names(self) -> list[str]:
         return sorted(self._providers)
@@ -191,8 +197,11 @@ def _open_delivery(event: str, key: str, payload):
     from .models import EventDelivery
 
     try:
+        from .models import EntitlementSnapshot
+
         return EventDelivery.objects.create(
             event=event, subscriber=key, payload=payload or {},
+            modules_at_emit=EntitlementSnapshot.current_modules(),
             status=EventDelivery.Status.PENDING, attempts=0,
         )
     except Exception:
@@ -263,6 +272,93 @@ def _record_failure(delivery, error, *, max_attempts=None) -> str:
         return "failed"
 
 
+# Which module each subscriber belongs to, inferred from its registered name.
+# A handler in apps.books.handlers needs BOOKS to do anything.
+_SUBSCRIBER_MODULES = {
+    "books": "BOOKS", "inventory": "INV", "orders": "ORDERS", "purchase": "PURCH",
+    "distribution": "DIST", "production": "PROD", "field": "FIELD", "crm": "CRM",
+    "tracking": "TRACK", "attendance": "ATT", "travel": "TA", "sales": "ORDERS",
+}
+
+
+def _handler_needs(subscriber_key: str, lost_modules) -> bool:
+    """Whether a subscriber depends on one of the modules that went away."""
+    for part in str(subscriber_key).split("."):
+        module = _SUBSCRIBER_MODULES.get(part)
+        if module and module in lost_modules:
+            return True
+    return False
+
+
+def prune_deliveries(*, older_than_days: int = 30) -> int:
+    """Delete settled deliveries older than N days.
+
+    Only DELIVERED rows are removed. Failed, abandoned and skipped rows are the
+    audit trail of what did NOT happen — deleting those on a timer would erase
+    the very thing this table exists to preserve.
+    """
+    from django.utils import timezone
+
+    from .models import EventDelivery
+
+    from django.db.models import Q
+
+    cutoff = timezone.now() - timezone.timedelta(days=older_than_days)
+    # Age from when it was DELIVERED, not when it was emitted. Cutting on
+    # created_at deleted the evidence of a 45-day-old posting that was finally
+    # recovered today — exactly the recovery you would want a record of.
+    deleted, _ = EventDelivery.objects.filter(
+        Q(delivered_at__lt=cutoff) | Q(delivered_at__isnull=True, created_at__lt=cutoff),
+        status=EventDelivery.Status.DELIVERED,
+    ).delete()
+    return deleted
+
+
+def reconcile_deliveries(*, stuck_after_minutes: int = 30) -> dict:
+    """Find deliveries that are stuck rather than merely failed.
+
+    A row left PENDING with zero attempts long after it was created means the
+    process died between writing the row and running the handler — the one case
+    the outbox cannot detect from an exception, because no exception was ever
+    raised. Flipping it to FAILED puts it back in the retry queue.
+    """
+    from django.utils import timezone
+
+    from .models import EventDelivery
+
+    from .models import EntitlementSnapshot
+
+    cutoff = timezone.now() - timezone.timedelta(minutes=stuck_after_minutes)
+    stuck = EventDelivery.objects.filter(
+        status=EventDelivery.Status.PENDING, created_at__lt=cutoff)
+    count = stuck.count()
+    if count:
+        stuck.update(status=EventDelivery.Status.FAILED,
+                     last_error="stuck pending — the process died before the handler ran")
+
+    # A tenant who re-buys a module gets their backlog back. Without this,
+    # skipping was a one-way door: postings parked during a downgrade could
+    # never be applied again, by any path, and the nightly report would warn
+    # about them forever with no way to act.
+    recovered = 0
+    entitled_now = set(EntitlementSnapshot.current_modules())
+    for delivery in EventDelivery.objects.filter(
+            status=EventDelivery.Status.SKIPPED_UNENTITLED):
+        still_lost = set(delivery.modules_at_emit or []) - entitled_now
+        if not (still_lost and _handler_needs(delivery.subscriber, still_lost)):
+            EventDelivery.objects.filter(pk=delivery.pk).update(
+                status=EventDelivery.Status.FAILED,
+                last_error="module re-entitled — requeued for delivery")
+            recovered += 1
+
+    abandoned = EventDelivery.objects.filter(
+        status=EventDelivery.Status.ABANDONED).count()
+    unentitled = EventDelivery.objects.filter(
+        status=EventDelivery.Status.SKIPPED_UNENTITLED).count()
+    return {"requeued": count, "recovered": recovered,
+            "abandoned": abandoned, "skipped_unentitled": unentitled}
+
+
 def redeliver(*, max_attempts: int = 5, limit: int = 200, delivery_ids=None) -> dict:
     """Retry deliveries that never succeeded, in the CURRENT tenant.
 
@@ -279,14 +375,32 @@ def redeliver(*, max_attempts: int = 5, limit: int = 200, delivery_ids=None) -> 
 
     statuses = [EventDelivery.Status.PENDING, EventDelivery.Status.FAILED]
     if delivery_ids:
-        statuses.append(EventDelivery.Status.ABANDONED)   # explicit operator override
+        # Explicit operator override — they have already made the judgement call.
+        statuses.append(EventDelivery.Status.ABANDONED)
+        statuses.append(EventDelivery.Status.SKIPPED_UNENTITLED)
     qs = EventDelivery.objects.filter(status__in=statuses)
     if delivery_ids:
         qs = qs.filter(pk__in=delivery_ids)
     result = {"attempted": 0, "delivered": 0, "failed": 0, "abandoned": 0,
-              "skipped": 0, "unknown_subscriber": 0}
+              "skipped": 0, "unknown_subscriber": 0, "skipped_unentitled": 0}
+
+    from .models import EntitlementSnapshot
+
+    entitled_now = set(EntitlementSnapshot.current_modules())
 
     for delivery in qs.order_by("created_at")[:limit]:
+        # Entitlement drift: a module the tenant HAD when the event fired but has
+        # since dropped. Its handler would no-op, and marking that "delivered"
+        # would hide a real hole — an invoice with no ledger entry that nothing
+        # ever flags. Park it in its own state instead.
+        lost = set(delivery.modules_at_emit or []) - entitled_now
+        if lost and not delivery_ids and _handler_needs(delivery.subscriber, lost):
+            result["skipped_unentitled"] = result.get("skipped_unentitled", 0) + 1
+            EventDelivery.objects.filter(pk=delivery.pk).update(
+                status=EventDelivery.Status.SKIPPED_UNENTITLED,
+                last_error=f"module(s) no longer entitled: {', '.join(sorted(lost))}",
+            )
+            continue
         fn = events.subscriber_for(delivery.event, delivery.subscriber)
         if fn is None:
             # The handler was renamed/removed, so this row can never be matched.

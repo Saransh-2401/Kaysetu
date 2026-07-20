@@ -483,3 +483,82 @@ def test_scheduler_redelivers_a_failed_post(api, make_tenant, tenant_token):
             assert JournalEntry.objects.filter(source="sales_invoice").count() == 1  # recovered
     finally:
         subs[subs.index(flaky)] = real
+
+
+# ------------------------------------------------- reconciliation & retention
+def test_stuck_pending_deliveries_are_requeued(api, make_tenant, tenant_token):
+    """A process that dies BETWEEN writing the row and running the handler
+    raises no exception, so nothing ever marks the delivery failed. Only a sweep
+    can find it."""
+    from datetime import timedelta
+
+    tenant, _ = make_tenant(package_code="P8")
+    tenant_token(tenant)
+    with use_tenant(tenant):
+        from django.utils import timezone
+
+        from apps.foundation.integration import reconcile_deliveries
+        from apps.foundation.models import EventDelivery
+
+        row = EventDelivery.objects.create(
+            event="orders.invoice_issued", subscriber="apps.books.handlers.on_invoice_issued",
+            payload={}, status=EventDelivery.Status.PENDING)
+        # young rows are left alone — a handler may simply still be running
+        assert reconcile_deliveries(stuck_after_minutes=30)["requeued"] == 0
+
+        EventDelivery.objects.filter(pk=row.pk).update(
+            created_at=timezone.now() - timedelta(hours=2))
+        assert reconcile_deliveries(stuck_after_minutes=30)["requeued"] == 1
+        row.refresh_from_db()
+        assert row.status == EventDelivery.Status.FAILED
+        assert "died before the handler ran" in row.last_error
+
+
+def test_pruning_keeps_the_record_of_what_did_not_happen(api, make_tenant, tenant_token):
+    from datetime import timedelta
+
+    tenant, _ = make_tenant(package_code="P8")
+    tenant_token(tenant)
+    with use_tenant(tenant):
+        from django.utils import timezone
+
+        from apps.foundation.integration import prune_deliveries
+        from apps.foundation.models import EventDelivery
+
+        old = timezone.now() - timedelta(days=90)
+        keep_statuses = [EventDelivery.Status.FAILED, EventDelivery.Status.ABANDONED,
+                         EventDelivery.Status.SKIPPED_UNENTITLED]
+        for status in [EventDelivery.Status.DELIVERED, *keep_statuses]:
+            created = EventDelivery.objects.create(
+                event="orders.invoice_issued", subscriber="x", payload={}, status=status)
+            EventDelivery.objects.filter(pk=created.pk).update(created_at=old)
+
+        assert prune_deliveries(older_than_days=30) == 1        # only the delivered one
+        remaining = set(EventDelivery.objects.values_list("status", flat=True))
+        # failed/abandoned/skipped rows ARE the audit trail — pruning them on a
+        # timer would erase the very thing this table exists to preserve
+        assert remaining == set(keep_statuses)
+
+
+def test_replay_after_a_downgrade_is_not_marked_delivered(api, make_tenant, tenant_token):
+    """A tenant who dropped BOOKS between the emit and the retry has a real hole
+    in their ledger. Marking the replay 'delivered' would hide it forever."""
+    tenant, _ = make_tenant(package_code="P8")
+    tenant_token(tenant)
+    with use_tenant(tenant):
+        from apps.foundation.integration import redeliver
+        from apps.foundation.models import EntitlementSnapshot, EventDelivery
+
+        row = EventDelivery.objects.create(
+            event="orders.invoice_issued",
+            subscriber="apps.books.handlers.on_invoice_issued",
+            payload={"invoice_id": 1, "party_id": 1, "total": "100"},
+            modules_at_emit=["ORDERS", "BOOKS"],
+            status=EventDelivery.Status.FAILED, attempts=1)
+
+        EntitlementSnapshot.objects.update_or_create(pk=1, defaults={"modules": ["ORDERS"]})
+        result = redeliver()
+        assert result["skipped_unentitled"] == 1 and result["delivered"] == 0
+        row.refresh_from_db()
+        assert row.status == EventDelivery.Status.SKIPPED_UNENTITLED
+        assert "BOOKS" in row.last_error

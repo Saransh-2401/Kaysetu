@@ -26,7 +26,7 @@ from .models import (
     UserNotificationSetting,
 )
 
-logger = logging.getLogger("salexa.notifications")
+logger = logging.getLogger("kaysetu.notifications")
 
 # Only in_app is actually delivered right now; the rest are resolved + reported.
 DELIVERABLE_CHANNELS = {"in_app"}

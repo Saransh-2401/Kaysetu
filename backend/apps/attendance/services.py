@@ -15,7 +15,7 @@ from apps.tenancy.db import ensure_alias
 
 from .models import Holiday, LeaveRequest, LeaveType, OfficeAttendance
 
-logger = logging.getLogger("salexa.attendance")
+logger = logging.getLogger("kaysetu.attendance")
 
 
 def _tenant_atomic():

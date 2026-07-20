@@ -30,10 +30,16 @@ JOBS = {
     # The outbox retry. Frequent: this is what turns a failed ledger post or
     # stock movement from "lost" into "delivered a few minutes late".
     "deliver_events": (120, "deliver_events", {}),
+    # Requeue deliveries stuck because a process died mid-handler, and prune
+    # settled ones. Hourly: stuck rows are rare but invisible until swept.
+    "reconcile_events": (3600, "reconcile_events", {}),
     # GPS/offline detection and duty-day rollover.
     "track_maintenance": (900, "track_maintenance", {}),
     # Attendance days someone forgot to punch out of.
     "attendance_maintenance": (86400, "attendance_maintenance", {}),
+    # Signups whose background provisioning never finished (process died
+    # mid-migrate). Frequent, because the tenant cannot log in until it does.
+    "provision_pending": (300, "provision_pending", {}),
     # Trial expiry + past-due suspension.
     "billing_maintenance": (86400, "billing_maintenance", {}),
 }

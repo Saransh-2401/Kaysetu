@@ -106,10 +106,11 @@ class MaterialRequestSerializer(serializers.ModelSerializer):
         model = MaterialRequest
         fields = ["id", "number", "request_number", "required_date", "purpose", "priority",
                   "status", "request_status", "reject_reason", "total_amount",
-                  "created_by", "created_by_name", "items", "created_at", "updated_at"]
+                  "created_by", "created_by_name", "items", "status_history",
+                  "created_at", "updated_at"]
         # created_by + reject_reason are the approval trail — never client-writable.
         read_only_fields = ["number", "total_amount", "status", "created_by",
-                            "reject_reason", "created_at", "updated_at"]
+                            "reject_reason", "status_history", "created_at", "updated_at"]
 
 
 # --------------------------------------------------------------- purchase orders
@@ -136,13 +137,14 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         fields = ["id", "number", "po_number", "supplier", "supplier_name", "order_date",
                   "delivery_date", "material_request", "subtotal", "tax_amount", "total",
                   "status", "receipt_status", "payment_status", "paid_amount",
-                  "outstanding_amount", "payment_terms", "notes", "items",
-                  "created_at", "updated_at"]
+                  "outstanding_amount", "payment_terms", "payment_reference", "notes",
+                  "items", "status_history", "created_at", "updated_at"]
         # supplier/material_request are set at creation only — swapping the supplier
         # on a live PO would desync it from the payable already posted in BOOKS.
         read_only_fields = ["number", "subtotal", "tax_amount", "total", "status",
                             "receipt_status", "payment_status", "paid_amount",
-                            "supplier", "material_request", "created_at", "updated_at"]
+                            "payment_reference", "status_history", "supplier",
+                            "material_request", "created_at", "updated_at"]
 
     def get_outstanding_amount(self, obj):
         return float((obj.total or 0) - (obj.paid_amount or 0))

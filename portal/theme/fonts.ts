@@ -28,7 +28,7 @@ const nunito = Nunito({ subsets: ["latin"], display: "swap" });
 const workSans = Work_Sans({ subsets: ["latin"], display: "swap" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 
-// Brand display font for the SALEXA wordmark (logo) — kept regardless of body font.
+// Brand display font for the KAYSETU wordmark (logo) — kept regardless of body font.
 export const cinzel = Cinzel({ weight: ["400", "600", "700", "800"], subsets: ["latin"], display: "swap" });
 
 // Re-exported so theme/index.ts can fall back to Roboto.
@@ -56,8 +56,8 @@ export const FONTS: FontOption[] = [
 ];
 
 export const DEFAULT_FONT_KEY = "roboto";
-export const FONT_COOKIE = "salexa_font";
-export const FONT_STORAGE_KEY = "salexa_font";
+export const FONT_COOKIE = "kaysetu_font";
+export const FONT_STORAGE_KEY = "kaysetu_font";
 
 export function getFont(key: string | null | undefined): FontOption {
   return FONTS.find((f) => f.key === key) ?? FONTS[0];

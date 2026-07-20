@@ -58,7 +58,7 @@ export default function AuthLayout({
                 alignItems: "center",
               }}
             >
-              SALEXA
+              KAYSETU
               <Box
                 component="span"
                 sx={{
@@ -116,7 +116,7 @@ export default function AuthLayout({
             color="text.secondary"
             sx={{ display: "block", textAlign: "center" }}
           >
-            © {new Date().getFullYear()} Salexa Inc. Privacy & Terms.
+            © {new Date().getFullYear()} KaySetu Inc. Privacy & Terms.
           </Typography>
         </Box>
       </Grid>
@@ -172,7 +172,7 @@ export default function AuthLayout({
               Manage with Precision.
             </Typography>
             <Typography variant="h6" color="rgba(255,255,255,0.8)">
-              Join 500+ luxury enterprises scaling their operations with Salexa.
+              Join 500+ luxury enterprises scaling their operations with KaySetu.
             </Typography>
           </motion.div>
         </Box>

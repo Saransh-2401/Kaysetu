@@ -9,7 +9,7 @@ still failing after --max-attempts so it surfaces for a human.
 Run it on a schedule (cron/Celery beat), e.g. every few minutes:
 
     python manage.py deliver_events
-    python manage.py deliver_events --org-code SLX-ABC123 --max-attempts 8
+    python manage.py deliver_events --org-code KST-ABC123 --max-attempts 8
 """
 from django.core.management.base import BaseCommand
 

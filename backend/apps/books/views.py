@@ -49,6 +49,10 @@ def _is_accountant(user) -> bool:
 class AccountViewSet(viewsets.ModelViewSet):
     """Chart of Accounts."""
 
+    # The module gate MUST be the class default, not something get_permissions()
+    # adds: super().get_permissions() reads this, and without it an unentitled
+    # tenant would fall through to the project default (IsAuthenticated).
+    permission_classes = [BooksModule]
     serializer_class = AccountSerializer
     pagination_class = BooksPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -59,7 +63,9 @@ class AccountViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         # anyone in a BOOKS tenant can READ the chart; only accountants may mutate
         # it (renaming/deactivating a system account breaks auto-posting + reports).
-        perms = [BooksModule()]
+        # Starts from super() so an @action's own permission_classes survive —
+        # rebuilding the list here would silently discard them.
+        perms = super().get_permissions()
         if self.action in ("create", "update", "partial_update", "destroy"):
             perms.append(IsAccountant())
         return perms

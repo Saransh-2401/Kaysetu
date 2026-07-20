@@ -1,4 +1,4 @@
-# Salexa SaaS — full stack, one command: docker compose up --build
+# KaySetu SaaS — full stack, one command: docker compose up --build
 #
 # Topology mirrors production:
 #   postgres   <- control DB + one DB per tenant (created by the provisioner)
@@ -9,19 +9,19 @@
 # Every service is stateless except postgres -> straight path to Kubernetes
 # (each service becomes a Deployment; postgres becomes a managed DB/StatefulSet).
 
-name: salexa
+name: kaysetu
 
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${PG_USER:-salexa}
-      POSTGRES_PASSWORD: ${PG_PASSWORD:-salexa-dev-password}
-      POSTGRES_DB: salexa_control
+      POSTGRES_USER: ${PG_USER:-kaysetu}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-kaysetu-dev-password}
+      POSTGRES_DB: kaysetu_control
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-salexa} -d salexa_control"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-kaysetu} -d kaysetu_control"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -30,8 +30,8 @@ services:
     image: edoburu/pgbouncer:latest
     environment:
       DB_HOST: postgres
-      DB_USER: ${PG_USER:-salexa}
-      DB_PASSWORD: ${PG_PASSWORD:-salexa-dev-password}
+      DB_USER: ${PG_USER:-kaysetu}
+      DB_PASSWORD: ${PG_PASSWORD:-kaysetu-dev-password}
       POOL_MODE: transaction
       MAX_CLIENT_CONN: "2000"
       DEFAULT_POOL_SIZE: "20"
@@ -47,20 +47,20 @@ services:
       DEBUG: "0"
       ALLOWED_HOSTS: "*"
       # Control DB via the pooler
-      POSTGRES_DB: salexa_control
-      POSTGRES_USER: ${PG_USER:-salexa}
-      POSTGRES_PASSWORD: ${PG_PASSWORD:-salexa-dev-password}
+      POSTGRES_DB: kaysetu_control
+      POSTGRES_USER: ${PG_USER:-kaysetu}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-kaysetu-dev-password}
       POSTGRES_HOST: pgbouncer
       POSTGRES_PORT: "5432"
       # Tenant DBs: query traffic via pooler, CREATE DATABASE direct
       TENANT_DB_ENGINE: postgres
       TENANT_PG_HOST: pgbouncer
       TENANT_PG_PORT: "5432"
-      TENANT_PG_USER: ${PG_USER:-salexa}
-      TENANT_PG_PASSWORD: ${PG_PASSWORD:-salexa-dev-password}
+      TENANT_PG_USER: ${PG_USER:-kaysetu}
+      TENANT_PG_PASSWORD: ${PG_PASSWORD:-kaysetu-dev-password}
       TENANT_PG_MAINTENANCE_HOST: postgres
       TENANT_PG_MAINTENANCE_PORT: "5432"
-      TENANT_PG_MAINTENANCE_DB: salexa_control
+      TENANT_PG_MAINTENANCE_DB: kaysetu_control
       CORS_ALLOWED_ORIGINS: http://localhost:3000
       PORTAL_BASE_URL: http://localhost:3000
       WEB_CONCURRENCY: "4"

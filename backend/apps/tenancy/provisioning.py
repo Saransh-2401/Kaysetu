@@ -15,7 +15,7 @@ from django.utils import timezone
 from .context import use_tenant
 from .db import create_database_if_needed, ensure_alias
 
-logger = logging.getLogger("salexa.provisioning")
+logger = logging.getLogger("kaysetu.provisioning")
 
 # Labels each industry preset applies inside the tenant DB. The tenant admin
 # can edit any of these later (Settings -> Terminology).
@@ -77,6 +77,7 @@ def provision_tenant(tenant, owner_password=None, job=None):
     if job is None:
         job = ProvisioningJob.objects.create(tenant=tenant, job_type=ProvisioningJob.Type.CREATE)
     job.status = ProvisioningJob.Status.RUNNING
+    job.started_at = timezone.now()
     job.attempts += 1
     job.append_log(f"attempt {job.attempts}: provisioning started")
     job.save()

@@ -363,7 +363,7 @@ export default function AppUpdatesPage() {
                 Version History
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                All released versions of the Salexa mobile app
+                All released versions of the KaySetu mobile app
               </Typography>
             </Box>
 

@@ -11,10 +11,10 @@ export const API_BASE_URL =
   'http://localhost:8000/api';
 
 // Token storage keys
-const ACCESS_TOKEN_KEY = 'salexa_access_token';
-const REFRESH_TOKEN_KEY = 'salexa_refresh_token';
+const ACCESS_TOKEN_KEY = 'kaysetu_access_token';
+const REFRESH_TOKEN_KEY = 'kaysetu_refresh_token';
 // Org code (SaaS multi-tenant): the tenant a session belongs to.
-const ORG_CODE_KEY = 'salexa_org_code';
+const ORG_CODE_KEY = 'kaysetu_org_code';
 
 /**
  * Token management utilities

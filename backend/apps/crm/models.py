@@ -70,3 +70,72 @@ class LeadActivity(models.Model):
 
     class Meta:
         ordering = ["-at"]
+
+
+class Quotation(models.Model):
+    """A priced proposal sent to a prospect or customer.
+
+    Sits between a lead and an order: winning one is what justifies raising a
+    sales order. The customer is a foundation Party, so a quotation to a lead
+    and a quotation to an existing customer are the same document.
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SUBMITTED = "submitted", "Submitted"
+        WON = "won", "Won"
+        LOST = "lost", "Lost"
+        EXPIRED = "expired", "Expired"
+
+    number = models.CharField(max_length=50, unique=True, db_index=True)
+    party = models.ForeignKey("foundation.Party", on_delete=models.PROTECT,
+                              related_name="quotations")
+    lead = models.ForeignKey(Lead, null=True, blank=True, on_delete=models.SET_NULL,
+                             related_name="quotations")
+    quotation_date = models.DateField()
+    valid_until = models.DateField(null=True, blank=True)
+    currency = models.CharField(max_length=3, default="INR")
+
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    status = models.CharField(max_length=12, choices=Status.choices,
+                              default=Status.DRAFT, db_index=True)
+    lost_reason = models.CharField(max_length=255, blank=True)
+    terms_and_conditions = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+
+    owner = models.ForeignKey("foundation.TenantUser", null=True, blank=True,
+                              on_delete=models.SET_NULL, related_name="quotations")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-quotation_date", "-id"]
+
+    def __str__(self):
+        return self.number
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+
+        return bool(self.valid_until and self.valid_until < timezone.localdate()
+                    and self.status in (self.Status.DRAFT, self.Status.SUBMITTED))
+
+
+class QuotationItem(models.Model):
+    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name="items")
+    item = models.ForeignKey("foundation.CatalogItem", on_delete=models.PROTECT,
+                             related_name="quotation_items")
+    item_name = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+    quantity = models.DecimalField(max_digits=14, decimal_places=3)
+    rate = models.DecimalField(max_digits=12, decimal_places=2)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]

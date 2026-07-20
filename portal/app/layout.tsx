@@ -19,14 +19,14 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://salexa.kayease.com"
+    process.env.NEXT_PUBLIC_APP_URL || "https://kaysetu.kayease.com"
   ),
   title: {
-    template: "%s | Salexa CRM",
-    default: "Salexa - Premium Enterprise CRM Solution",
+    template: "%s | KaySetu CRM",
+    default: "KaySetu - Premium Enterprise CRM Solution",
   },
   description:
-    "Salexa is a next-generation Enterprise Resource Planning (ERP) and Customer Relationship Management (CRM) platform designed for modern businesses.",
+    "KaySetu is a next-generation Enterprise Resource Planning (ERP) and Customer Relationship Management (CRM) platform designed for modern businesses.",
   manifest: "/favicon/site.webmanifest",
   icons: {
     icon: [
@@ -60,24 +60,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://salexa.kayease.com",
-    title: "Salexa - Premium Enterprise CRM Solution",
+    url: "https://kaysetu.kayease.com",
+    title: "KaySetu - Premium Enterprise CRM Solution",
     description:
-      "Boost your sales team productivity with Salexa - The all-in-one CRM & ERP platform.",
-    siteName: "Salexa",
+      "Boost your sales team productivity with KaySetu - The all-in-one CRM & ERP platform.",
+    siteName: "KaySetu",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Salexa CRM Dashboard",
+        alt: "KaySetu CRM Dashboard",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Salexa - Premium Enterprise CRM",
-    description: "Manage sales, visits, and leads efficiently with Salexa.",
+    title: "KaySetu - Premium Enterprise CRM",
+    description: "Manage sales, visits, and leads efficiently with KaySetu.",
     creator: "@kayease",
     images: ["/og-image.jpg"],
   },

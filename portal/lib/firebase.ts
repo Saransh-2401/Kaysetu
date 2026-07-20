@@ -3,9 +3,9 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDeE9S1je2ERLk0HNVOnXps_y8DT0AaqSQ",
-    authDomain: "salexa-5aef9.firebaseapp.com",
-    projectId: "salexa-5aef9",
-    storageBucket: "salexa-5aef9.firebasestorage.app",
+    authDomain: "kaysetu-5aef9.firebaseapp.com",
+    projectId: "kaysetu-5aef9",
+    storageBucket: "kaysetu-5aef9.firebasestorage.app",
     messagingSenderId: "210360336322",
     appId: "1:210360336322:web:5268bd2b6decba7b6ee05b"
 };

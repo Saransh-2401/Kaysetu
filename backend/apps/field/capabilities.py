@@ -22,8 +22,30 @@ def _visit_count(agent_id, date):
     ).count()
 
 
+def _visits_for_party(party_id, from_date=None, to_date=None):
+    """Every visit made to one party, newest first. The FIRST visit (oldest) is
+    flagged as the baseline — that is the 'before' photo the shop audit compares
+    later visits against."""
+    from .models import Visit
+
+    qs = Visit.objects.filter(party_id=party_id).prefetch_related("images")
+    if from_date:
+        qs = qs.filter(visit_date__gte=from_date)
+    if to_date:
+        qs = qs.filter(visit_date__lte=to_date)
+    ordered = list(qs.order_by("visit_date", "id"))
+    baseline_id = ordered[0].pk if ordered else None
+    return [{
+        "id": v.pk, "visit_date": v.visit_date.isoformat(), "status": v.status,
+        "is_baseline": v.pk == baseline_id,
+        "images": [{"image_url": img.image_url, "image_type": img.image_type}
+                   for img in v.images.all()],
+    } for v in reversed(ordered)]
+
+
 def register_all():
     """Called from FieldConfig.ready() (no DB access here)."""
     from apps.foundation.integration import capabilities
 
     capabilities.provide("field.visit_count", "FIELD", _visit_count)
+    capabilities.provide("field.visits_for_party", "FIELD", _visits_for_party)

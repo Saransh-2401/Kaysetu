@@ -15,7 +15,7 @@ from apps.tenancy.db import ensure_alias
 
 from .models import Account, JournalEntry, JournalLine
 
-logger = logging.getLogger("salexa.books")
+logger = logging.getLogger("kaysetu.books")
 
 TWO = Decimal("0.01")
 

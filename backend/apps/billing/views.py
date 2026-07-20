@@ -13,7 +13,7 @@ from . import services
 from .gateway import GatewayError, get_gateway
 from .models import PaymentOrder
 
-logger = logging.getLogger("salexa.billing")
+logger = logging.getLogger("kaysetu.billing")
 
 
 def _tenant(request) -> Tenant:

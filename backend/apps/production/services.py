@@ -24,7 +24,7 @@ from .models import (
     WorkOrderMaterial,
 )
 
-logger = logging.getLogger("salexa.production")
+logger = logging.getLogger("kaysetu.production")
 
 CENT = Decimal("0.01")
 QTY = Decimal("0.001")

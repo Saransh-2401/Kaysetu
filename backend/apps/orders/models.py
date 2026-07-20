@@ -58,6 +58,17 @@ class SalesOrder(models.Model):
     class Meta:
         ordering = ["-order_date", "-id"]
         indexes = [models.Index(fields=["status", "-order_date"])]
+        constraints = [
+            # One back-office order per FIELD order, enforced by the DATABASE.
+            # create_order already checks first, but two concurrent replays of
+            # the same field.order_booked event both pass that check and both
+            # insert — the customer is then billed twice for one booking.
+            models.UniqueConstraint(
+                fields=["field_order_id"],
+                condition=models.Q(field_order_id__isnull=False),
+                name="uniq_sales_order_per_field_order",
+            ),
+        ]
 
     def __str__(self):
         return self.order_number

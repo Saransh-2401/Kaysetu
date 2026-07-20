@@ -497,7 +497,7 @@ function LoginPage() {
       {/* Left Content Section */}
       <div className="relative hidden lg:flex flex-col justify-between bg-linear-to-br from-primary/90 via-primary to-primary/80 p-12 text-primary-foreground">
         <Link href="/" className="relative z-20 hover:opacity-80 transition-opacity">
-          <span className="text-3xl font-bold tracking-tight">Salexa</span>
+          <span className="text-3xl font-bold tracking-tight">KaySetu</span>
         </Link>
 
         <div className="relative z-20 flex items-end justify-center h-[500px]">
@@ -684,7 +684,7 @@ function LoginPage() {
         <div className="w-full max-w-[420px]">
           {/* Mobile Logo */}
           <Link href="/" className="lg:hidden flex items-center justify-center mb-12 hover:opacity-80 transition-opacity">
-            <span className="text-3xl font-bold tracking-tight">Salexa</span>
+            <span className="text-3xl font-bold tracking-tight">KaySetu</span>
           </Link>
 
           {/* Header */}
@@ -743,7 +743,7 @@ function LoginPage() {
                 <Input
                   id="orgCode"
                   type="text"
-                  placeholder="SLX-XXXXXX"
+                  placeholder="KST-XXXXXX"
                   value={orgCode}
                   autoComplete="off"
                   data-testid="portal-login-orgcode-input"

@@ -22,7 +22,7 @@ class AdminUserManager(BaseUserManager):
 
 
 class AdminUser(AbstractBaseUser):
-    """Salexa staff (SuperAdmin dashboard). NOT a tenant user."""
+    """KaySetu staff (SuperAdmin dashboard). NOT a tenant user."""
 
     class Role(models.TextChoices):
         SUPER = "super", "Super Admin"
@@ -205,6 +205,9 @@ class ProvisioningJob(models.Model):
     log = models.TextField(blank=True)
     attempts = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    # When the CURRENT attempt began. Staleness must be measured from this, not
+    # from created_at — otherwise a retried job looks dead the moment it starts.
+    started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

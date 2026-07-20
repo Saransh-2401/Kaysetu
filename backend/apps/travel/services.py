@@ -16,7 +16,7 @@ from apps.tenancy.db import ensure_alias
 
 from .models import AllowanceClaim, PolicyConfig, Trip
 
-logger = logging.getLogger("salexa.travel")
+logger = logging.getLogger("kaysetu.travel")
 
 CENT = Decimal("0.01")
 MAX_KM_PER_DAY = Decimal("2000")

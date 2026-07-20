@@ -11,7 +11,7 @@ failure here would still burn an outbox retry for nothing).
 """
 import logging
 
-logger = logging.getLogger("salexa.notifications")
+logger = logging.getLogger("kaysetu.notifications")
 
 
 def _notify(event_key, **kwargs):

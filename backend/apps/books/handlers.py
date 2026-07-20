@@ -6,7 +6,7 @@ imports no other module — it only knows the event names + payload keys.
 """
 import logging
 
-logger = logging.getLogger("salexa.books")
+logger = logging.getLogger("kaysetu.books")
 
 
 def _books_entitled() -> bool:
@@ -110,6 +110,109 @@ def on_distributor_payment(payment_id=None, party_id=None, amount=None, mode=Non
     )
 
 
+def on_sales_invoice_issued(invoice_id=None, party_id=None, total=None, subtotal=None,
+                            tax_amount=None, **_):
+    """sales.invoice_issued -> Dr AR / Cr Sales (net) / Cr GST Payable (tax).
+
+    Namespaced separately from ORDERS: a sales-document invoice #5 and an order
+    invoice #5 are different documents and must not share an idempotency key.
+    """
+    if not _books_entitled():
+        return
+    from . import services
+
+    services.post_sales_invoice(
+        invoice_id=invoice_id, party_id=party_id, total=total,
+        subtotal=subtotal, tax_amount=tax_amount, source_key="sales.invoice",
+    )
+
+
+def on_sales_payment_recorded(payment_id=None, invoice_id=None, party_id=None,
+                              amount=None, mode=None, **_):
+    """sales.payment_recorded -> Dr Cash|Bank / Cr Accounts Receivable."""
+    if not _books_entitled():
+        return
+    if payment_id is None:
+        logger.warning("BOOKS: sales payment without payment_id (invoice %s)", invoice_id)
+        return
+    from . import services
+
+    into = "BANK" if (mode or "").lower() in _BANK_MODES else "CASH"
+    services.post_customer_receipt(
+        payment_id=payment_id, party_id=party_id, amount=amount, into=into,
+        source_key="sales.payment",
+    )
+
+
+def on_sales_payment_reversed(payment_id=None, invoice_id=None, party_id=None,
+                             amount=None, mode=None, **_):
+    """sales.payment_reversed -> Dr Accounts Receivable / Cr Cash|Bank.
+
+    A compensating entry, not an edit of the original: the bounce must be
+    visible in the ledger, and the original receipt stays where it was posted.
+    """
+    if not _books_entitled() or payment_id is None:
+        return
+    from . import services
+
+    receivable = services.account_by_key("ACCOUNTS_RECEIVABLE")
+    out_of = services.account_by_key("BANK" if (mode or "").lower() in _BANK_MODES else "CASH")
+    if receivable is None or out_of is None:
+        logger.error("BOOKS: chart missing AR/cash; payment %s NOT reversed", payment_id)
+        return
+    amt = services._dec(amount, "amount")
+    if amt <= 0:
+        return
+    services.post_journal(
+        posting_date=services.timezone.localdate(),
+        source=services.JournalEntry.Source.MANUAL,
+        source_ref=f"sales.payment_reversed:{payment_id}",
+        narration="Payment reversed (bounced)",
+        lines=[
+            {"account": receivable, "debit": amt, "party": services._party(party_id),
+             "description": "Payment reversed"},
+            {"account": out_of, "credit": amt, "description": "Funds not received"},
+        ],
+    )
+
+
+def on_sales_adjustment(note_id=None, note_type=None, amount=None, party_id=None, **_):
+    """sales.adjustment_created -> a credit note reverses revenue and the
+    receivable; a debit note raises both.
+
+    Without this the invoice balance and the ledger would disagree the moment a
+    credit note was raised — the customer would owe less on the screen but the
+    same in the accounts.
+    """
+    if not _books_entitled() or note_id is None:
+        return
+    from . import services
+
+    receivable = services.account_by_key("ACCOUNTS_RECEIVABLE")
+    sales = services.account_by_key("SALES")
+    if receivable is None or sales is None:
+        logger.error("BOOKS: chart missing AR/Sales; adjustment %s NOT posted", note_id)
+        return
+    amt = services._dec(amount, "amount")
+    if amt <= 0:
+        return
+    is_credit = (note_type or "").lower() == "credit"
+    lines = (
+        [{"account": sales, "debit": amt, "party": services._party(party_id), "description": "Credit note"},
+         {"account": receivable, "credit": amt, "party": services._party(party_id), "description": "Credit note"}]
+        if is_credit else
+        [{"account": receivable, "debit": amt, "party": services._party(party_id), "description": "Debit note"},
+         {"account": sales, "credit": amt, "party": services._party(party_id), "description": "Debit note"}]
+    )
+    services.post_journal(
+        posting_date=services.timezone.localdate(),
+        source=services.JournalEntry.Source.MANUAL,
+        source_ref=f"sales.adjustment:{note_id}",
+        narration=f"{'Credit' if is_credit else 'Debit'} note",
+        lines=lines,
+    )
+
+
 def on_ta_claim_paid(claim_id=None, user_id=None, amount=None, reference="", **_):
     """ta.claim_paid -> Dr Operating Expenses / Cr Cash (a reimbursement payout)."""
     if not _books_entitled():
@@ -149,3 +252,7 @@ def register_all():
     events.subscribe("purchase.payment_made", on_supplier_payment)
     events.subscribe("dist.invoice_issued", on_distributor_invoice)
     events.subscribe("dist.payment_received", on_distributor_payment)
+    events.subscribe("sales.invoice_issued", on_sales_invoice_issued)
+    events.subscribe("sales.payment_recorded", on_sales_payment_recorded)
+    events.subscribe("sales.payment_reversed", on_sales_payment_reversed)
+    events.subscribe("sales.adjustment_created", on_sales_adjustment)

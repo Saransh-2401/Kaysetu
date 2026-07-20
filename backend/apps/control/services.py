@@ -1,4 +1,5 @@
 """Control-plane services: self-serve signup and entitlement management."""
+import logging
 import secrets
 
 from django.conf import settings
@@ -10,12 +11,14 @@ from apps.tenancy.provisioning import provision_tenant, sync_entitlements
 
 from .models import Package, ProvisioningJob, Subscription, Tenant, TenantModule
 
+logger = logging.getLogger("kaysetu.control")
+
 ORG_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O/1/I
 
 
 def generate_org_code() -> str:
     while True:
-        code = "SLX-" + "".join(secrets.choice(ORG_CODE_ALPHABET) for _ in range(6))
+        code = "KST-" + "".join(secrets.choice(ORG_CODE_ALPHABET) for _ in range(6))
         if not Tenant.objects.filter(org_code=code).exists():
             return code
 
@@ -38,8 +41,19 @@ def signup(
     package_code: str,
     industry: str = Tenant.Industry.GENERIC,
     seats: int | None = None,
+    background: bool = False,
 ) -> Tenant:
-    """Create + provision a tenant end-to-end (the no-seed-script path)."""
+    """Create + provision a tenant end-to-end (the no-seed-script path).
+
+    `background=True` returns as soon as the control-plane rows exist and leaves
+    the tenant in PROVISIONING. Creating a database and running every migration
+    takes seconds, and holding an HTTP request open for that is the difference
+    between a signup that feels instant and one that looks broken.
+
+    It is safe to hand off because provisioning is re-runnable: the job row is
+    durable, `provision_tenant` is idempotent, and `provision_pending` sweeps
+    anything the handoff dropped. Nothing depends on the thread surviving.
+    """
     package = Package.objects.get(code=package_code, is_published=True, is_addon=False)
 
     with transaction.atomic():
@@ -70,8 +84,48 @@ def signup(
         job = ProvisioningJob.objects.create(tenant=tenant, job_type=ProvisioningJob.Type.CREATE)
 
     # Outside the transaction: touches the tenant database, not the control DB.
-    provision_tenant(tenant, owner_password=password, job=job)
+    if background and _background_is_safe():
+        _provision_in_background(tenant, password, job)
+    else:
+        provision_tenant(tenant, owner_password=password, job=job)
     return tenant
+
+
+def _background_is_safe() -> bool:
+    """Whether provisioning may be handed to a thread.
+
+    Not on SQLite. Its single-writer lock means a provisioning thread and the
+    request that spawned it contend for the same file, and the loser gets
+    "database is locked" — so on the dev/test backend this stays synchronous.
+    Postgres has no such problem, and Postgres is what production runs.
+    """
+    return settings.TENANCY.get("DB_ENGINE") == "postgres"
+
+
+def _provision_in_background(tenant, password, job):
+    """Hand provisioning to a worker thread.
+
+    Deliberately a thread and not a task queue: this is one job per signup with
+    no fan-out, and a broker would be a whole extra piece of infrastructure to
+    run and to fail. Durability comes from the ProvisioningJob row plus the
+    sweep, not from the thread — if the process dies mid-provision the sweep
+    picks the job up on its next pass.
+    """
+    import threading
+
+    from django.db import connections
+
+    def _run():
+        try:
+            provision_tenant(tenant, owner_password=password, job=job)
+        except Exception:                      # already logged + recorded on the job
+            logger.exception("background provisioning failed for %s", tenant.org_code)
+        finally:
+            # A thread gets its own connections; leaving them open leaks them
+            # out of the pool for the life of the process.
+            connections.close_all()
+
+    threading.Thread(target=_run, name=f"provision-{tenant.org_code}", daemon=True).start()
 
 
 def set_tenant_modules(tenant: Tenant, module_codes: list[str]) -> list[str]:

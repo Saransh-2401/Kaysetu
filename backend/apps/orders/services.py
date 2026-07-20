@@ -176,8 +176,114 @@ def issue_invoice(order: SalesOrder) -> Invoice:
     return invoice
 
 
+def update_items(order: SalesOrder, items, actor=None) -> SalesOrder:
+    """Revise an order's lines before approval — QUANTITY ONLY.
+
+    Rate and tax are re-read from the line (or the catalog for a new line) and
+    the client's values are ignored on purpose: an order screen must never be
+    able to reprice a sale. Lines omitted from the payload are removed.
+    """
+    from apps.foundation.models import CatalogItem
+
+    if order.status not in {S.PROCESSING, S.CONFIRMED}:
+        raise ValidationError("Only a processing or confirmed order can be revised.")
+
+    existing = {line.pk: line for line in order.items.all()}
+    subtotal = tax_total = Decimal("0")
+    keep, to_create = [], []
+
+    for line in items or []:
+        qty = _to_decimal(line.get("quantity", 1), "quantity")
+        if qty <= 0:
+            raise ValidationError({"quantity": "must be greater than 0."})
+        current = existing.get(line.get("id"))
+        if current is not None:
+            row = current
+            row.quantity = qty
+            keep.append(row)
+        else:
+            item_id = line.get("item") or line.get("item_id")
+            if not item_id:
+                raise ValidationError({"item": "required for a new line."})
+            catalog = CatalogItem.objects.filter(pk=item_id).first()
+            if catalog is None:
+                raise ValidationError({"item": f"unknown catalog item {item_id}."})
+            row = SalesOrderItem(
+                order=order, item_id=catalog.pk, item_name=catalog.name,
+                quantity=qty, rate=catalog.price, tax_rate=catalog.tax_rate,
+            )
+            to_create.append(row)
+        # rate/tax_rate come from the row, never from `line` — see the docstring.
+        amount = (qty * row.rate).quantize(Decimal("0.01"))
+        if amount > MAX_AMOUNT:
+            raise ValidationError({"amount": "line amount exceeds the maximum allowed."})
+        subtotal += amount
+        tax_total += (amount * row.tax_rate / 100).quantize(Decimal("0.01"))
+        row.amount = amount
+
+    if not (keep or to_create):
+        raise ValidationError({"items": "an order must keep at least one line."})
+
+    with transaction.atomic(using=ensure_alias(require_tenant())):
+        removed = set(existing) - {line.pk for line in keep}
+        if removed:
+            SalesOrderItem.objects.filter(pk__in=removed).delete()
+        for line in keep:
+            line.save(update_fields=["quantity", "amount"])
+        if to_create:
+            SalesOrderItem.objects.bulk_create(to_create)
+        order.subtotal = subtotal
+        order.tax_amount = tax_total
+        order.total = subtotal + tax_total - order.discount_amount + order.round_off
+        order.save(update_fields=["subtotal", "tax_amount", "total", "updated_at"])
+        StatusLog.objects.create(
+            order=order, from_status=order.status, to_status=order.status,
+            actor_name=getattr(actor, "full_name", ""), note="items revised",
+        )
+    # Re-query rather than return `order`: the caller's instance came from
+    # get_object() with `items` prefetched, and that cache is now stale — it
+    # would render the OLD line-up. (This trap has bitten across five modules.)
+    return SalesOrder.objects.prefetch_related("items", "status_logs").get(pk=order.pk)
+
+
+def stock_details(order: SalesOrder) -> list:
+    """Per-line stock picture for the approval screen. `on_hand` is None when INV
+    isn't installed — the screen shows the line without a stock column rather
+    than claiming zero stock, which would read as 'out of stock'."""
+    rows = []
+    for line in order.items.all():
+        on_hand = capabilities.call("inventory.stock_of", line.item_id, default=None)
+        rows.append({
+            "item": line.item_id, "item_name": line.item_name,
+            "quantity": str(line.quantity), "rate": str(line.rate), "amount": str(line.amount),
+            "on_hand": on_hand,
+            "shortfall": (max(0.0, float(line.quantity) - on_hand) if on_hand is not None else None),
+            "is_sufficient": (on_hand >= float(line.quantity)) if on_hand is not None else None,
+        })
+    return rows
+
+
+def backordered_orders():
+    """Open orders with at least one line INV can't currently cover. Without INV
+    nothing can be known to be short, so the list is empty (not everything)."""
+    open_orders = SalesOrder.objects.filter(
+        status__in=[S.PROCESSING, S.CONFIRMED, S.PACKED]
+    ).select_related("customer").prefetch_related("items")
+    return [o for o in open_orders if any(r["shortfall"] for r in stock_details(o))]
+
+
+# The portal's payment dropdown uses its own names. Mapped to the canonical
+# modes here, because BOOKS routes Bank vs Cash off this string — an
+# unrecognised mode would post a bank transfer into the Cash account.
+_MODE_ALIASES = {"bank_transfer": "bank", "netbanking": "bank", "neft": "bank",
+                 "rtgs": "bank", "card": "bank", "online": "bank"}
+
+
 def record_payment(order: SalesOrder, *, amount, mode="cash", reference="") -> Payment:
     amount = _to_decimal(amount, "amount")
+    mode = _MODE_ALIASES.get(str(mode).lower(), str(mode).lower())
+    if mode not in Payment.Mode.values:
+        raise ValidationError({"mode": f"'{mode}' is not a payment mode."})
     if amount <= 0:
         raise ValidationError({"amount": "must be a positive amount."})
     if order.status == SalesOrder.Status.REJECTED:

@@ -18,11 +18,24 @@ class MaterialRequest(models.Model):
     """An internal request to procure items; approved MRs become Purchase Orders."""
 
     class Status(models.TextChoices):
+        """The full procurement lifecycle, not just the approval part.
+
+        A material request is the thread the whole purchase hangs off: the
+        procurement screens follow ONE request from raising it to the goods
+        being on a shelf, so the states past ORDERED live here too.
+        """
+
         DRAFT = "draft", "Draft"
-        SUBMITTED = "submitted", "Submitted"
+        PENDING_APPROVAL = "pending_approval", "Pending Approval"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
+        SENT_TO_ACCOUNTS = "sent_to_accounts", "Sent to Accounts"
         ORDERED = "ordered", "Ordered"
+        SHIPMENT_ARRIVED = "shipment_arrived", "Shipment Arrived"
+        PARTIALLY_RECEIVED = "partially_received", "Partially Received"
+        RECEIVED = "received", "Received"
+        STOCKED = "stocked", "Stocked"
+        CANCELLED = "cancelled", "Cancelled"
 
     class Priority(models.TextChoices):
         LOW = "low", "Low"
@@ -33,8 +46,11 @@ class MaterialRequest(models.Model):
     required_date = models.DateField(null=True, blank=True)
     purpose = models.TextField(blank=True)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.MEDIUM)
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     reject_reason = models.CharField(max_length=255, blank=True)
+    # Every status change, including admin overrides — this IS the activity log
+    # the procurement screen renders, so it records who and why, not just what.
+    status_history = models.JSONField(default=list, blank=True)
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     created_by = models.ForeignKey(
         "foundation.TenantUser", null=True, blank=True, on_delete=models.SET_NULL, related_name="material_requests"
@@ -67,15 +83,22 @@ class MaterialRequestItem(models.Model):
 class PurchaseOrder(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
+        PENDING_APPROVAL = "pending_approval", "Pending Approval"
         APPROVED = "approved", "Approved"
         SENT = "sent", "Sent to Supplier"
         CLOSED = "closed", "Closed"
         CANCELLED = "cancelled", "Cancelled"
 
     class ReceiptStatus(models.TextChoices):
+        """Where the goods are. Separate from `status`, which is where the
+        PAPERWORK is — a cancelled order can still have received goods."""
+
         PENDING = "pending", "Pending"
-        PARTIAL = "partial", "Partially Received"
+        SHIPMENT_ARRIVED = "shipment_arrived", "Shipment Arrived"
+        PARTIALLY_RECEIVED = "partially_received", "Partially Received"
         RECEIVED = "received", "Received"
+        STOCKED = "stocked", "Stocked"
+        SHORT_CLOSED = "short_closed", "Short Closed"
 
     class PaymentStatus(models.TextChoices):
         UNPAID = "unpaid", "Unpaid"
@@ -92,12 +115,14 @@ class PurchaseOrder(models.Model):
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
-    receipt_status = models.CharField(max_length=12, choices=ReceiptStatus.choices, default=ReceiptStatus.PENDING)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    receipt_status = models.CharField(max_length=20, choices=ReceiptStatus.choices, default=ReceiptStatus.PENDING)
     payment_status = models.CharField(max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     paid_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    payment_reference = models.CharField(max_length=100, blank=True)
     payment_terms = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
+    status_history = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

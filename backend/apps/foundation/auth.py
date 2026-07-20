@@ -2,7 +2,7 @@
 JWT auth for both planes.
 
 One token format, two scopes:
-  scope="control" -> Salexa staff (control.AdminUser, default DB)
+  scope="control" -> KaySetu staff (control.AdminUser, default DB)
   scope="tenant"  -> tenant user; the `tid` claim selects the tenant, whose
                      DB context is activated before loading foundation.TenantUser.
 """

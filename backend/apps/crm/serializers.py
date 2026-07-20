@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Lead, LeadActivity
+from .models import Lead, LeadActivity, Quotation, QuotationItem
 
 
 class LeadActivitySerializer(serializers.ModelSerializer):
@@ -51,3 +51,34 @@ class LeadSerializer(serializers.ModelSerializer):
 
     def get_longitude(self, obj):
         return self._addr(obj).get("longitude")
+
+
+class QuotationItemSerializer(serializers.ModelSerializer):
+    item_code = serializers.CharField(source="item.code", read_only=True, default="")
+
+    class Meta:
+        model = QuotationItem
+        fields = ["id", "item", "item_name", "item_code", "description",
+                  "quantity", "rate", "tax_rate", "amount", "tax_amount"]
+        read_only_fields = ["amount", "tax_amount"]
+
+
+class QuotationSerializer(serializers.ModelSerializer):
+    items = QuotationItemSerializer(many=True, read_only=True)
+    # Portal aliases — the ported screen speaks "quotation_number"/"customer".
+    quotation_number = serializers.CharField(source="number", read_only=True)
+    customer = serializers.IntegerField(source="party_id", read_only=True)
+    customer_name = serializers.CharField(source="party.name", read_only=True)
+    owner_name = serializers.CharField(source="owner.full_name", read_only=True, default="")
+    is_expired = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Quotation
+        fields = ["id", "number", "quotation_number", "party", "customer", "customer_name",
+                  "lead", "quotation_date", "valid_until", "currency",
+                  "subtotal", "tax_amount", "total", "status", "lost_reason", "is_expired",
+                  "terms_and_conditions", "notes", "owner", "owner_name", "items",
+                  "created_at", "updated_at"]
+        # Money is derived from the lines; status moves through its own actions.
+        read_only_fields = ["number", "subtotal", "tax_amount", "total", "status",
+                            "lost_reason", "created_at", "updated_at"]

@@ -27,7 +27,7 @@ from .models import (
     StockRequestShortage,
 )
 
-logger = logging.getLogger("salexa.distribution")
+logger = logging.getLogger("kaysetu.distribution")
 
 CENT = Decimal("0.01")
 MAX_AMOUNT = Decimal("99999999.99")

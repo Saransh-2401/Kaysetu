@@ -185,3 +185,112 @@ def test_field_order_stays_standalone_without_orders(api, make_tenant, tenant_to
     # ORDERS not entitled -> no SalesOrder table access needed; the field order
     # is fully standalone. Confirm the module gate blocks the sales-orders API.
     assert auth(api, owner).get("/api/t/sales-orders/").status_code == 403
+
+
+# ------------------------------------------------- portal action-name aliases
+# The ported order screens speak the previous platform's vocabulary
+# (submit/pack/mark_dispatched/deliver/generate_invoice/mark_paid). Those names
+# are served as aliases over the same services, so the imported UI works
+# untouched. This walks the whole lifecycle using ONLY the portal's names.
+def test_portal_order_lifecycle_via_alias_actions(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P4")   # ORDERS + INV + DIST
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    party, item = _party(api, token), _item(api, token)
+    client.post("/api/t/inv/receive", {"item": item, "quantity": 100, "rate": 30})
+
+    order = client.post("/api/t/sales-orders/", {
+        "customer": party, "order_date": str(timezone.localdate()),
+        "items": [{"item": item, "item_name": "Soap", "quantity": 10, "rate": "30", "tax_rate": "12"}],
+    }).data
+    oid = order["id"]
+
+    assert client.post(f"/api/t/sales-orders/{oid}/submit/", {}).status_code == 200
+    details = client.get(f"/api/t/sales-orders/{oid}/stock_details/").data
+    assert details[0]["on_hand"] == 100.0 and details[0]["is_sufficient"] is True
+
+    assert client.post(f"/api/t/sales-orders/{oid}/confirm/", {}).status_code == 200
+    assert client.post(f"/api/t/sales-orders/{oid}/pack/", {}).data["status"] == "packed"
+    assert client.post(f"/api/t/sales-orders/{oid}/mark_dispatched/", {}).data["status"] == "in_transit"
+    assert client.post(f"/api/t/sales-orders/{oid}/deliver/", {}).data["status"] == "delivered"
+
+    # dispatching really moved stock (the alias goes through the event, not a
+    # bare status flip)
+    level = client.get(f"/api/t/inv/stock-levels/?item={item}").data["results"][0]
+    assert str(level["on_hand"]) == "90.000"
+
+    gen = client.post(f"/api/t/sales-orders/{oid}/generate_invoice/", {})
+    assert gen.status_code == 201 and gen.data["invoice_id"]
+
+    paid = client.post(f"/api/t/sales-orders/{oid}/mark_paid/", {"reference": "NEFT-1"}).data
+    assert paid["payment_status"] == "paid"        # no amount = settle in full
+
+
+def test_update_items_changes_quantity_but_never_the_rate(api, make_tenant, tenant_token):
+    """A revise-order screen must not be able to reprice a sale."""
+    tenant, _ = make_tenant(package_code="P4")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    party, item = _party(api, token), _item(api, token)   # price 30, tax 12
+    order = client.post("/api/t/sales-orders/", {
+        "customer": party, "order_date": str(timezone.localdate()),
+        "items": [{"item": item, "item_name": "Soap", "quantity": 10, "rate": "30", "tax_rate": "12"}],
+    }).data
+    oid, line_id = order["id"], order["items"][0]["id"]
+
+    revised = client.post(f"/api/t/sales-orders/{oid}/update_items/", {
+        "items": [{"id": line_id, "quantity": 4, "rate": "1"}],   # rate MUST be ignored
+    }).data
+    assert str(revised["items"][0]["rate"]) == "30.00"            # not 1
+    assert str(revised["items"][0]["quantity"]) == "4.00"
+    assert str(revised["subtotal"]) == "120.00"                   # 4 x 30, re-derived
+    assert str(revised["tax_amount"]) == "14.40"
+
+    # a new line prices itself from the catalog, not from the request
+    revised = client.post(f"/api/t/sales-orders/{oid}/update_items/", {
+        "items": [{"id": line_id, "quantity": 4}, {"item": item, "quantity": 1, "rate": "999"}],
+    }).data
+    assert str(revised["items"][1]["rate"]) == "30.00"
+    # dropping every line is refused — an order with no lines has no meaning
+    assert client.post(f"/api/t/sales-orders/{oid}/update_items/", {"items": []}).status_code == 400
+
+
+def test_update_and_approve_is_atomic(api, make_tenant, tenant_token):
+    """If the approval fails the revision must not stick."""
+    tenant, _ = make_tenant(package_code="P4")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    party, item = _party(api, token), _item(api, token)
+    order = client.post("/api/t/sales-orders/", {
+        "customer": party, "order_date": str(timezone.localdate()),
+        "items": [{"item": item, "item_name": "Soap", "quantity": 10, "rate": "30", "tax_rate": "12"}],
+    }).data
+    oid, line_id = order["id"], order["items"][0]["id"]
+
+    approved = client.post(f"/api/t/sales-orders/{oid}/update_and_approve/", {
+        "items": [{"id": line_id, "quantity": 6}], "notes": "trimmed"}).data
+    assert approved["status"] == "order_confirmed" and str(approved["subtotal"]) == "180.00"
+
+    # a second attempt is refused (already confirmed) AND leaves quantities alone
+    assert client.post(f"/api/t/sales-orders/{oid}/update_and_approve/", {
+        "items": [{"id": line_id, "quantity": 99}]}).status_code == 400
+    assert str(client.get(f"/api/t/sales-orders/{oid}/").data["items"][0]["quantity"]) == "6.00"
+
+
+def test_backordered_lists_only_orders_inv_cannot_cover(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P4")
+    token = tenant_token(tenant)["access"]
+    client = auth(api, token)
+    party = _party(api, token)
+    plenty, scarce = _item(api, token, "Plenty"), _item(api, token, "Scarce")
+    client.post("/api/t/inv/receive", {"item": plenty, "quantity": 500, "rate": 30})
+    client.post("/api/t/inv/receive", {"item": scarce, "quantity": 1, "rate": 30})
+
+    for item, name in ((plenty, "Plenty"), (scarce, "Scarce")):
+        client.post("/api/t/sales-orders/", {
+            "customer": party, "order_date": str(timezone.localdate()),
+            "items": [{"item": item, "item_name": name, "quantity": 10, "rate": "30"}]})
+
+    short = client.get("/api/t/sales-orders/backordered/").data
+    assert len(short) == 1
+    assert short[0]["items"][0]["item_name"] == "Scarce"

@@ -1,8 +1,8 @@
-# Salexa SaaS — Backend
+# KaySetu SaaS — Backend
 
 Django 5.2 + DRF. Two data planes:
 
-- **Control plane** (`apps/control`, `default` DB): tenants, packages, subscriptions, entitlements, provisioning jobs, Salexa admin users. Powers the marketing site + SuperAdmin dashboard.
+- **Control plane** (`apps/control`, `default` DB): tenants, packages, subscriptions, entitlements, provisioning jobs, KaySetu admin users. Powers the marketing site + SuperAdmin dashboard.
 - **Tenant plane** (`apps/foundation` + future module apps): **one database per tenant**, created automatically at signup. Powers the client portal + mobile app.
 
 See `../docs/ARCHITECTURE.md` for how tenancy, routing, and provisioning work,

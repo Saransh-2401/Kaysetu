@@ -72,14 +72,14 @@ def superadmin(db):
     from apps.control.models import AdminUser
 
     return AdminUser.objects.create_superuser(
-        email="root@salexa.com", password="root-pass-123", full_name="Root"
+        email="root@kaysetu.com", password="root-pass-123", full_name="Root"
     )
 
 
 @pytest.fixture()
 def admin_token(api, superadmin):
     response = api.post(
-        "/api/auth/admin/login", {"email": "root@salexa.com", "password": "root-pass-123"}
+        "/api/auth/admin/login", {"email": "root@kaysetu.com", "password": "root-pass-123"}
     )
     assert response.status_code == 200, response.data
     return response.data["access"]

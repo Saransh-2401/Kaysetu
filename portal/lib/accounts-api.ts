@@ -279,13 +279,13 @@ export const accountsApi = {
     apiClient.get<PaginatedResponse<PurchaseInvoiceResult>>('/t/purchase/bills/', params),
 
   getStockRequestInvoices: (params: Record<string, string>) =>
-    apiClient.get<PaginatedResponse<StockRequestInvoiceResult>>('/distributor-inventory/invoices/', params),
+    apiClient.get<PaginatedResponse<StockRequestInvoiceResult>>('/t/dist/invoices/', params),
 
   getManualInvoices: (params: Record<string, string>) =>
     apiClient.get<PaginatedResponse<ManualInvoiceResult>>('/sales/manual-invoices/', params),
 
   markStockInvoicePaid: (id: number, data: { payment_reference: string; payment_date: string }) =>
-    apiClient.post<StockRequestInvoiceResult>(`/distributor-inventory/invoices/${id}/mark_paid/`, data),
+    apiClient.post<StockRequestInvoiceResult>(`/t/dist/invoices/${id}/mark_paid/`, data),
 
   // Chart of Accounts + general ledger — BOOKS module.
   getAccounts: (params?: Record<string, string>) =>

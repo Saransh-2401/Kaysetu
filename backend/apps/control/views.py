@@ -35,7 +35,7 @@ from .serializers import (
     TenantListSerializer,
 )
 
-logger = logging.getLogger("salexa.control")
+logger = logging.getLogger("kaysetu.control")
 
 
 def _audit(request, action_name, entity="", entity_id="", before=None, after=None):
@@ -89,8 +89,13 @@ class SignupView(APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # `?wait=1` keeps the old synchronous behaviour, which the E2E tests and
+        # seed scripts rely on. Real signups hand off and poll, because creating
+        # a database and running every migration takes seconds and an HTTP
+        # request held open that long looks broken.
+        background = request.query_params.get("wait") not in ("1", "true")
         try:
-            tenant = services.signup(**serializer.validated_data)
+            tenant = services.signup(background=background, **serializer.validated_data)
         except ProvisioningError:
             return Response(
                 {
@@ -104,12 +109,40 @@ class SignupView(APIView):
             {
                 "org_code": tenant.org_code,
                 "status": tenant.status,
+                "ready": tenant.status in Tenant.LOGIN_ALLOWED_STATUSES,
                 "trial_ends_at": tenant.trial_ends_at,
                 "portal_url": settings.PORTAL_BASE_URL,
                 "login_email": tenant.owner_email,
+                "status_url": f"/api/public/signup-status?org_code={tenant.org_code}",
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class SignupStatusView(APIView):
+    """Poll target while a workspace is being prepared.
+
+    Deliberately says nothing about the tenant beyond whether it is ready — the
+    caller is anonymous, and an org code is guessable.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def get(self, request):
+        org_code = (request.query_params.get("org_code") or "").strip()
+        if not org_code:
+            return Response({"detail": "org_code is required."}, status=400)
+        tenant = Tenant.objects.filter(org_code__iexact=org_code).first()
+        if tenant is None:
+            return Response({"detail": "Unknown organization code."}, status=404)
+        ready = tenant.status in Tenant.LOGIN_ALLOWED_STATUSES
+        body = {"org_code": tenant.org_code, "status": tenant.status, "ready": ready}
+        if tenant.status == Tenant.Status.FAILED:
+            body["detail"] = ("Your workspace could not be prepared. Our team has been "
+                              "notified — you will receive a mail when it is ready.")
+        return Response(body)
 
 
 class AdminLoginView(APIView):

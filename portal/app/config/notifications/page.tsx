@@ -717,7 +717,7 @@ export default function NotificationsPage() {
                           fullWidth
                           value={smtpConfig.from_name}
                           onChange={e => handleSmtpChange('from_name', e.target.value)}
-                          placeholder="e.g. Salexa"
+                          placeholder="e.g. KaySetu"
                           helperText="Display name shown in recipient's inbox"
                         />
                         <TextField

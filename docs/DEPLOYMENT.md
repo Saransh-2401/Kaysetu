@@ -1,4 +1,4 @@
-# Salexa SaaS — Deployment
+# KaySetu SaaS — Deployment
 
 ## Local / single-server (Docker Compose)
 
@@ -47,6 +47,8 @@ rows sit as `failed` forever.
 | Job | Every | What breaks without it |
 |---|---|---|
 | `deliver_events` | 2 min | Failed ledger/stock posts are never retried — books and stock silently drift |
+| `provision_pending` | 5 min | A signup whose provisioning died mid-migrate never finishes; the customer can never log in |
+| `reconcile_events` | 1 hour | Deliveries stuck because a worker died stay `pending` forever — no exception was ever raised, so nothing else finds them |
 | `track_maintenance` | 15 min | Agents never flagged offline; duty days never auto-close |
 | `attendance_maintenance` | daily | Forgotten punch-outs leave open rows, so working hours never compute |
 | `billing_maintenance` | daily | Lapsed trials and past-due subscriptions are never suspended |
@@ -63,18 +65,52 @@ Verify it by hand at any time:
 ```bash
 docker compose exec backend python manage.py run_scheduler --once
 docker compose exec backend python manage.py run_scheduler --once --only deliver_events
-docker compose exec backend python manage.py deliver_events --org-code SLX-ABC123
+docker compose exec backend python manage.py deliver_events --org-code KST-ABC123
+docker compose exec backend python manage.py reconcile_events --no-prune
+docker compose exec backend python manage.py provision_pending
 ```
+
+### What `reconcile_events` reports
+
+It prints two counts that **do not resolve themselves** and mean a human needs
+to look:
+
+* **abandoned** — a delivery that failed past `--max-attempts`. Something is
+  genuinely broken in that handler; the business event never took effect.
+* **skipped for lost entitlement** — the event fired while the tenant had a
+  module, and by the time it was retried they no longer did. The work will
+  never be applied. Deliberately NOT counted as delivered: an invoice with no
+  ledger entry is a real hole, and calling it "done" would hide it forever.
+
+Pruning only ever deletes `delivered` rows. Failed, abandoned and skipped rows
+are the record of what did *not* happen and are kept indefinitely.
+
+### Asynchronous provisioning
+
+Signup hands database creation and migration to a worker thread and returns
+immediately with `status: "provisioning"`; the portal polls
+`/api/public/signup-status?org_code=…` until `ready` is true. Pass `?wait=1` to
+`/api/public/signup` for the old synchronous behaviour (seed scripts, E2E).
+
+This is a thread rather than a task queue on purpose: it is one job per signup
+with no fan-out, and a broker would be an entire extra service to run and to
+fail. Durability comes from the `ProvisioningJob` row plus `provision_pending`,
+not from the thread — if the process dies mid-provision the sweep finishes it.
+
+**It is disabled on SQLite.** SQLite allows one writer, so a provisioning
+thread and the request that spawned it deadlock on the same file; the dev
+backend stays synchronous. Postgres has no such limit, which is what production
+runs.
 
 **Without Docker**, run the same commands from cron — each is independently
 runnable and safe to re-run (they iterate tenants and isolate per-tenant
 failures):
 
 ```cron
-*/2  * * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py deliver_events
-*/15 * * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py track_maintenance
-15   0 * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py attendance_maintenance
-30   0 * * * cd /srv/salexa/backend && ./.venv/bin/python manage.py billing_maintenance
+*/2  * * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py deliver_events
+*/15 * * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py track_maintenance
+15   0 * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py attendance_maintenance
+30   0 * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py billing_maintenance
 ```
 
 Deliberately not Celery: these are a handful of periodic commands with no

@@ -1,5 +1,5 @@
 """
-Salexa SaaS — Django settings.
+KaySetu SaaS — Django settings.
 
 Two data planes:
   * default DB  -> control plane (tenants, packages, subscriptions, admin users)
@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     "apps.attendance",
     "apps.travel",
     "apps.notifications",
+    "apps.sales",
+    "apps.analytics",
 ]
 
 MIDDLEWARE = [
@@ -73,7 +75,7 @@ def _control_db():
         return {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": os.environ["POSTGRES_DB"],
-            "USER": os.environ.get("POSTGRES_USER", "salexa"),
+            "USER": os.environ.get("POSTGRES_USER", "kaysetu"),
             "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
             "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
             "PORT": os.environ.get("POSTGRES_PORT", "5432"),
@@ -96,15 +98,15 @@ DATABASE_ROUTERS = ["apps.tenancy.router.TenantRouter"]
 
 # Tenant-plane configuration. App labels listed here live ONLY in tenant DBs.
 TENANCY = {
-    "TENANT_APP_LABELS": ["foundation", "tracking", "field", "crm", "orders", "inventory", "books", "purchase", "distribution", "production", "attendance", "travel", "notifications"],
+    "TENANT_APP_LABELS": ["foundation", "tracking", "field", "crm", "orders", "inventory", "books", "purchase", "distribution", "production", "attendance", "travel", "notifications", "sales"],
     "DB_ENGINE": os.environ.get("TENANT_DB_ENGINE", "sqlite"),  # sqlite | postgres
     "SQLITE_DIR": Path(os.environ.get("TENANT_SQLITE_DIR", BASE_DIR / "var" / "tenants")),
-    "DB_PREFIX": "salexa_t_",
+    "DB_PREFIX": "kaysetu_t_",
     "PG": {
         # Tenant query traffic — ALWAYS PgBouncer in production.
         "HOST": os.environ.get("TENANT_PG_HOST", "127.0.0.1"),
         "PORT": os.environ.get("TENANT_PG_PORT", "6432"),
-        "USER": os.environ.get("TENANT_PG_USER", "salexa"),
+        "USER": os.environ.get("TENANT_PG_USER", "kaysetu"),
         "PASSWORD": os.environ.get("TENANT_PG_PASSWORD", ""),
         # CREATE DATABASE must go DIRECT to Postgres (not through the pooler).
         "MAINTENANCE_HOST": os.environ.get(
@@ -183,6 +185,6 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "loggers": {
-        "salexa": {"handlers": ["console"], "level": "INFO"},
+        "kaysetu": {"handlers": ["console"], "level": "INFO"},
     },
 }

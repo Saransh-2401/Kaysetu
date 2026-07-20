@@ -9,8 +9,8 @@ from apps.foundation.models import Party, TenantUser
 from apps.foundation.permissions import HasModule
 
 from . import services
-from .models import Lead
-from .serializers import LeadSerializer
+from .models import Lead, Quotation
+from .serializers import LeadSerializer, QuotationSerializer
 
 CrmModule = HasModule("CRM")
 MANAGER_ROLES = {"admin", "field_manager", "sales_manager"}
@@ -126,3 +126,58 @@ class LeadViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         counts = {row["status"]: row["n"] for row in qs.values("status").annotate(n=Count("id"))}
         return Response({"total": sum(counts.values()), "by_status": counts})
+
+
+class QuotationViewSet(viewsets.ModelViewSet):
+    """Quotations. Gated by HasModule('CRM') like the rest of the pipeline."""
+
+    permission_classes = [CrmModule]
+    serializer_class = QuotationSerializer
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+    def get_queryset(self):
+        qs = Quotation.objects.select_related("party", "owner", "lead").prefetch_related(
+            "items", "items__item")
+        params = self.request.query_params
+        if params.get("status"):
+            qs = qs.filter(status=params["status"])
+        if params.get("customer") or params.get("party"):
+            qs = qs.filter(party_id=params.get("customer") or params.get("party"))
+        # Same visibility rule as leads: an agent sees what they own, a manager
+        # sees their team, an admin sees everything.
+        visible = _visible_agent_ids(self.request.user)
+        return qs if visible is None else qs.filter(owner_id__in=visible)
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        lead = None
+        if data.get("lead"):
+            lead = Lead.objects.filter(pk=data["lead"]).first()
+        quotation = services.create_quotation(
+            party_id=data.get("party") or data.get("customer"),
+            items=data.get("items"), quotation_date=data.get("quotation_date") or None,
+            valid_until=data.get("valid_until") or None, lead=lead,
+            terms_and_conditions=data.get("terms_and_conditions", ""),
+            notes=data.get("notes", ""), owner=request.user,
+        )
+        return Response(QuotationSerializer(quotation).data, status=201)
+
+    def _move(self, request, target, reason=""):
+        quotation = services.set_quotation_status(
+            self.get_object(), target, reason=reason, actor=request.user)
+        return Response(QuotationSerializer(quotation).data)
+
+    @action(detail=True, methods=["post"])
+    def submit(self, request, pk=None):
+        return self._move(request, Quotation.Status.SUBMITTED)
+
+    @action(detail=True, methods=["post"])
+    def mark_won(self, request, pk=None):
+        """Winning a quotation converts the lead behind it — otherwise the
+        pipeline shows a won deal still sitting in 'interested'."""
+        return self._move(request, Quotation.Status.WON)
+
+    @action(detail=True, methods=["post"])
+    def mark_lost(self, request, pk=None):
+        return self._move(request, Quotation.Status.LOST,
+                          reason=request.data.get("reason", "") or request.data.get("notes", ""))

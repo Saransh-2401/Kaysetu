@@ -66,7 +66,7 @@ export default function LandingCTA() {
                         </Typography>
 
                         <Typography variant="h6" sx={{ color: alpha("#fff", 0.6), fontWeight: 400, maxWidth: 600 }}>
-                            Join the elite league of enterprises using Salexa to digitize,
+                            Join the elite league of enterprises using KaySetu to digitize,
                             automate, and scale their operations globally.
                         </Typography>
 

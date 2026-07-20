@@ -59,7 +59,7 @@ def test_audit_log_written_for_admin_actions(api, make_tenant, admin_token):
     entry = ControlAuditLog.objects.filter(action="tenant.suspended").first()
     assert entry is not None
     assert entry.after == {"status": "suspended"}
-    assert entry.actor.email == "root@salexa.com"
+    assert entry.actor.email == "root@kaysetu.com"
 
 
 def test_command_center_stats(api, make_tenant, admin_token):

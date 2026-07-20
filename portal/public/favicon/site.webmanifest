@@ -1,6 +1,6 @@
 {
-  "name": "Salexa - Enterprise CRM & ERP Platform",
-  "short_name": "Salexa",
+  "name": "KaySetu - Enterprise CRM & ERP Platform",
+  "short_name": "KaySetu",
   "description": "Next-generation Enterprise Resource Planning (ERP) and Customer Relationship Management (CRM) platform",
   "start_url": "/",
   "scope": "/",
@@ -37,7 +37,7 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "Open Salexa Dashboard",
+      "description": "Open KaySetu Dashboard",
       "url": "/",
       "icons": [{ "src": "/favicon/favicon-96x96.png", "sizes": "96x96" }]
     },

@@ -61,7 +61,7 @@ import { roleService, RoleRow } from "@/lib/permission-service";
 import { formatDRFError } from "@/lib/utils";
 
 
-// --- SALEXA ROLES ---
+// --- KAYSETU ROLES ---
 // These are FALLBACK defaults only. The live list of roles (system + custom)
 // is fetched from the Role registry API at runtime; see `roleDefs` state and
 // the derived maps below. Defaults keep the page usable before that resolves
@@ -81,7 +81,7 @@ const DEFAULT_SLUG_TO_ROLE: Record<string, string> = Object.fromEntries(
   Object.entries(DEFAULT_ROLE_TO_SLUG).map(([k, v]) => [v, k])
 );
 
-const DEFAULT_SALEXA_ROLES = Object.keys(DEFAULT_ROLE_TO_SLUG);
+const DEFAULT_KAYSETU_ROLES = Object.keys(DEFAULT_ROLE_TO_SLUG);
 
 /** Build the display↔slug maps + label list from the fetched role registry,
  * falling back to the hardcoded defaults for anything not yet loaded. */
@@ -93,10 +93,10 @@ function buildRoleMaps(roleDefs: RoleRow[]) {
     slugToRole[r.slug] = r.name;
   }
   // Only assignable (active) roles appear in pickers; keep registry order.
-  const salexaRoles = roleDefs.length
+  const kaysetuRoles = roleDefs.length
     ? roleDefs.filter((r) => r.is_active).map((r) => r.name)
-    : DEFAULT_SALEXA_ROLES;
-  return { roleToSlug, slugToRole, salexaRoles };
+    : DEFAULT_KAYSETU_ROLES;
+  return { roleToSlug, slugToRole, kaysetuRoles };
 }
 
 const parseOperatingCities = (val?: string | string[] | null): string[] => {
@@ -249,7 +249,7 @@ export default function UserManagementPage() {
   const [roleDefs, setRoleDefs] = useState<RoleRow[]>([]);
   // Label list for the pickers (re-renders on role load); the display↔slug maps
   // are read from the ref below inside fetch/save closures.
-  const { salexaRoles } = useMemo(() => buildRoleMaps(roleDefs), [roleDefs]);
+  const { kaysetuRoles } = useMemo(() => buildRoleMaps(roleDefs), [roleDefs]);
   const roleMapsRef = useRef(buildRoleMaps([]));
   useEffect(() => {
     roleMapsRef.current = buildRoleMaps(roleDefs);
@@ -1275,7 +1275,7 @@ export default function UserManagementPage() {
                   sx={{ borderRadius: 2 }}
                 >
                   <MenuItem value="All">All Roles</MenuItem>
-                  {salexaRoles.map((r) => (
+                  {kaysetuRoles.map((r) => (
                     <MenuItem key={r} value={r}>{r}</MenuItem>
                   ))}
                 </Select>
@@ -1953,7 +1953,7 @@ export default function UserManagementPage() {
                         }}
                         input={<OutlinedInput label="Assign Role" />}
                       >
-                        {salexaRoles.map((role) => (
+                        {kaysetuRoles.map((role) => (
                           <MenuItem key={role} value={role}>
                             {role}
                           </MenuItem>
@@ -2276,7 +2276,7 @@ export default function UserManagementPage() {
                   input={<OutlinedInput label="Role" />}
                 >
                   <MenuItem value="All">All Roles</MenuItem>
-                  {salexaRoles.map((role) => (
+                  {kaysetuRoles.map((role) => (
                     <MenuItem key={role} value={role}>
                       {role}
                     </MenuItem>

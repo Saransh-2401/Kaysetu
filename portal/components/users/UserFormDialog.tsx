@@ -62,7 +62,7 @@ interface UserFormDialogProps {
 
 const SALES_ROLES = ["Sales Manager", "Sales Agent", "Distributor"];
 
-const SALEXA_ROLES = [
+const KAYSETU_ROLES = [
     "Admin",
     "Sales Manager",
     "Sales Agent",
@@ -90,7 +90,7 @@ export default function UserFormDialog({
     availableAgents = [],
     operatingCities = [],
     availableTags = AVAILABLE_TAGS,
-    roles = SALEXA_ROLES,
+    roles = KAYSETU_ROLES,
 }: UserFormDialogProps) {
     const theme = useTheme();
     const [loading, setLoading] = useState(false);

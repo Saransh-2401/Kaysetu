@@ -7,7 +7,7 @@ read another tenant's data by "forgetting" the tenant.
 from contextlib import contextmanager
 import contextvars
 
-_current_tenant = contextvars.ContextVar("salexa_current_tenant", default=None)
+_current_tenant = contextvars.ContextVar("kaysetu_current_tenant", default=None)
 
 
 class TenantContextError(Exception):

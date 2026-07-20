@@ -5,6 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
+from apps.foundation.models import CatalogItem
 from apps.foundation.permissions import HasModule
 
 from . import services
@@ -65,14 +66,21 @@ class StockRequestViewSet(viewsets.ModelViewSet):
     pagination_class = DistPagination
     http_method_names = ["get", "post", "head", "options"]
 
-    # Company-side actions. Listed explicitly because get_permissions() below
-    # replaces the per-action permission_classes DRF would otherwise apply.
+    permission_classes = [DistModule]
+
+    # Company-side actions that do NOT declare their own permission_classes.
     MANAGER_ACTIONS = {"approve", "reject", "dispatch_stock", "mark_delivered", "invoice"}
 
     def get_permissions(self):
+        # Starts from super() so an @action's own permission_classes survive.
+        # This list used to be rebuilt from scratch, and every alias added later
+        # (cancel, generate_invoice, delete_invoice, mark_packed,
+        # mark_in_transit, update_payment_status) silently lost its
+        # IsDistManager gate — a distributor could invoice and cancel at will.
+        perms = super().get_permissions()
         if self.action in self.MANAGER_ACTIONS:
-            return [DistModule(), IsDistManager()]
-        return [DistModule()]
+            perms.append(IsDistManager())
+        return perms
 
     def get_queryset(self):
         qs = (StockRequest.objects.select_related("distributor")
@@ -388,3 +396,30 @@ class DistributorStockViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get("item"):
             qs = qs.filter(item_id=params["item"])
         return _scope_to_own_party(qs, self.request.user)
+
+    @action(detail=False, methods=["get"])
+    def products(self, request):
+        """The orderable catalogue, annotated with what this distributor already
+        holds. Every active item appears — a distributor must be able to request
+        something they have never stocked, so this is NOT a view over their
+        existing stock rows.
+        """
+        distributor_id = request.query_params.get("distributor_id")
+        if not distributor_id:
+            party = getattr(request.user, "party_id", None)
+            distributor_id = party
+        held = {
+            row.item_id: row for row in DistributorStock.objects.filter(distributor_id=distributor_id)
+        } if distributor_id else {}
+        rows = []
+        for item in CatalogItem.objects.filter(is_active=True, kind=CatalogItem.Kind.PRODUCT):
+            stock = held.get(item.pk)
+            rows.append({
+                "id": item.pk, "product_name": item.name, "name": item.name,
+                "sku": item.code, "unit": item.unit,
+                "price": str(item.price), "tax_rate": str(item.tax_rate),
+                "hsn_code": item.hsn_sac,
+                "quantity": str(stock.on_hand) if stock else "0",
+                "on_hand": str(stock.on_hand) if stock else "0",
+            })
+        return Response(rows)

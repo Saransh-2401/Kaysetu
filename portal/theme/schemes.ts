@@ -64,7 +64,7 @@ export const SCHEMES: ColorScheme[] = [
   {
     key: "navy-gold",
     name: "Navy & Gold",
-    description: "The signature Salexa luxury palette — deep slate blue with gold accents.",
+    description: "The signature KaySetu luxury palette — deep slate blue with gold accents.",
     primary: "#2C3E50",
     primaryLight: "#5D6D7E",
     primaryDark: "#1A252F",
@@ -180,10 +180,10 @@ export const SCHEMES: ColorScheme[] = [
 export const DEFAULT_SCHEME_KEY = "navy-gold";
 export const CUSTOM_SCHEME_KEY = "custom";
 
-export const SCHEME_COOKIE = "salexa_scheme";
-export const SCHEME_STORAGE_KEY = "salexa_scheme";
-export const SCHEME_CUSTOM_COOKIE = "salexa_scheme_custom";
-export const SCHEME_CUSTOM_STORAGE_KEY = "salexa_scheme_custom";
+export const SCHEME_COOKIE = "kaysetu_scheme";
+export const SCHEME_STORAGE_KEY = "kaysetu_scheme";
+export const SCHEME_CUSTOM_COOKIE = "kaysetu_scheme_custom";
+export const SCHEME_CUSTOM_STORAGE_KEY = "kaysetu_scheme_custom";
 
 export function getScheme(key: string | null | undefined): ColorScheme {
   return SCHEMES.find((s) => s.key === key) ?? SCHEMES[0];

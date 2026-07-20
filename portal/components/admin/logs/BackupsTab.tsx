@@ -68,7 +68,7 @@ export default function BackupsTab() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `salexa_backup_${row.id}.dump`;
+      a.download = `kaysetu_backup_${row.id}.dump`;
       document.body.appendChild(a);
       a.click();
       a.remove();

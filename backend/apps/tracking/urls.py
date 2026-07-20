@@ -19,4 +19,20 @@ urlpatterns = [
     path("t/track/attendance/<int:pk>/checkout", views.AdminCheckoutView.as_view()),
     path("t/track/route-history", views.RouteHistoryView.as_view()),
     path("t/track/settings", views.TrackingSettingsView.as_view()),
+    path("t/track/attendance/<int:pk>/edit", views.AdminAttendanceEditView.as_view()),
+    path("t/track/attendance/<int:pk>/logs", views.AdminAttendanceLogsView.as_view()),
+    path("t/track/attendance/edit", views.AdminAttendanceEditView.as_view()),
+
+    # ---- portal aliases -------------------------------------------------
+    # The imported field-sales screens call the previous platform's paths.
+    # Serving them as aliases keeps that UI untouched; the canonical paths
+    # above are unchanged.
+    path("field-sales/admin-attendance/", views.AdminAttendanceListView.as_view()),
+    path("field-sales/admin-attendance/edit/", views.AdminAttendanceEditView.as_view()),
+    path("field-sales/admin-attendance/<int:pk>/edit/", views.AdminAttendanceEditView.as_view()),
+    path("field-sales/admin-attendance/<int:pk>/logs/", views.AdminAttendanceLogsView.as_view()),
+    path("field-sales/admin-checkout/<int:pk>/", views.AdminCheckoutView.as_view()),
+    path("field-sales/daily-reports/current-location/", views.CurrentLocationView.as_view()),
+    path("field-sales/daily-reports/day-route/", views.DayRouteView.as_view()),
+    path("field-sales/locations/", views.TrackLocationView.as_view()),
 ]

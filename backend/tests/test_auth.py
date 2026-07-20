@@ -31,7 +31,7 @@ def test_login_rejects_bad_credentials(api, make_tenant):
 
     bad_org = api.post(
         "/api/auth/tenant/login",
-        {"org_code": "SLX-NOPE99", "email": tenant.owner_email, "password": "owner-pass-123"},
+        {"org_code": "KST-NOPE99", "email": tenant.owner_email, "password": "owner-pass-123"},
     )
     assert bad_org.status_code == 401
 

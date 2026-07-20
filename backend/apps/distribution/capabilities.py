@@ -24,8 +24,30 @@ def _distributor_stats(party_id):
             "outstanding": round(total - paid, 2)}
 
 
+def _requests_for_party(party_id):
+    """A distributor's recent stock requests, for the client-profile drawer."""
+    from .models import StockRequest
+
+    rows = list(StockRequest.objects.filter(distributor_id=party_id)
+                .select_related("distributor").order_by("-requested_at", "-id")[:15])
+    distributor = None
+    if rows:
+        party = rows[0].distributor
+        distributor = {"id": party.pk, "name": party.name}
+    return {
+        "distributor": distributor,
+        "requests": [{
+            "id": r.pk, "request_number": r.number,
+            "request_date": r.requested_at.date().isoformat(),
+            "status": r.status, "payment_status": r.payment_status,
+            "total_amount": float(r.total_amount or 0),
+        } for r in rows],
+    }
+
+
 def register_all():
     from apps.foundation.integration import capabilities
 
     capabilities.provide("dist.distributor_stock_of", "DIST", _distributor_stock_of)
     capabilities.provide("dist.distributor_stats", "DIST", _distributor_stats)
+    capabilities.provide("dist.requests_for_party", "DIST", _requests_for_party)

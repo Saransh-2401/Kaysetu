@@ -266,7 +266,7 @@ export const distributorService = {
     downloadInvoicePDF: async (invoiceId: number, invoiceNumber: string) => {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-            const token = typeof window !== 'undefined' ? localStorage.getItem('salexa_access_token') : null;
+            const token = typeof window !== 'undefined' ? localStorage.getItem('kaysetu_access_token') : null;
 
             const response = await fetch(`${apiBaseUrl}/distributor-inventory/invoices/${invoiceId}/download_pdf/`, {
                 method: 'GET',
@@ -310,7 +310,7 @@ export const distributorService = {
     downloadSalesInvoicePDF: async (invoiceId: number, invoiceNumber: string) => {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-            const token = typeof window !== 'undefined' ? localStorage.getItem('salexa_access_token') : null;
+            const token = typeof window !== 'undefined' ? localStorage.getItem('kaysetu_access_token') : null;
 
             const response = await fetch(`${apiBaseUrl}/sales/invoices/${invoiceId}/download_pdf/`, {
                 method: 'GET',

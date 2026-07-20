@@ -75,7 +75,7 @@ export default function Header() {
                     letterSpacing: "-0.04em",
                   }}
                 >
-                  SALEXA
+                  KAYSETU
                 </Typography>
               </Box>
 

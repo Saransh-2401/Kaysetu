@@ -240,7 +240,7 @@ export const salesService = {
     },
 
     async getBackorderedOrders() {
-        return apiClient.get<SalesOrder[]>('/sales/orders/backordered/');
+        return apiClient.get<SalesOrder[]>('/t/sales-orders/backordered/');
     },
 
     // ===== Invoices =====
@@ -271,7 +271,7 @@ export const salesService = {
     async downloadInvoicePDF(invoiceId: number) {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-            const token = typeof window !== 'undefined' ? localStorage.getItem('salexa_access_token') : null;
+            const token = typeof window !== 'undefined' ? localStorage.getItem('kaysetu_access_token') : null;
 
             const response = await fetch(`${apiBaseUrl}/sales/invoices/${invoiceId}/download_pdf/`, {
                 method: 'GET',
@@ -336,7 +336,7 @@ export const salesService = {
     async downloadManualInvoicePDF(invoiceId: number) {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-            const token = typeof window !== 'undefined' ? localStorage.getItem('salexa_access_token') : null;
+            const token = typeof window !== 'undefined' ? localStorage.getItem('kaysetu_access_token') : null;
 
             const response = await fetch(`${apiBaseUrl}/sales/manual-invoices/${invoiceId}/download_pdf/`, {
                 method: 'GET',

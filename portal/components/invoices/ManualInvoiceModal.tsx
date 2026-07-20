@@ -721,7 +721,7 @@ export default function ManualInvoiceModal({ open, onClose, invoice, onSuccess }
                                 <Grid size={6}>
                                     <Box sx={{ p: 2.5, bgcolor: alpha(theme.palette.grey[100], 0.5), borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
                                         <Typography variant="overline" color="text.secondary" fontWeight={800} letterSpacing={1}>Billed From</Typography>
-                                        <Typography variant="h6" fontWeight={700} mt={1} mb={0.5} color="primary.dark">{company?.name || 'Salexa Corp'}</Typography>
+                                        <Typography variant="h6" fontWeight={700} mt={1} mb={0.5} color="primary.dark">{company?.name || 'KaySetu Corp'}</Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7 }}>
                                             {company?.full_address}
                                         </Typography>

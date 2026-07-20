@@ -106,12 +106,19 @@ class AllowanceClaimViewSet(viewsets.ModelViewSet):
     pagination_class = TaPagination
     http_method_names = ["get", "post", "head", "options"]
 
+    permission_classes = [TaModule]
+
     def get_permissions(self):
+        # Starts from super() so an @action's own permission_classes survive.
+        # Rebuilding this list dropped the gate from every portal alias added
+        # later — including record_payment, which emits ta.claim_paid and posts
+        # a payout to the ledger. An agent could authorise their own claim.
+        perms = super().get_permissions()
         if self.action in ("manager_approve", "reject"):
-            return [TaModule(), IsTaManager()]
-        if self.action in ("finance_approve", "mark_paid"):
-            return [TaModule(), IsFinance()]
-        return [TaModule()]
+            perms.append(IsTaManager())
+        elif self.action in ("finance_approve", "mark_paid"):
+            perms.append(IsFinance())
+        return perms
 
     def get_queryset(self):
         qs = AllowanceClaim.objects.select_related("agent").prefetch_related("trips")

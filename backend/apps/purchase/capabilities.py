@@ -28,8 +28,38 @@ def _supplier_stats(party_id):
     }
 
 
+def _suppliers_of(item_id):
+    """Suppliers who have quoted or supplied this item, newest rate first.
+
+    Sourced from PO lines AND from material-request suggestions, so a supplier
+    lined up for an item that has not been ordered yet still shows.
+    """
+    from .models import MaterialRequestItem, PurchaseOrderItem
+
+    seen, rows = set(), []
+    for line in (PurchaseOrderItem.objects.filter(item_id=item_id)
+                 .select_related("order", "order__supplier")
+                 .order_by("-order__order_date", "-id")):
+        party = line.order.supplier
+        if party is None or party.pk in seen:
+            continue
+        seen.add(party.pk)
+        rows.append({"id": party.pk, "name": party.name, "last_rate": str(line.rate),
+                     "last_order_date": line.order.order_date.isoformat(), "source": "purchase_order"})
+    for line in (MaterialRequestItem.objects.filter(item_id=item_id, supplier__isnull=False)
+                 .select_related("supplier").order_by("-id")):
+        if line.supplier_id in seen:
+            continue
+        seen.add(line.supplier_id)
+        rows.append({"id": line.supplier_id, "name": line.supplier.name,
+                     "last_rate": str(line.estimated_rate), "last_order_date": None,
+                     "source": "material_request"})
+    return rows
+
+
 def register_all():
     from apps.foundation.integration import capabilities
 
     capabilities.provide("purchase.last_purchase_rate", "PURCH", _last_purchase_rate)
     capabilities.provide("purchase.supplier_stats", "PURCH", _supplier_stats)
+    capabilities.provide("purchase.suppliers_of", "PURCH", _suppliers_of)

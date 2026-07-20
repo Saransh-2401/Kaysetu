@@ -17,7 +17,7 @@ from apps.tenancy.db import ensure_alias
 
 from .models import StockLedger, StockLevel, Warehouse
 
-logger = logging.getLogger("salexa.inventory")
+logger = logging.getLogger("kaysetu.inventory")
 
 
 class InsufficientStock(Exception):

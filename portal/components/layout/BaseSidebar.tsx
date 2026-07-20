@@ -219,7 +219,7 @@ export default function BaseSidebar({
               fontSize: "1.6rem",
             }}
           >
-            SALEXA
+            KAYSETU
             <Box
               component="span"
               sx={{

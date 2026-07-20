@@ -272,12 +272,33 @@ class RoleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Role.objects.all().order_by("name")
 
-    def perform_destroy(self, instance):
-        if instance.is_system:
-            from rest_framework.exceptions import ValidationError
+    def destroy(self, request, *args, **kwargs):
+        """Deleting a role people still hold must not strip them silently.
 
-            raise ValidationError("System roles cannot be deleted.")
-        instance.delete()
+        TenantUser.role is SET_NULL, so a bare delete left every holder with no
+        role at all — they keep a valid session but lose every role-derived
+        permission, with nothing in any trail explaining why. Same contract as
+        /core/roles/: 409 with a reassignment target, not a silent 204.
+        """
+        role = self.get_object()
+        if role.is_system:
+            return Response({"detail": "System roles cannot be deleted."}, status=400)
+
+        holders = TenantUser.objects.filter(role_id=role.pk)
+        count = holders.count()
+        if count:
+            target_slug = (request.data or {}).get("reassign_to")
+            if not target_slug:
+                return Response({
+                    "detail": f"{count} user(s) still hold this role.",
+                    "user_count": count, "requires_reassign": True,
+                }, status=409)
+            target = Role.objects.filter(slug=target_slug).exclude(pk=role.pk).first()
+            if target is None:
+                return Response({"reassign_to": "pick a different, existing role."}, status=400)
+            holders.update(role=target)
+        role.delete()
+        return Response(status=204)
 
 
 class CatalogItemViewSet(viewsets.ModelViewSet):
@@ -325,6 +346,41 @@ class PartyViewSet(viewsets.ModelViewSet):
             default=empty,
         )
         return Response(data)
+
+    @action(detail=True, methods=["get"], url_path="detail")
+    def detail_analytics(self, request, pk=None):
+        """Everything the client-profile drawer shows about one party.
+
+        Assembled entirely from capabilities: foundation owns the Party and the
+        URL, but the orders, visits and distributor history belong to modules it
+        must not import. Whatever the tenant hasn't bought simply comes back
+        empty, so the drawer still opens.
+        """
+        from apps.foundation.integration import capabilities
+
+        party = self.get_object()
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+
+        orders = capabilities.call("orders.for_party", party.id, from_date, to_date,
+                                   default=None) or {}
+        visits = capabilities.call("field.visits_for_party", party.id, from_date, to_date,
+                                   default=None) or []
+        distribution = capabilities.call("dist.requests_for_party", party.id,
+                                         default=None) or {}
+        return Response({
+            "id": party.id,
+            "name": party.name,
+            "kind": party.kind,
+            "orders": orders.get("orders", []),
+            "order_count": orders.get("order_count", 0),
+            "total_order_amount": orders.get("total_order_amount", 0.0),
+            "product_sales": orders.get("product_sales", []),
+            "visits": visits,
+            "distributor": distribution.get("distributor"),
+            "distributor_stock_requests": distribution.get("requests", []),
+            "ledger_available": capabilities.available("books.party_ledger"),
+        })
 
 
 class CurrentCompanyView(APIView):

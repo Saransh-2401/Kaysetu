@@ -146,3 +146,39 @@ def build_route_histories(target_date=None) -> int:
         )
         count += 1
     return count
+
+
+def working_hours_between(punch_in, punch_out, day=None):
+    """Hours between two punches, for the manager-correction path.
+
+    Accepts datetimes or ISO strings (the edit form posts strings). Returns
+    Decimal hours, 0 when the day is still open, or None when the punches are
+    out of order — the caller turns that into a 400 rather than storing a
+    negative day.
+    """
+    from django.utils.dateparse import parse_datetime, parse_time
+
+    def _coerce(value):
+        if value in (None, ""):
+            return None
+        if isinstance(value, str):
+            parsed = parse_datetime(value)
+            if parsed is None:
+                # A bare "09:30" is anchored to the day being edited.
+                clock = parse_time(value)
+                if clock is None or day is None:
+                    return None
+                parsed = timezone.datetime.combine(day, clock)
+            if timezone.is_naive(parsed):
+                parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+            return parsed
+        return value
+
+    start, end = _coerce(punch_in), _coerce(punch_out)
+    if start is None:
+        return None
+    if end is None:
+        return Decimal("0")          # punched in, still on duty
+    if end < start:
+        return None
+    return Decimal(str(round((end - start).total_seconds() / 3600, 2)))

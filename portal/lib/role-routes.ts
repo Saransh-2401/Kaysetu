@@ -1,5 +1,5 @@
 /**
- * SALEXA RBAC - Role-Based Route Access System
+ * KAYSETU RBAC - Role-Based Route Access System
  * Hard-coded routes for each role
  * Users inherit routes based on their assigned role
  */

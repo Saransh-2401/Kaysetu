@@ -1,4 +1,4 @@
-# Salexa backend — API for both planes. Stateless: safe to scale horizontally
+# KaySetu backend — API for both planes. Stateless: safe to scale horizontally
 # (docker compose --scale backend=N today, a K8s Deployment tomorrow).
 FROM python:3.12-slim
 

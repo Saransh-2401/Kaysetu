@@ -449,3 +449,103 @@ class TrackingSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class AdminAttendanceListView(AdminAttendanceView):
+    """Portal alias for the attendance grid.
+
+    Returns a BARE ARRAY, not the `{date, count, agents}` envelope. The ported
+    attendance export does `Array.isArray(res) ? res : []`, so an envelope here
+    would silently produce an empty sheet — every agent marked absent — rather
+    than an error anyone would notice.
+    """
+
+    def get(self, request):
+        response = super().get(request)
+        if response.status_code != 200:
+            return response
+        return Response(response.data["agents"])
+
+
+class AdminAttendanceEditView(APIView):
+    """Manager correction of a duty day — the record a manager fixes when an
+    agent forgot to punch. Every edit is appended to `edit_logs`, so a corrected
+    day never looks like a day that was recorded correctly."""
+
+    permission_classes = [TrackModule]
+
+    def patch(self, request, pk=None):
+        if not _is_manager(request.user):
+            return Response({"detail": "Manager access required."}, status=403)
+
+        if pk is not None:
+            report = DutyDay.objects.filter(pk=pk).select_related("agent").first()
+            if report is None:
+                return Response({"detail": "Not found."}, status=404)
+        else:
+            agent_id, date = request.data.get("agent_id"), request.data.get("date")
+            if not agent_id or not date:
+                return Response({"detail": "agent_id and date are required."}, status=400)
+            agent = TenantUser.objects.filter(pk=agent_id, is_active=True).first()
+            if agent is None:
+                return Response({"detail": "Agent not found."}, status=404)
+            report, _ = DutyDay.objects.get_or_create(agent=agent, date=date)
+
+        visible = _visible_agent_ids(request.user)
+        if visible is not None and report.agent_id not in visible:
+            return Response({"detail": "That agent is not on your team."}, status=403)
+
+        status_in = str(request.data.get("status", "present")).lower()
+        changes = {
+            "punch_in_time": str(report.punch_in_time or ""),
+            "punch_out_time": str(report.punch_out_time or ""),
+            "working_hours": float(report.working_hours or 0),
+        }
+
+        if status_in == "absent":
+            report.punch_in_time = None
+            report.punch_out_time = None
+            report.punch_out_type = ""
+            report.working_hours = 0
+        else:
+            punch_in = request.data.get("punch_in_time")
+            if not punch_in:
+                return Response({"punch_in_time": "required when marking present."}, status=400)
+            punch_out = request.data.get("punch_out_time") or None
+            report.punch_in_time = punch_in
+            report.punch_out_time = punch_out
+            report.punch_out_type = DutyDay.PunchOutType.MANUAL if punch_out else ""
+            report.working_hours = services.working_hours_between(punch_in, punch_out, report.date)
+            if report.working_hours is None:
+                return Response({"punch_out_time": "must be after the punch-in time."}, status=400)
+
+        report.edit_logs = list(report.edit_logs or []) + [{
+            "at": timezone.now().isoformat(),
+            "by": request.user.full_name or request.user.email,
+            "status": status_in, "previous": changes,
+        }]
+        report.save(update_fields=["punch_in_time", "punch_out_time", "punch_out_type",
+                                   "working_hours", "edit_logs"])
+        return Response({
+            "id": report.pk, "agent_id": report.agent_id, "date": report.date,
+            "punch_in_time": report.punch_in_time, "punch_out_time": report.punch_out_time,
+            "punch_out_type": report.punch_out_type, "working_hours": report.working_hours,
+            "edit_logs": report.edit_logs,
+        })
+
+
+class AdminAttendanceLogsView(APIView):
+    """The edit trail for one duty day."""
+
+    permission_classes = [TrackModule]
+
+    def get(self, request, pk):
+        if not _is_manager(request.user):
+            return Response({"detail": "Manager access required."}, status=403)
+        report = DutyDay.objects.filter(pk=pk).first()
+        if report is None:
+            return Response({"detail": "Not found."}, status=404)
+        visible = _visible_agent_ids(request.user)
+        if visible is not None and report.agent_id not in visible:
+            return Response({"detail": "That agent is not on your team."}, status=403)
+        return Response({"record_id": report.pk, "logs": report.edit_logs or []})

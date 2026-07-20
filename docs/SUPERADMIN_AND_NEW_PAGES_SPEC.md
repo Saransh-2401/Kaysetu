@@ -1,14 +1,14 @@
-# Salexa SaaS — SuperAdmin Dashboard, Setup Wizard & New Pages Specification
+# KaySetu SaaS — SuperAdmin Dashboard, Setup Wizard & New Pages Specification
 
 > Status: DRAFT v1 for review — 2026-07-15
 > Companion to `SAAS_PACKAGE_BLUEPRINT.md`. That doc says WHAT we sell; this doc lists EVERY screen we must build new, page by page, with its functionality — so nothing is discovered mid-development.
-> Build rules that apply to every page here: existing Salexa UI kit + per-tenant Appearance; every list = search + filters + sort + pagination + export; details open in side drawers; every action audited; every interactive element gets `data-testid` (`{feature}-{element}-{type}`).
+> Build rules that apply to every page here: existing KaySetu UI kit + per-tenant Appearance; every list = search + filters + sort + pagination + export; details open in side drawers; every action audited; every interactive element gets `data-testid` (`{feature}-{element}-{type}`).
 
 ---
 
 # PART A — SUPERADMIN DASHBOARD (control plane — build 100% new)
 
-Runs on the main domain (e.g. `admin.salexa.com` or `/ops` on the marketing domain). Separate login from tenant portal. Internal staff only — never sold.
+Runs on the main domain (e.g. `admin.kaysetu.com` or `/ops` on the marketing domain). Separate login from tenant portal. Internal staff only — never sold.
 
 ## SA-1 Login & security
 - Email + password + **mandatory 2FA (TOTP)** for super-admins; session timeout; IP allowlist (optional setting).
@@ -136,7 +136,7 @@ Pages that exist in no form today. (Refactor-only screens — orders, customers,
 | **D-4 Setup checklist** | re-enter any wizard step |
 | **D-5 Custom Form Builder** | drag-drop fields (text, number, dropdown, checkbox, date, photo, signature, GPS), required flags, publish to roles/teams/agents, versioning; submissions table per form w/ export |
 | **D-6 Audit log (tenant)** | who/what/when/old→new, filter by user/module/date |
-| **D-7 Subscription & billing (tenant admin)** | current plan, seats, invoices from Salexa (PDF), payment method, upgrade → D-1 |
+| **D-7 Subscription & billing (tenant admin)** | current plan, seats, invoices from KaySetu (PDF), payment method, upgrade → D-1 |
 
 ### Tracking (MOD-TRACK)
 | Page | Functionality |

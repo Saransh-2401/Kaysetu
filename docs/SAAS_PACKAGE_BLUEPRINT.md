@@ -1,4 +1,4 @@
-# Salexa SaaS — Package & Module Blueprint
+# KaySetu SaaS — Package & Module Blueprint
 
 > Status: DRAFT v1 for discussion — 2026-07-15
 > Sources: `WEB_APPLICATION_Documentation.pdf`, `MOBILE_APPLICATION_Documentation.pdf`, Old Project code audit (`Old Project/backend/apps/*`, `Old Project/frontend/app/*`).
@@ -27,7 +27,7 @@ Consequences: no module runs alone, the product catalog lives inside `warehouse`
 
 | Plane | Domain | Database | Who uses it |
 |---|---|---|---|
-| **Control plane** (SuperAdmin / Ops Console) | main domain — marketing site + enrollment + checkout + SuperAdmin dashboard | one central DB | visitors, Salexa staff |
+| **Control plane** (SuperAdmin / Ops Console) | main domain — marketing site + enrollment + checkout + SuperAdmin dashboard | one central DB | visitors, KaySetu staff |
 | **Tenant plane** (the product) | subdomain sign-in (org code per business) | **one DB per client** | client admins + their users + their field agents |
 
 Control plane owns: tenant registry, org codes, subscriptions/entitlements, packages & pricing, discounts, leads/demo requests, support tickets, broadcast notifications, tenant provisioning (creates the client DB + applies migrations automatically on purchase — this replaces seed scripts).
