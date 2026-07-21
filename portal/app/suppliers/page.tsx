@@ -45,6 +45,7 @@ import { motion } from "framer-motion";
 
 import { SearchIcon, AddIcon, EditTwoToneIcon, DeleteTwoToneIcon, LocalShippingIcon, WarningAmberIcon, CloseIcon, RefreshIcon, PhoneIcon, EmailIcon, WhatsAppIcon, StickyNote2OutlinedIcon, VisibilityIcon, FilterAltOffIcon } from "@/components/icons";
 import { purchaseService, Supplier, PurchaseOrder, SupplierPriceHistoryItem } from "@/lib/purchase-service";
+import { authService } from "@/lib/auth-service";
 import { warehouseService, Item } from "@/lib/warehouse-service";
 
 // Supplier category options — mirror backend Supplier.SUPPLIER_GROUP_CHOICES.
@@ -126,6 +127,13 @@ export default function SupplierMasterPage() {
   }, [rawMaterials, currentItem.supplied_items_details]);
 
   const fetchSuppliers = async () => {
+    // The supplier master is served by PURCH. A finance-only (BOOKS) tenant
+    // that hasn't bought procurement has no supplier list to load.
+    if (!authService.hasModule("PURCH")) {
+      setSuppliers([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const response = await purchaseService.getSuppliers({ page_size: "1000" });

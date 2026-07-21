@@ -45,7 +45,7 @@ export default function OpsLoginPage() {
         <CardContent sx={{ p: 4, textAlign: "center" }}>
           <AdminPanelSettingsIcon color="primary" sx={{ fontSize: 48 }} />
           <Typography variant="h5" gutterBottom>
-            Salexa Ops Console
+            KaySetu Ops Console
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Internal team only

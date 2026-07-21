@@ -32,7 +32,6 @@ export const PAGE_REGISTRY: RegistryPage[] = [
   { label: "Attendance", path: "/admin/attendance", moduleKey: "attendance" },
   { label: "Company Settings", path: "/company", moduleKey: "company_settings" },
   { label: "Notifications", path: "/config/notifications", moduleKey: "notifications" },
-  { label: "App Updates", path: "/admin/app-updates", moduleKey: "app_updates" },
   { label: "Reports & Analytics", path: "/admin/reports", moduleKey: "admin_reports" },
 
   // Sales / CRM

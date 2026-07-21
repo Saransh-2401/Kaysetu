@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ModuleDef, Package, ProvisioningJob, Subscription, Tenant
+from .models import AppVersion, ModuleDef, Package, ProvisioningJob, Subscription, Tenant
 
 
 class ModuleDefSerializer(serializers.ModelSerializer):
@@ -111,3 +111,19 @@ class SignupSerializer(serializers.Serializer):
         except DjangoValidationError as error:
             raise serializers.ValidationError({"password": list(error.messages)})
         return data
+
+
+class AppVersionSerializer(serializers.ModelSerializer):
+    """SuperAdmin app-release CRUD. `download_url` is an alias of apk_url the
+    marketing site + Flutter app read under that name."""
+
+    uploaded_by_name = serializers.CharField(source="uploaded_by.full_name",
+                                             read_only=True, default="")
+    download_url = serializers.CharField(source="apk_url", read_only=True)
+
+    class Meta:
+        model = AppVersion
+        fields = ["id", "version", "version_code", "apk_url", "download_url",
+                  "release_notes", "force_update", "is_active",
+                  "uploaded_by", "uploaded_by_name", "created_at", "updated_at"]
+        read_only_fields = ["uploaded_by", "created_at", "updated_at"]

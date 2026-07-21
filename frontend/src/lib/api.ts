@@ -30,26 +30,26 @@ export class ApiError extends Error {
 
 export function getToken(scope: Scope): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(`salexa_${scope}_access`);
+  return localStorage.getItem(`kaysetu_${scope}_access`);
 }
 
 export function setSession(scope: Scope, tokens: { access: string; refresh: string }, context?: unknown) {
-  localStorage.setItem(`salexa_${scope}_access`, tokens.access);
-  localStorage.setItem(`salexa_${scope}_refresh`, tokens.refresh);
+  localStorage.setItem(`kaysetu_${scope}_access`, tokens.access);
+  localStorage.setItem(`kaysetu_${scope}_refresh`, tokens.refresh);
   if (context !== undefined) {
-    localStorage.setItem(`salexa_${scope}_context`, JSON.stringify(context));
+    localStorage.setItem(`kaysetu_${scope}_context`, JSON.stringify(context));
   }
 }
 
 export function getContext<T>(scope: Scope): T | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(`salexa_${scope}_context`);
+  const raw = localStorage.getItem(`kaysetu_${scope}_context`);
   return raw ? (JSON.parse(raw) as T) : null;
 }
 
 export function clearSession(scope: Scope) {
   for (const key of ["access", "refresh", "context"]) {
-    localStorage.removeItem(`salexa_${scope}_${key}`);
+    localStorage.removeItem(`kaysetu_${scope}_${key}`);
   }
 }
 
@@ -117,7 +117,7 @@ export interface PortalContext {
   };
 }
 
-export const CONTEXT_UPDATED_EVENT = "salexa:portal-context-updated";
+export const CONTEXT_UPDATED_EVENT = "kaysetu:portal-context-updated";
 
 /** Mirrors the backend password rules (min 8, not all-numeric, not trivially
  * common). Returns an error message or null when acceptable. */
@@ -136,7 +136,7 @@ export function updatePortalOrg(partialOrg: Partial<PortalContext["org"]>) {
   const context = getContext<PortalContext>("portal");
   if (!context) return;
   const next = { ...context, org: { ...context.org, ...partialOrg } };
-  localStorage.setItem("salexa_portal_context", JSON.stringify(next));
+  localStorage.setItem("kaysetu_portal_context", JSON.stringify(next));
   window.dispatchEvent(new CustomEvent(CONTEXT_UPDATED_EVENT));
 }
 

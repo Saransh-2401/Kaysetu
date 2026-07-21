@@ -32,7 +32,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
       { key: "company_settings", label: "Company Settings" },
       { key: "attendance", label: "Attendance" },
       { key: "users", label: "Users" },
-      { key: "app_updates", label: "App Updates" },
       { key: "notifications", label: "Notifications" },
       { key: "permissions", label: "Permission Matrix" },
     ],

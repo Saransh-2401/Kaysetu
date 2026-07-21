@@ -24,7 +24,6 @@ MODULE_PACKAGE_MAP: dict[str, "str | tuple[str, ...] | None"] = {
     "admin_reports": None,
     "company_settings": None,
     "users": None,
-    "app_updates": None,
     "notifications": None,
     "permissions": None,
     "logs": None,
@@ -39,12 +38,20 @@ MODULE_PACKAGE_MAP: dict[str, "str | tuple[str, ...] | None"] = {
     "visits": "FIELD",
     # --- CRM (Leads & Pipeline) ---
     "leads": "CRM",
-    # Shared master data (Foundation Core parties/catalog/taxes) -> always on.
-    "customers": None,
-    "suppliers": None,
-    "products": None,
-    "items": None,
-    "taxes": None,
+    # Master-data screens. Their PARTY/CATALOG rows are Foundation-core, but the
+    # SCREENS call module-gated endpoints and only make sense for a tenant that
+    # bought a module that uses them — a pure Agent-Tracking tenant has no
+    # business seeing Suppliers or a Tax master. So each is visible when ANY
+    # module that actually uses it is entitled, not unconditionally.
+    #   customers  -> anyone who sells to / visits / bills a customer
+    #   suppliers  -> procurement + payables (the page hits /t/purchase/...)
+    #   items/products -> anyone with a catalog, stock, orders or production
+    #   taxes      -> anyone who raises a GST document
+    "customers": ("FIELD", "CRM", "ORDERS", "DIST", "BOOKS"),
+    "suppliers": ("PURCH", "BOOKS"),
+    "products": ("ORDERS", "INV", "PROD", "DIST", "PURCH", "FIELD"),
+    "items": ("ORDERS", "INV", "PROD", "DIST", "PURCH", "FIELD"),
+    "taxes": ("ORDERS", "BOOKS", "PURCH", "DIST"),
     # --- Sales Orders & Dispatch ---
     "sales_orders": "ORDERS",
     "order_history": "ORDERS",

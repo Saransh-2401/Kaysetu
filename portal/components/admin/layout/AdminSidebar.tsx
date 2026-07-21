@@ -40,7 +40,6 @@ const adminMenuItems: MenuItemType[] = [
     ],
   },
   { text: "Notifications", icon: <NotificationsIcon />, path: "/config/notifications", moduleKey: "notifications" },
-  { text: "App Updates", icon: <SystemUpdateIcon />, path: "/admin/app-updates", moduleKey: "app_updates" },
   { text: "Material Requests", icon: <AssignmentIcon />, path: "/material-requests", section: "Purchase", moduleKey: "material_requests" },
   {
     text: "Orders", icon: <ShoppingCartIcon />,

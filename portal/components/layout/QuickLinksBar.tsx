@@ -27,7 +27,7 @@ const MODULE_ICON: Record<string, string> = {
   customers: "Store", suppliers: "Warehouse", items: "Category", products: "Inventory2",
   taxes: "Receipt", permissions: "LockPerson", travel_allowance: "Commute",
   attendance: "Badge", company_settings: "Domain", notifications: "Notifications",
-  app_updates: "SystemUpdate", admin_reports: "BarChart", sales_targets: "Assessment",
+  admin_reports: "BarChart", sales_targets: "Assessment",
   leads: "FilterAlt", visits: "LocationOn", sales_orders: "ShoppingCart",
   stock_requests: "History", order_history: "History", backordered: "Assignment",
   invoices: "ReceiptLong", distributor_invoices: "ReceiptLong", distributor_products: "Inventory2",

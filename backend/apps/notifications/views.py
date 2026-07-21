@@ -239,7 +239,10 @@ class BroadcastViewSet(viewsets.ModelViewSet):
     """Admin announcements. Everyone can read what was sent; only admins send."""
 
     serializer_class = BroadcastSerializer
-    pagination_class = FeedPagination
+    # A bare array, not a paginated envelope: the composer reads the history as
+    # BroadcastRecord[] and did `history.map(...)` straight on the response, so
+    # a {results} wrapper crashed it. The list is small (recent announcements).
+    pagination_class = None
     http_method_names = ["get", "post", "head", "options"]
     queryset = NotificationBroadcast.objects.select_related("sent_by").all()
 

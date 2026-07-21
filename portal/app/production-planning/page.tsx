@@ -183,6 +183,12 @@ export default function ProductionPlanningPage() {
   };
 
   const fetchShortages = async () => {
+    // Shortages are raised by the distributor channel (DIST). A PROD-only
+    // tenant has none, so don't call the endpoint (it would 403).
+    if (!authService.hasModule("DIST")) {
+      setShortages([]);
+      return;
+    }
     setLoadingShortages(true);
     try {
       const data: any = await distributorService.getShortages();
@@ -203,10 +209,11 @@ export default function ProductionPlanningPage() {
 
     // Fetch MR dependencies
     try {
+      // Suppliers belong to PURCH; skip when the tenant hasn't bought it.
       const [userRes, materialsRes, suppliersRes] = await Promise.all([
         authService.getCurrentUser(),
         warehouseService.getItems({ category: "Raw Material" }),
-        purchaseService.getSuppliers()
+        authService.hasModule("PURCH") ? purchaseService.getSuppliers() : Promise.resolve({ results: [] as Supplier[] })
       ]);
       setUser(userRes);
       setRawMaterials(materialsRes.results || []);

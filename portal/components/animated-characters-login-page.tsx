@@ -382,8 +382,9 @@ function LoginPage() {
       } else if (detail) {
         message = detail;
       }
+      // Show the failure in ONE place — the inline banner beside the form.
+      // A toast as well meant the same error appeared twice at once.
       setError(message);
-      toast.error(message);
     } finally {
       setIsLoading(false);
     }

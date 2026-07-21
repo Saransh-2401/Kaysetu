@@ -1117,7 +1117,9 @@ export default function UserManagementPage() {
   };
 
   // --- HELPERS ---
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role?: string) => {
+    // A user with no role assigned crashed the whole page on `role.includes`.
+    if (!role) return theme.palette.secondary.main;
     if (role === "Admin" || role === "MDO") return theme.palette.error.main;
     if (role.includes("Manager")) return theme.palette.primary.main;
     if (role === "Sales Agent") return theme.palette.success.main;

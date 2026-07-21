@@ -18,7 +18,6 @@ const titleRules: PageTitleRule[] = [
   { match: "/taxes", title: "Taxes" },
   { match: "/distributors", title: "Distributors" },
   { match: "/attendance", title: "Attendance" },
-  { match: "/app-updates", title: "App Updates" },
 ];
 
 export default function AdminHeader({ handleDrawerToggle }: { handleDrawerToggle: () => void }) {

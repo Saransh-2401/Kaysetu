@@ -97,35 +97,6 @@ def test_send_test_is_honest_when_nothing_is_configured(api, make_tenant, tenant
     assert refused.status_code == 400 and "DLT" in refused.data["message"]
 
 
-def test_app_version_latest_is_public_and_orders_numerically(api, make_tenant, tenant_token):
-    tenant, _ = make_tenant(package_code="P2")
-    token = tenant_token(tenant)["access"]
-    client = auth(api, token)
-
-    for version, code in (("1.9.0", 9), ("1.10.0", 10)):
-        client.post("/api/core/app-versions/", {
-            "version": version, "version_code": code, "apk_url": f"https://cdn.acme.test/{version}.apk"})
-
-    # version STRINGS sort wrongly ("1.10" < "1.9" as text) — version_code is
-    # the ordering authority
-    assert client.get("/api/core/app-versions/latest/").data["version"] == "1.10.0"
-
-    # The app checks for updates BEFORE login. Releases live in the tenant DB,
-    # so an anonymous caller must name its tenant — otherwise there is nothing
-    # to look in, and one tenant's channel would be readable from another's.
-    api.credentials()
-    assert api.get("/api/core/app-versions/latest/").status_code == 400
-    assert api.get("/api/core/app-versions/latest/?org_code=NOPE").status_code == 404
-    public = api.get(f"/api/core/app-versions/latest/?org_code={tenant.org_code}")
-    assert public.status_code == 200 and public.data["version"] == "1.10.0"
-
-    # a different tenant that has published nothing gets a well-formed nothing,
-    # not the first tenant's release and not a 404
-    other, _ = make_tenant(package_code="P2")
-    empty = api.get(f"/api/core/app-versions/latest/?org_code={other.org_code}")
-    assert empty.status_code == 200 and empty.data["version_code"] == 0
-
-
 def test_quick_links_are_private_and_deduped(api, make_tenant, tenant_token):
     tenant, _ = make_tenant(package_code="P2")
     owner = tenant_token(tenant)["access"]
@@ -221,8 +192,6 @@ def test_matrix_and_config_writes_are_admin_only(api, make_tenant, tenant_token)
     assert client.post("/api/core/role-permissions/bulk/", {}).status_code == 403
     assert client.post("/api/core/roles/", {"name": "Sneaky"}).status_code == 403
     assert client.post("/api/core/email-config/", {"host": "evil.test"}).status_code == 403
-    assert client.post("/api/core/app-versions/", {
-        "version": "9.9.9", "version_code": 999}).status_code == 403
     # ...but reading their own effective permissions is fine
     assert client.get("/api/core/role-permissions/me/").status_code == 200
 

@@ -94,3 +94,43 @@ def test_package_composer_edit(api, admin_token):
     public = api.get("/api/public/packages")
     p1 = next(p for p in public.data if p["code"] == "P1")
     assert p1["base_price_monthly"] == "1299.00"
+
+
+def test_app_versions_are_superadmin_owned_and_publicly_latest(api, make_tenant, tenant_token, admin_token):
+    """Mobile releases are a PLATFORM concern: the SuperAdmin publishes them in
+    the control plane, the app reads the latest with no org code, and a tenant
+    admin can neither see nor set them."""
+    admin = auth(api, admin_token)
+    for version, code in (("1.9.0", 9), ("1.10.0", 10)):
+        r = admin.post("/api/sa/app-versions/", {
+            "version": version, "version_code": code,
+            "apk_url": f"https://cdn.kaysetu.test/{version}.apk", "force_update": code == 10})
+        assert r.status_code == 201, r.data
+
+    # version STRINGS sort wrongly ("1.10" < "1.9"); version_code is authority
+    listing = admin.get("/api/sa/app-versions/").data
+    rows = listing["results"] if isinstance(listing, dict) else listing
+    assert rows[0]["version"] == "1.10.0"
+
+    # the mobile update-check is genuinely public — no auth, no org code
+    api.credentials()
+    latest = api.get("/api/public/app-version/latest")
+    assert latest.status_code == 200
+    assert latest.data["version"] == "1.10.0" and latest.data["force_update"] is True
+    # the Flutter app reads the download url under `download_url` (alias of apk_url)
+    assert latest.data["download_url"].endswith("1.10.0.apk")
+
+    # a tenant admin cannot reach the SuperAdmin release manager at all
+    tenant, _ = make_tenant(package_code="P2")
+    ttoken = tenant_token(tenant)["access"]
+    assert auth(api, ttoken).get("/api/sa/app-versions/").status_code == 403
+    # ...and the old tenant route is gone
+    assert auth(api, ttoken).get("/api/core/app-versions/").status_code == 404
+
+
+def test_public_app_version_latest_is_a_clean_nothing_when_unpublished(api, admin_token):
+    """Before any release exists the app must see a well-formed 'up to date',
+    not an error."""
+    api.credentials()
+    data = api.get("/api/public/app-version/latest").data
+    assert data["version_code"] == 0 and data["force_update"] is False

@@ -56,6 +56,14 @@ export default function StockInvoicesPage() {
   }, []);
 
   const fetchInvoices = useCallback(async () => {
+    // Stock (distributor) invoices are DIST data; a BOOKS tenant without the
+    // distribution module has none, so present an empty list instead of 403-ing.
+    if (!authService.hasModule("DIST")) {
+      setInvoices([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const params: Record<string, string> = {

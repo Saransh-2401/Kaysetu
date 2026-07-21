@@ -39,11 +39,20 @@ class TenantUserSerializer(serializers.ModelSerializer):
         r"^\d{2}[A-Z]{5}\d{4}[A-Z]\d[A-Z\d]{2}$", required=False, allow_blank=True,
         error_messages={"invalid": "Enter a valid 15-character GSTIN."},
     )
+    # The ported user list renders `role` (the display name) and `status`
+    # (Active/Inactive). Without these it read undefined and crashed on
+    # `.toUpperCase()` / `.includes()`.
+    role = serializers.CharField(source="role.name", read_only=True, default="")
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        return "Active" if obj.is_active else "Inactive"
 
     class Meta:
         model = TenantUser
         fields = [
-            "id", "email", "phone", "full_name", "role_slug", "is_owner", "is_active",
+            "id", "email", "phone", "full_name", "role", "role_slug", "status",
+            "is_owner", "is_active",
             "profile_image", "aadhaar_card", "aadhaar_number", "pan_card", "pan_number",
             "address_line1", "address_line2", "city", "state", "postal_code", "country",
             "full_address", "business_name", "gst_number", "shipping_address",

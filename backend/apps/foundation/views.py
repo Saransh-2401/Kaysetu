@@ -45,10 +45,16 @@ class TenantLoginView(APIView):
         if not org_code or not email or not password:
             return Response({"detail": "org_code, email and password are required."}, status=400)
 
+        from .login_audit import record_login
+
         tenant = Tenant.objects.filter(org_code__iexact=org_code).first()
         if tenant is None:
+            # No tenant DB to audit into — an unknown org code hits no one's log.
             return Response({"detail": "Invalid organization code."}, status=status.HTTP_401_UNAUTHORIZED)
         if not tenant.can_login():
+            with use_tenant(tenant):
+                record_login(request, username_attempted=email, success=False,
+                             detail=f"tenant_{tenant.status}")
             return Response(
                 {"detail": f"This organization is {tenant.status}.", "code": f"tenant_{tenant.status}"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -57,9 +63,12 @@ class TenantLoginView(APIView):
         with use_tenant(tenant):
             user = TenantUser.objects.filter(email=email, is_active=True).first()
             if user is None or not user.check_password(password):
+                record_login(request, username_attempted=email, success=False,
+                             detail="invalid_credentials")
                 return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
             user.last_login = timezone.now()
             user.save(update_fields=["last_login", "updated_at"])
+            record_login(request, user=user, username_attempted=email, success=True)
 
             org = OrgSettings.objects.filter(pk=1).first()
             modules = EntitlementSnapshot.current_modules()
@@ -258,9 +267,15 @@ class TenantUserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = TenantUser.objects.select_related("role").order_by("full_name")
-        search = self.request.query_params.get("search")
+        params = self.request.query_params
+        search = params.get("search")
         if search:
             qs = qs.filter(full_name__icontains=search) | qs.filter(email__icontains=search)
+        # The ported pickers filter by role slug (e.g. ?role=sales_manager).
+        if params.get("role"):
+            qs = qs.filter(role__slug=params["role"])
+        if params.get("is_active") in ("true", "false"):
+            qs = qs.filter(is_active=params["is_active"] == "true")
         return qs
 
 

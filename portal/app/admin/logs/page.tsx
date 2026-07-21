@@ -7,6 +7,7 @@ import {
   ShieldIcon, HistoryIcon, SecurityIcon, LockPersonIcon,
   NotificationsIcon, DeleteIcon, BackupIcon, RouteIcon,
 } from "@/components/icons";
+import { authService } from "@/lib/auth-service";
 
 const TabLoading = () => (
   <Box sx={{ p: 6, textAlign: "center" }}>
@@ -31,13 +32,19 @@ const TABS = [
   { slug: "notifications", label: "Notifications", icon: NotificationsIcon, Component: NotificationsTab },
   { slug: "deleted", label: "Deleted Documents", icon: DeleteIcon, Component: DeletedDocumentsTab },
   { slug: "backups", label: "Backups", icon: BackupIcon, Component: BackupsTab },
-  { slug: "route-history", label: "Route History", icon: RouteIcon, Component: RouteHistoryTab },
+  // Route History is agent-GPS data — only meaningful with the TRACK module.
+  { slug: "route-history", label: "Route History", icon: RouteIcon, Component: RouteHistoryTab, moduleKey: "TRACK" },
 ];
 
 export default function LogsPage() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
-  const ActiveComponent = TABS[activeTab].Component;
+  // Hide tabs whose backing module the tenant hasn't bought (so we never fetch
+  // an endpoint that 403s). Login Activity (index 0) is always present.
+  const modules = authService.getOrgContext()?.modules ?? [];
+  const tabs = TABS.filter((t) => !t.moduleKey || modules.includes(t.moduleKey));
+  const safeTab = Math.min(activeTab, tabs.length - 1);
+  const ActiveComponent = tabs[safeTab].Component;
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1600, mx: "auto" }} data-testid="logs-page">
@@ -62,7 +69,7 @@ export default function LogsPage() {
       {/* Tabs */}
       <Paper elevation={0} sx={{ mb: 2.5, borderRadius: 3, overflow: "hidden" }}>
         <Tabs
-          value={activeTab}
+          value={safeTab}
           onChange={(_, v) => setActiveTab(v)}
           variant="scrollable"
           scrollButtons="auto"
@@ -70,7 +77,7 @@ export default function LogsPage() {
           sx={{ minHeight: 0 }}
           TabIndicatorProps={{ sx: { height: 3, borderRadius: 3 } }}
         >
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const Icon = t.icon;
             return (
               <Tab

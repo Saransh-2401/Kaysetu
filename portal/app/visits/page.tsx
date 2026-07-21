@@ -261,7 +261,9 @@ function VisitsContent() {
       try {
         const [custResp, leadResp] = await Promise.all([
           crmService.getCustomers({ page_size: '1000' }), // Status filter applied client side to be safe
-          crmService.getLeads({ page_size: '1000' })
+          // Leads live in CRM; a FIELD-only tenant can still schedule visits to
+          // customers, so skip the leads source rather than 403 on it.
+          authService.hasModule("CRM") ? crmService.getLeads({ page_size: '1000' }) : Promise.resolve({ results: [] as Lead[] }),
         ]);
 
         // Filter: Only Active Customers

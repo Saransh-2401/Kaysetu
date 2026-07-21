@@ -45,12 +45,36 @@ def test_entitlement_matrix_hides_unbought_packages(api, make_tenant, tenant_tok
     # Platform-core always enabled
     assert perms["company_settings"]["enabled"] is True
     assert perms["users"]["enabled"] is True
-    assert perms["customers"]["enabled"] is True  # shared master data
-    assert perms["suppliers"]["enabled"] is True   # Foundation-core party (review fix)
+    # A FIELD tenant sells to customers, so the customer master is visible...
+    assert perms["customers"]["enabled"] is True
+    # ...but has no procurement, so the Suppliers screen (which calls PURCH) is
+    # hidden — showing it only led to a 403 the moment the page loaded.
+    assert perms["suppliers"]["enabled"] is False
+    # catalog is visible (FIELD books orders from it); the tax master is not
+    assert perms["items"]["enabled"] is True
+    assert perms["taxes"]["enabled"] is False
     # FIELD-only tenant has neither TRACK nor ATT -> attendance hidden
     assert perms["attendance"]["enabled"] is False
     # distributor adjustments follow DIST (not INV) -> hidden here
     assert perms["distributor_adjustments"]["enabled"] is False
+
+
+def test_tracking_only_tenant_sees_a_clean_menu(api, make_tenant, tenant_token):
+    """P1 = Agent Live Tracking. Its portal must show tracking + core admin and
+    NOT the master-data screens whose pages call modules it never bought — those
+    only produced a wall of 403/404s the moment the tenant clicked them."""
+    tenant, _ = make_tenant(package_code="P1")
+    token = tenant_token(tenant)["access"]
+    perms = auth(api, token).get("/api/core/role-permissions/me/").data["permissions"]
+
+    # what a tracking tenant SHOULD see
+    for key in ("tracking_health", "attendance", "admin_dashboard",
+                "company_settings", "users", "notifications"):
+        assert perms[key]["enabled"] is True, key
+    # what it should NOT — no procurement/catalog/tax/customer screens
+    for key in ("suppliers", "items", "products", "taxes", "customers",
+                "purchase_orders", "warehouse_dashboard", "leads"):
+        assert perms[key]["enabled"] is False, key
 
 
 def test_attendance_visible_with_either_track_or_att(api, make_tenant, tenant_token, admin_token):

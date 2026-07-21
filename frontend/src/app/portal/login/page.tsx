@@ -43,7 +43,7 @@ export default function PortalLoginPage() {
         <CardContent sx={{ p: 4, textAlign: "center" }}>
           <StorefrontIcon color="primary" sx={{ fontSize: 48 }} />
           <Typography variant="h5" gutterBottom>
-            Sign in to Salexa
+            Sign in to KaySetu
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Use the organization code your company received.
@@ -55,7 +55,7 @@ export default function PortalLoginPage() {
           )}
           <Box component="form" onSubmit={submit}>
             <Stack spacing={2}>
-              <TextField label="Organization code" required placeholder="SLX-XXXXXX" value={orgCode}
+              <TextField label="Organization code" required placeholder="KST-XXXXXX" value={orgCode}
                 onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
                 inputProps={{ "data-testid": "portal-login-orgcode-input", style: { textTransform: "uppercase" } }} />
               <TextField label="Email" type="email" required value={email}

@@ -18,6 +18,7 @@ from apps.tenancy.provisioning import MODULE_ROLE_TEMPLATES, ProvisioningError, 
 from . import services
 from .models import (
     AdminUser,
+    AppVersion,
     ControlAuditLog,
     ModuleDef,
     Package,
@@ -26,6 +27,7 @@ from .models import (
     Tenant,
 )
 from .serializers import (
+    AppVersionSerializer,
     ModuleDefSerializer,
     PackageAdminSerializer,
     PackagePublicSerializer,
@@ -143,6 +145,48 @@ class SignupStatusView(APIView):
             body["detail"] = ("Your workspace could not be prepared. Our team has been "
                               "notified — you will receive a mail when it is ready.")
         return Response(body)
+
+
+class PublicAppVersionLatestView(APIView):
+    """The mobile app's update check — genuinely public, no org code.
+
+    The app is one platform app, so 'the latest version' is a single global
+    fact. Returns a stable sentinel when nothing is published so the app sees a
+    well-formed 'you are up to date' rather than an error."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request):
+        version = AppVersion.objects.filter(is_active=True).order_by("-version_code").first()
+        if version is None:
+            return Response({"version": "0.0.0", "version_code": 0,
+                             "force_update": False, "apk_url": "", "download_url": ""})
+        return Response(AppVersionSerializer(version).data)
+
+
+class AppVersionViewSet(viewsets.ModelViewSet):
+    """SuperAdmin mobile-release manager. Control-plane only."""
+
+    permission_classes = [IsControlAdmin]
+    serializer_class = AppVersionSerializer
+    queryset = AppVersion.objects.select_related("uploaded_by").all()
+
+    def perform_create(self, serializer):
+        instance = serializer.save(uploaded_by=self.request.user)
+        _audit(self.request, "app_version.create", "AppVersion", instance.pk,
+               after=AppVersionSerializer(instance).data)
+
+    def perform_update(self, serializer):
+        before = AppVersionSerializer(serializer.instance).data
+        instance = serializer.save()
+        _audit(self.request, "app_version.update", "AppVersion", instance.pk,
+               before=before, after=AppVersionSerializer(instance).data)
+
+    def perform_destroy(self, instance):
+        _audit(self.request, "app_version.delete", "AppVersion", instance.pk,
+               before=AppVersionSerializer(instance).data)
+        instance.delete()
 
 
 class AdminLoginView(APIView):

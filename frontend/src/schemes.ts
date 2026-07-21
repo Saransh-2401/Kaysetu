@@ -23,7 +23,7 @@ export const SCHEMES: ColorScheme[] = [
   {
     key: "navy-gold",
     name: "Navy & Gold",
-    description: "The signature Salexa palette — deep slate blue with gold accents.",
+    description: "The signature KaySetu palette — deep slate blue with gold accents.",
     primary: "#2C3E50", primaryLight: "#5D6D7E", primaryDark: "#1A252F",
     secondary: "#D4AF37", secondaryDark: "#B7950B",
     background: "#F4F1EA", paper: "#FDFBF7",

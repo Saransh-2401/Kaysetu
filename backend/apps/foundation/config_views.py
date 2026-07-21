@@ -9,12 +9,10 @@ decide what the whole organisation can see and how it talks to its customers.
 from django.utils.text import slugify
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
-    AppVersion,
     EmailConfiguration,
     EmailTemplate,
     OrgSettings,
@@ -409,57 +407,10 @@ class SMSConfigView(APIView):
         return Response(self._payload(config))
 
 
-# --------------------------------------------------------------- app versions
-class AppVersionSerializer(serializers.ModelSerializer):
-    uploaded_by_name = serializers.CharField(source="uploaded_by.full_name",
-                                             read_only=True, default="")
-
-    class Meta:
-        model = AppVersion
-        fields = ["id", "version", "version_code", "apk_url", "release_notes",
-                  "force_update", "is_active", "uploaded_by", "uploaded_by_name", "created_at"]
-        read_only_fields = ["uploaded_by", "created_at"]
-
-
-class AppVersionViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAdminOrReadOnly]
-    serializer_class = AppVersionSerializer
-    queryset = AppVersion.objects.select_related("uploaded_by").all()
-
-    def perform_create(self, serializer):
-        serializer.save(uploaded_by=self.request.user)
-
-    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
-    def latest(self, request):
-        """The installed app's update check, run on launch — before login.
-
-        Releases live in the TENANT database, so an anonymous caller must say
-        which tenant it belongs to. The app already knows its org code (it is
-        typed at login and stored), so requiring it costs nothing and keeps one
-        tenant's release channel out of another's reach.
-        """
-        from apps.control.models import Tenant
-        from apps.tenancy.context import get_tenant, use_tenant
-
-        if get_tenant() is not None:
-            return Response(self._latest_payload())
-
-        org_code = (request.query_params.get("org_code") or "").strip()
-        if not org_code:
-            return Response({"detail": "org_code is required when not signed in."}, status=400)
-        tenant = Tenant.objects.filter(org_code__iexact=org_code).first()
-        if tenant is None:
-            return Response({"detail": "Unknown organization code."}, status=404)
-        with use_tenant(tenant):
-            return Response(self._latest_payload())
-
-    def _latest_payload(self):
-        version = AppVersion.objects.filter(is_active=True).order_by("-version_code").first()
-        if version is None:
-            # A well-formed "nothing published yet" — the app compares version
-            # codes, and a 404 here would look like a network failure.
-            return {"version": "0.0.0", "version_code": 0, "force_update": False}
-        return AppVersionSerializer(version).data
+# App releases are a PLATFORM concern, not a tenant one — the mobile app is one
+# app, published once by the SuperAdmin. That surface moved to the control plane
+# (apps/control: /sa/app-versions/ + public /public/app-version/latest); it is
+# deliberately gone from the tenant API.
 
 
 # ---------------------------------------------------------------- quick links
@@ -768,3 +719,87 @@ class AssignedDistributorsView(APIView):
             "email": p.email, "phone": p.phone,
             "city": (p.address or {}).get("city", ""),
         } for p in qs.order_by("name")])
+
+
+# ------------------------------------------------------------- login activity
+from rest_framework.generics import ListAPIView          # noqa: E402
+from rest_framework.pagination import PageNumberPagination  # noqa: E402
+
+from .models import LoginActivity                          # noqa: E402
+
+
+class LogPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
+
+class LoginActivitySerializer(serializers.ModelSerializer):
+    user = serializers.IntegerField(source="user_id", read_only=True)
+
+    class Meta:
+        model = LoginActivity
+        fields = ["id", "user", "user_name", "username_attempted", "user_role",
+                  "event", "success", "method", "platform", "ip_address",
+                  "location", "location_resolved", "detail", "created_at"]
+
+
+class LoginActivityView(ListAPIView):
+    """The Login Activity log — an admin-only audit of who signed in, and who
+    tried and failed. Reads from the tenant's own LoginActivity rows."""
+
+    permission_classes = [IsTenantAdmin]
+    serializer_class = LoginActivitySerializer
+    pagination_class = LogPagination
+
+    def get_queryset(self):
+        qs = LoginActivity.objects.select_related("user").all()
+        p = self.request.query_params
+        if p.get("search"):
+            term = p["search"]
+            qs = (qs.filter(user_name__icontains=term)
+                  | qs.filter(username_attempted__icontains=term)
+                  | qs.filter(ip_address__icontains=term)
+                  | qs.filter(location__icontains=term))
+        if p.get("event"):
+            qs = qs.filter(event=p["event"])
+        if p.get("success") in ("true", "false"):
+            qs = qs.filter(success=p["success"] == "true")
+        if p.get("method"):
+            qs = qs.filter(method=p["method"])
+        if p.get("platform"):
+            qs = qs.filter(platform=p["platform"])
+        if p.get("date_from"):
+            qs = qs.filter(created_at__date__gte=p["date_from"])
+        if p.get("date_to"):
+            qs = qs.filter(created_at__date__lte=p["date_to"])
+        return qs.order_by(p.get("ordering") or "-created_at")
+
+
+# --------------------------------------------------------- admin log placeholders
+# The Logs screen carries several tabs whose backing features are not built yet
+# (org-wide audit trail, document access log, deleted-document recovery, a
+# notifications log, and DB backups). They are served as EMPTY, well-formed list
+# responses rather than left to 404 — the tab shows a calm "no records" state
+# instead of throwing. Replace each with a real query when the feature lands.
+class EmptyLogView(ListAPIView):
+    permission_classes = [IsTenantAdmin]
+    pagination_class = LogPagination
+    queryset = LoginActivity.objects.none()   # any model; we return nothing
+
+    def list(self, request, *args, **kwargs):
+        return Response({"count": 0, "next": None, "previous": None, "results": []})
+
+
+class BackupTriggerView(APIView):
+    """The 'run a backup now' button. Managed backups aren't wired to this
+    deployment yet, so this answers honestly instead of 404-ing the button."""
+
+    permission_classes = [IsTenantAdmin]
+
+    def post(self, request):
+        return Response(
+            {"status": "unavailable",
+             "message": "Automated backups are not configured for this environment yet."},
+            status=200,
+        )

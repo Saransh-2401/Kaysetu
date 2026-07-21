@@ -37,6 +37,7 @@ import { motion } from "framer-motion";
 import { BadgeIcon, CalendarTodayIcon, ExitToAppIcon, DownloadIcon, EditIcon, HistoryIcon, CloseIcon } from "@/components/icons";
 import { apiClient } from "@/lib/api-client";
 import { authService } from "@/lib/auth-service";
+import ModuleUpgradeNotice from "@/components/common/ModuleUpgradeNotice";
 import { travelAllowanceService } from "@/lib/travel-allowance-service";
 import { formatTime, formatWorkingHours } from "@/lib/office-attendance-api";
 import { isAgentOnline, offlineLabel } from "@/lib/agentStatus";
@@ -610,7 +611,11 @@ async function generateExcel(
         const d = dates[i];
         const [agentRes, officeRes] = await Promise.allSettled([
             apiClient.get<AgentRecord[]>(`/field-sales/admin-attendance/?date=${d}`),
-            apiClient.get<OfficeRecord[]>(`/office-attendance/by-date/?date=${d}`),
+            // Only the Office Staff sheet needs office data; skip it for the
+            // Sales Agents export so non-ATT tenants never hit that endpoint.
+            isAgentTab
+                ? Promise.resolve([] as OfficeRecord[])
+                : apiClient.get<OfficeRecord[]>(`/office-attendance/by-date/?date=${d}`),
         ]);
         results.push({
             date: d,
@@ -737,6 +742,19 @@ export default function AttendancePage() {
             .catch(() => setUserRole("admin"));
     }, []);
     const isAdmin = userRole === null || userRole === "admin";
+    // The page has two independent halves: Sales Agents (field GPS punch = TRACK)
+    // and Office Staff (office punch/leave = ATT). A tenant may own either, both,
+    // or (via add-ons) just one. Gate each half on its module so we never call an
+    // endpoint that 403s — the missing half shows an upgrade panel instead.
+    const orgModules = authService.getOrgContext()?.modules ?? [];
+    const trackEntitled = orgModules.includes("TRACK");
+    const attEntitled = orgModules.includes("ATT");
+
+    // Land on the first tab the tenant actually owns (ATT-only add-on → Office).
+    useEffect(() => {
+        if (userRole === null) return;
+        if (!trackEntitled && attEntitled && isAdmin) setTab(1);
+    }, [userRole, trackEntitled, attEntitled, isAdmin]);
 
     // Edit dialog state
     const [editOpen, setEditOpen] = useState(false);
@@ -775,16 +793,16 @@ export default function AttendancePage() {
 
     useEffect(() => {
         if (userRole === null) return; // wait until role is known
-        fetchAgents(date);
-        if (userRole === "admin") fetchOfficeStaff(date);
-    }, [date, userRole, fetchAgents, fetchOfficeStaff]);
+        if (trackEntitled) fetchAgents(date);
+        if (userRole === "admin" && attEntitled) fetchOfficeStaff(date);
+    }, [date, userRole, trackEntitled, attEntitled, fetchAgents, fetchOfficeStaff]);
 
     // Auto-refresh agents every 30 s to keep App Status column live
     useEffect(() => {
-        if (userRole === null) return;
+        if (userRole === null || !trackEntitled) return;
         const id = setInterval(() => fetchAgents(date), 30000);
         return () => clearInterval(id);
-    }, [date, userRole, fetchAgents]);
+    }, [date, userRole, trackEntitled, fetchAgents]);
 
     const handleAgentCheckOut = async (recordId: number) => {
         setCheckingOut(recordId);
@@ -827,17 +845,22 @@ export default function AttendancePage() {
 
     const handleEditSaved = () => {
         fetchAgents(date);
-        if (isAdmin) fetchOfficeStaff(date);
+        if (isAdmin && attEntitled) fetchOfficeStaff(date);
     };
 
     const handleExport = async () => {
         setExportLoading(true);
         setExportProgress(0);
         try {
-            // Generate Sales Agents file (progress 0-45%)
-            await generateExcel(exportMonth, true, (pct) => setExportProgress(Math.round(pct * 0.45)));
-            // Generate Office Staff file (progress 45-100%)
-            await generateExcel(exportMonth, false, (pct) => setExportProgress(45 + Math.round(pct * 0.55)));
+            if (attEntitled) {
+                // Generate Sales Agents file (progress 0-45%)
+                await generateExcel(exportMonth, true, (pct) => setExportProgress(Math.round(pct * 0.45)));
+                // Generate Office Staff file (progress 45-100%)
+                await generateExcel(exportMonth, false, (pct) => setExportProgress(45 + Math.round(pct * 0.55)));
+            } else {
+                // No ATT module — only the Sales Agents (TRACK) export is available.
+                await generateExcel(exportMonth, true, (pct) => setExportProgress(pct));
+            }
             setExportOpen(false);
         } finally {
             setExportLoading(false);
@@ -898,10 +921,19 @@ export default function AttendancePage() {
                             )}
                         </Tabs>
 
-                        {/* Sales Agents */}
+                        {/* Sales Agents — field GPS punch, needs the TRACK module */}
                         {tab === 0 && (
                             <Box sx={{ p: 2 }}>
-                                {agentsLoading ? <Stack alignItems="center" py={6}><CircularProgress size={32} /></Stack>
+                                {!trackEntitled ? (
+                                    <ModuleUpgradeNotice
+                                        feature="Sales Agent attendance"
+                                        moduleName="Agent Live Tracking"
+                                        moduleCode="TRACK"
+                                        testId="attendance-agents-upgrade-notice"
+                                        compact
+                                    />
+                                )
+                                    : agentsLoading ? <Stack alignItems="center" py={6}><CircularProgress size={32} /></Stack>
                                     : agents.length === 0 ? <Stack alignItems="center" py={6}><Typography color="text.secondary">No sales agents found</Typography></Stack>
                                     : (
                                         <TableContainer sx={{ overflowX: 'auto' }}>
@@ -994,10 +1026,19 @@ export default function AttendancePage() {
                             </Box>
                         )}
 
-                        {/* Office Staff — admin only */}
+                        {/* Office Staff — admin only; needs the ATT module */}
                         {isAdmin && tab === 1 && (
                             <Box sx={{ p: 2 }}>
-                                {officeLoading ? <Stack alignItems="center" py={6}><CircularProgress size={32} /></Stack>
+                                {!attEntitled ? (
+                                    <ModuleUpgradeNotice
+                                        feature="Office Staff attendance"
+                                        moduleName="Attendance & Leave"
+                                        moduleCode="ATT"
+                                        testId="attendance-office-upgrade-notice"
+                                        compact
+                                    />
+                                )
+                                    : officeLoading ? <Stack alignItems="center" py={6}><CircularProgress size={32} /></Stack>
                                     : officeStaff.length === 0 ? <Stack alignItems="center" py={6}><Typography color="text.secondary">No check-in records for {date}</Typography></Stack>
                                     : (
                                         <TableContainer sx={{ overflowX: 'auto' }}>

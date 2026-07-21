@@ -123,3 +123,23 @@ class WarehouseItemViewSet(viewsets.ModelViewSet):
         list otherwise rather than a 404 the screen can't interpret."""
         rows = capabilities.call("purchase.suppliers_of", self.get_object().pk, default=None)
         return Response({"count": len(rows or []), "results": rows or []})
+
+    @action(detail=False, methods=["get"])
+    def categories(self, request):
+        """The distinct categories in use — the item form's category dropdown.
+        Categories live in `extra` (CatalogItem has no category column), so this
+        is whatever the tenant has actually typed, as a plain string array."""
+        seen = {(item.extra or {}).get("category") for item in self.get_queryset()}
+        return Response(sorted(c for c in seen if c))
+
+    @action(detail=False, methods=["get"])
+    def uoms(self, request):
+        """Units of measure for the item form. The UOM master when the tenant
+        has curated one, otherwise the distinct units already on the catalog —
+        so the dropdown is never empty and never 404s."""
+        from .models import UOM
+
+        names = list(UOM.objects.filter(is_active=True).values_list("uom_name", flat=True))
+        if not names:
+            names = sorted({item.unit for item in self.get_queryset() if item.unit})
+        return Response(names)

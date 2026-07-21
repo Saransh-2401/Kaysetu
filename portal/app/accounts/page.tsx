@@ -40,6 +40,7 @@ import {
   todayStr,
   type StockRequestInvoiceResult,
 } from "@/lib/accounts-api";
+import { authService } from "@/lib/auth-service";
 
 // ---
 
@@ -149,17 +150,26 @@ export default function AccountsOverview() {
     try {
       const fy = range === "Last Quarter" ? getQuarterDates() : getFYDates();
 
+      // The three invoice sources belong to separate modules (sales=ORDERS,
+      // purchases=PURCH, stock=DIST). BOOKS aggregates whatever the tenant
+      // actually runs; for a source it didn't buy, substitute an empty result
+      // rather than firing a request that 403s.
+      const EMPTY = Promise.resolve({ results: [] as never[] });
+      const hasOrders = authService.hasModule("ORDERS");
+      const hasPurch = authService.hasModule("PURCH");
+      const hasDist = authService.hasModule("DIST");
+
       // Parallel fetch — KPIs + recent transactions
       const [salesData, purchaseData, cashFlowData, recentSales, recentPurchases, recentStock, overdueInvoices, overdueStock] =
         await Promise.all([
           accountsApi.getSalesOverview(range === "YTD" ? "This Month" : range),
           accountsApi.getPurchaseOverview(),
           accountsApi.getCashFlow(fy),
-          accountsApi.getSalesInvoices({ ordering: "-invoice_date", page_size: "5" }),
-          accountsApi.getPurchaseInvoices({ ordering: "-invoice_date", page_size: "3" }),
-          accountsApi.getStockRequestInvoices({ ordering: "-invoice_date", page_size: "3" }),
-          accountsApi.getSalesInvoices({ payment_status: "unpaid", page_size: "500" }),
-          accountsApi.getStockRequestInvoices({ payment_status: "unpaid,invoiced,overdue", page_size: "500" }),
+          hasOrders ? accountsApi.getSalesInvoices({ ordering: "-invoice_date", page_size: "5" }) : EMPTY,
+          hasPurch ? accountsApi.getPurchaseInvoices({ ordering: "-invoice_date", page_size: "3" }) : EMPTY,
+          hasDist ? accountsApi.getStockRequestInvoices({ ordering: "-invoice_date", page_size: "3" }) : EMPTY,
+          hasOrders ? accountsApi.getSalesInvoices({ payment_status: "unpaid", page_size: "500" }) : EMPTY,
+          hasDist ? accountsApi.getStockRequestInvoices({ payment_status: "unpaid,invoiced,overdue", page_size: "500" }) : EMPTY,
         ]);
 
       // KPIs

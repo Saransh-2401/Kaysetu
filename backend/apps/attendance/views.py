@@ -1,7 +1,9 @@
 """ATT API — Attendance & Leave. Gated by HasModule("ATT"). /api/t/att/."""
 from datetime import date
+from decimal import Decimal
 
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -94,6 +96,113 @@ class AttendanceViewSet(viewsets.ReadOnlyModelViewSet):
     def today(self, request):
         row = OfficeAttendance.objects.filter(user=request.user, date=timezone.localdate()).first()
         return Response(self._status(row))
+
+    # ── Admin office-attendance grid ────────────────────────────────────────
+    # The ported portal screen reads a flat per-row shape and drives manual
+    # checkout / edit off it. These mirror the field-sales admin endpoints so
+    # the Office Staff tab works unchanged (served here + aliased to the old
+    # /office-attendance/… paths in urls.py).
+    @staticmethod
+    def _record(row):
+        u = row.user
+        return {
+            "id": row.id,
+            "user_id": u.pk,
+            "user_name": u.full_name or u.email,
+            "user_role": (u.role.slug if u.role_id and u.role else ""),
+            "profile_image": u.profile_image or None,
+            "check_in_time": row.check_in_time,
+            "check_out_time": row.check_out_time,
+            "working_hours": float(row.working_hours),
+            "check_out_type": (row.check_out_type or None),
+            "checked_out_by_name": (row.checked_out_by.full_name if row.checked_out_by_id else None),
+            "checked_in": bool(row.check_in_time),
+            "checked_out": bool(row.check_out_time),
+            "has_edit_logs": False,  # office attendance keeps no edit history yet
+        }
+
+    def _require_manager(self, request):
+        if not _is_manager(request.user):
+            self.permission_denied(request, message="Manager access required.")
+
+    @staticmethod
+    def _aware(value):
+        """Portal sends local ISO strings — coerce to an aware datetime."""
+        dt = parse_datetime(value) if value else None
+        if dt is not None and timezone.is_naive(dt):
+            dt = timezone.make_aware(dt)
+        return dt
+
+    @action(detail=False, methods=["get"], url_path="by-date")
+    def by_date(self, request):
+        self._require_manager(request)
+        day = request.query_params.get("date") or str(timezone.localdate())
+        rows = (
+            OfficeAttendance.objects
+            .select_related("user", "user__role", "checked_out_by")
+            .filter(date=day)
+            .order_by("user__full_name")
+        )
+        return Response([self._record(r) for r in rows])
+
+    @action(detail=True, methods=["post"], url_path="admin-checkout")
+    def admin_checkout(self, request, pk=None):
+        self._require_manager(request)
+        row = self.get_object()
+        if row.check_in_time is None:
+            return Response({"detail": "This staff member has not checked in."}, status=400)
+        if row.check_out_time is not None:
+            return Response({"detail": "Already checked out."}, status=400)
+        # Close at "now" for today; for an older open row, close at end of that day.
+        if row.date == timezone.localdate():
+            end = timezone.now()
+        else:
+            end = timezone.make_aware(
+                timezone.datetime.combine(row.date, timezone.datetime.min.time())
+            ).replace(hour=23, minute=59)
+        if end < row.check_in_time:
+            end = row.check_in_time
+        row.check_out_time = end
+        row.check_out_type = OfficeAttendance.CheckOutType.ADMIN
+        row.checked_out_by = request.user
+        row.working_hours = Decimal(str(round((end - row.check_in_time).total_seconds() / 3600, 2)))
+        row.save(update_fields=["check_out_time", "check_out_type", "checked_out_by", "working_hours"])
+        return Response(self._record(row))
+
+    @action(detail=True, methods=["patch"], url_path="admin-edit")
+    def admin_edit(self, request, pk=None):
+        self._require_manager(request)
+        row = self.get_object()
+        if request.data.get("status") == "absent":
+            row.check_in_time = None
+            row.check_out_time = None
+            row.check_out_type = ""
+            row.working_hours = Decimal("0")
+            row.checked_out_by = None
+        else:
+            ci = self._aware(request.data.get("check_in_time"))
+            if ci is None:
+                return Response({"detail": "check_in_time is required."}, status=400)
+            co = self._aware(request.data.get("check_out_time"))
+            row.check_in_time = ci
+            if co is not None:
+                if co < ci:
+                    return Response({"detail": "Check-out cannot be before check-in."}, status=400)
+                row.check_out_time = co
+                row.check_out_type = row.check_out_type or OfficeAttendance.CheckOutType.MANUAL
+                row.working_hours = Decimal(str(round((co - ci).total_seconds() / 3600, 2)))
+            else:
+                row.check_out_time = None
+                row.check_out_type = ""
+                row.working_hours = Decimal("0")
+        row.save()
+        return Response(self._record(row))
+
+    @action(detail=True, methods=["get"])
+    def logs(self, request, pk=None):
+        # Edit history is not tracked for office attendance yet — the portal
+        # only opens this when has_edit_logs is true, so an empty list is safe.
+        return Response([])
 
 
 class LeaveRequestViewSet(viewsets.ModelViewSet):

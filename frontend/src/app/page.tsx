@@ -41,7 +41,7 @@ export default async function MarketingPage() {
       <AppBar position="static" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1, letterSpacing: 1 }}>
-            SALEXA
+            KAYSETU
           </Typography>
           <Button color="inherit" component={Link} href="/portal/login" data-testid="marketing-portal-login-btn">
             Sign in
@@ -160,7 +160,7 @@ export default async function MarketingPage() {
       </Container>
 
       <Box component="footer" sx={{ py: 4, bgcolor: "primary.main", color: "white", textAlign: "center" }}>
-        <Typography variant="body2">© {new Date().getFullYear()} Salexa · Made for Indian businesses</Typography>
+        <Typography variant="body2">© {new Date().getFullYear()} KaySetu · Made for Indian businesses</Typography>
       </Box>
     </Box>
   );

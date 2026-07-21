@@ -18,6 +18,7 @@ urlpatterns = [
     path("t/track/attendance", views.AdminAttendanceView.as_view()),
     path("t/track/attendance/<int:pk>/checkout", views.AdminCheckoutView.as_view()),
     path("t/track/route-history", views.RouteHistoryView.as_view()),
+    path("admin/route-history/", views.RouteHistoryLogView.as_view()),
     path("t/track/settings", views.TrackingSettingsView.as_view()),
     path("t/track/attendance/<int:pk>/edit", views.AdminAttendanceEditView.as_view()),
     path("t/track/attendance/<int:pk>/logs", views.AdminAttendanceLogsView.as_view()),

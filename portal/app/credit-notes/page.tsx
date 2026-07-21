@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { motion } from "framer-motion";
 import { salesService, AdjustmentNote } from "@/lib/sales-service";
+import { authService } from "@/lib/auth-service";
 
 // Icons
 import { NoteAddIcon, SearchIcon, PrintIcon, FilterAltOffIcon, EditIcon, RemoveCircleOutlineIcon, AddCircleOutlineIcon } from "@/components/icons";
@@ -62,6 +63,14 @@ export default function CreditDebitNotesPage() {
   };
 
   const fetchNotes = async () => {
+    // Credit/debit notes are sales adjustments (ORDERS). A BOOKS-only tenant
+    // raises no sales, so there are none to list — skip the ORDERS call.
+    if (!authService.hasModule("ORDERS")) {
+      setNotes([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const params: any = {
@@ -94,6 +103,7 @@ export default function CreditDebitNotesPage() {
   }, [page, rowsPerPage, search, typeFilter, fromDate, toDate, order, orderBy]);
 
   const fetchInvoices = async (isInitial = false) => {
+    if (!authService.hasModule("ORDERS")) return;  // no sales invoices to adjust
     try {
       setSearchingInvoices(true);
       const currentOffset = isInitial ? 0 : offset;

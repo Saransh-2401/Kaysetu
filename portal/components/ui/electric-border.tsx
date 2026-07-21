@@ -176,8 +176,10 @@ export const ElectricBorder: React.FC<ElectricBorderProps> = ({
                             <animate attributeName="dx" values="0; -500" dur="6s" repeatCount="indefinite" calcMode="linear" />
                         </feOffset>
 
-                        <feComposite in="offsetNoise1" in2="offsetNoise2" operator="add" result="verticalNoise" />
-                        <feComposite in="offsetNoise3" in2="offsetNoise4" operator="add" result="horizontalNoise" />
+                        {/* "add" is not a valid feComposite operator; the additive
+                            combination is arithmetic with k2=k3=1 (result = i1 + i2). */}
+                        <feComposite in="offsetNoise1" in2="offsetNoise2" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="verticalNoise" />
+                        <feComposite in="offsetNoise3" in2="offsetNoise4" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="horizontalNoise" />
                         <feBlend in="verticalNoise" in2="horizontalNoise" mode="screen" result="combinedNoise" />
 
                         <feDisplacementMap

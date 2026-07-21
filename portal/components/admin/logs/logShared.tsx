@@ -12,7 +12,7 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, APIError } from "@/lib/api-client";
 import { toast } from "sonner";
 
 // --------------------------------------------------------------------------- //
@@ -128,6 +128,7 @@ export function useLogData<T>(endpoint: string, filters: Record<string, string>)
   const [rows, setRows] = useState<T[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [notImplemented, setNotImplemented] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
@@ -155,9 +156,17 @@ export function useLogData<T>(endpoint: string, filters: Record<string, string>)
       const data = await apiClient.get<Paginated<T>>(endpoint, params);
       setRows(data.results || []);
       setCount(data.count || 0);
+      setNotImplemented(false);
     } catch (err) {
-      console.error(`Failed to load ${endpoint}:`, err);
-      toast.error("Failed to load logs");
+      // A 404 means this particular log stream isn't wired up on the backend
+      // yet (the Logs section is only partly built). Show a calm empty state
+      // rather than a scary error toast + red console line for every visit.
+      if (err instanceof APIError && err.status === 404) {
+        setNotImplemented(true);
+      } else {
+        console.error(`Failed to load ${endpoint}:`, err);
+        toast.error("Failed to load logs");
+      }
       setRows([]);
       setCount(0);
     } finally {
@@ -171,7 +180,7 @@ export function useLogData<T>(endpoint: string, filters: Record<string, string>)
     fetchData();
   }, [fetchData]);
 
-  return { rows, count, loading, page, setPage, rowsPerPage, setRowsPerPage, refetch: fetchData };
+  return { rows, count, loading, notImplemented, page, setPage, rowsPerPage, setRowsPerPage, refetch: fetchData };
 }
 
 /**

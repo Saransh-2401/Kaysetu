@@ -34,6 +34,7 @@ import { EngineeringIcon, AssignmentIcon, AccessTimeIcon, ErrorOutlineIcon, Arro
 // Services
 import { productionService, WorkOrder, JobCard, ProductionPlan } from "@/lib/production-service";
 import { purchaseService, MaterialRequest } from "@/lib/purchase-service";
+import { authService } from "@/lib/auth-service";
 import { useChartPalette } from "@/components/admin/analytics/kit";
 
 const KpiCard = ({ title, value, icon, color, subtext, progress, loading }: any) => (
@@ -133,11 +134,13 @@ export default function ProductionOverview() {
     const fetchData = async () => {
       try {
         setLoading(true);
+        // Material requests belong to PURCH; a PROD-only tenant raises none, so
+        // skip that fetch rather than 403 on it.
         const [woRes, jcRes, plansRes, mrRes] = await Promise.all([
           productionService.getWorkOrders(),
           productionService.getJobCards(),
           productionService.getProductionPlans(),
-          purchaseService.getMaterialRequests(),
+          authService.hasModule("PURCH") ? purchaseService.getMaterialRequests() : Promise.resolve({ results: [] as MaterialRequest[] }),
         ]);
 
         setData({

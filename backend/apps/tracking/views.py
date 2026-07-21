@@ -6,6 +6,8 @@ from decimal import Decimal
 
 from django.utils import timezone
 from rest_framework.permissions import BasePermission
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -15,6 +17,7 @@ from apps.foundation.models import TenantUser
 
 from . import gps, services
 from .models import DeviceDiagnostic, DutyDay, RouteHistory, TrackingSettings
+from .serializers import RouteHistorySerializer as _RHSerializer
 from .serializers import (
     DeviceDiagnosticSerializer,
     RouteHistorySerializer,
@@ -549,3 +552,36 @@ class AdminAttendanceLogsView(APIView):
         if visible is not None and report.agent_id not in visible:
             return Response({"detail": "That agent is not on your team."}, status=403)
         return Response({"record_id": report.pk, "logs": report.edit_logs or []})
+
+
+class _LogPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
+
+class RouteHistoryLogView(ListAPIView):
+    """Paginated route-history for the admin Logs screen — the same nightly GPS
+    rollups as /t/track/route-history, in the {results,count} shape the log
+    table reads, with a name search and a date range. TRACK-gated, so a tenant
+    without tracking simply sees an empty log rather than an error."""
+
+    permission_classes = [TrackModule]
+    serializer_class = _RHSerializer
+    pagination_class = _LogPagination
+
+    def get_queryset(self):
+        visible = _visible_agent_ids(self.request.user)
+        qs = RouteHistory.objects.select_related("agent")
+        if visible is not None:
+            qs = qs.filter(agent_id__in=visible)
+        p = self.request.query_params
+        if p.get("search"):
+            qs = qs.filter(agent__full_name__icontains=p["search"])
+        if p.get("agent"):
+            qs = qs.filter(agent_id=p["agent"])
+        if p.get("date_from"):
+            qs = qs.filter(date__gte=p["date_from"])
+        if p.get("date_to"):
+            qs = qs.filter(date__lte=p["date_to"])
+        return qs.order_by(p.get("ordering") or "-date")

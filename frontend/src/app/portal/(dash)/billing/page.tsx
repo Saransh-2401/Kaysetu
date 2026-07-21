@@ -113,7 +113,7 @@ export default function BillingPage() {
           key: order.key_id,
           amount: order.amount_paise,
           currency: order.currency,
-          name: "Salexa",
+          name: "KaySetu",
           description: `${packageCode} · ${seats} users · ${cycle}`,
           order_id: order.gateway_order_id,
           handler: async (response: {

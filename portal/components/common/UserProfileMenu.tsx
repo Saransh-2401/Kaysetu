@@ -58,11 +58,16 @@ export default function UserProfileMenu() {
         loadUser();
     }, []);
 
-    // Fetch today's attendance once user is loaded (only for applicable roles)
+    // Office attendance is the ATT module. Without it the check-in endpoints
+    // 403, so the whole check-in UI is hidden rather than shown-then-failing.
+    const attEntitled = (authService.getOrgContext()?.modules ?? []).includes("ATT");
+
+    // Fetch today's attendance once user is loaded (only for applicable roles
+    // in a tenant that actually bought office attendance)
     useEffect(() => {
-        if (!user || !OFFICE_ATTENDANCE_ROLES.has(user.role)) return;
+        if (!user || !attEntitled || !OFFICE_ATTENDANCE_ROLES.has(user.role)) return;
         loadAttendance();
-    }, [user]);
+    }, [user, attEntitled]);
 
     const loadAttendance = useCallback(async () => {
         try {
@@ -126,7 +131,9 @@ export default function UserProfileMenu() {
 
     if (!user) return null;
 
-    const isOfficeRole = OFFICE_ATTENDANCE_ROLES.has(user.role);
+    // Show the office check-in UI only when the role uses it AND the tenant
+    // actually has the ATT module — otherwise the check-in call 403s.
+    const isOfficeRole = OFFICE_ATTENDANCE_ROLES.has(user.role) && attEntitled;
     const isCheckedIn  = Boolean(attendance?.checked_in);
     const isCheckedOut = Boolean(attendance?.checked_out);
 

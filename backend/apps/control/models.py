@@ -234,3 +234,31 @@ class ControlAuditLog(models.Model):
 
     class Meta:
         ordering = ["-at"]
+
+
+class AppVersion(models.Model):
+    """A mobile app release. PLATFORM-owned: the KaySetu agent app is one app,
+    published ONCE by the SuperAdmin — not per tenant. Lives in the control DB
+    and is served globally, so a tenant admin can neither see nor set it.
+
+    `version_code` is the ordering authority: version STRINGS sort wrongly
+    ("1.10" < "1.9" as text), so the app compares codes."""
+
+    version = models.CharField(max_length=32)
+    version_code = models.PositiveIntegerField(unique=True)
+    apk_url = models.URLField(max_length=1000, blank=True)
+    release_notes = models.TextField(blank=True)
+    force_update = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    uploaded_by = models.ForeignKey(
+        AdminUser, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="app_versions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-version_code"]
+
+    def __str__(self):
+        return f"{self.version} ({self.version_code})"

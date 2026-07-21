@@ -229,7 +229,17 @@ class SalesTargetViewSet(viewsets.ModelViewSet):
         if request.method == "GET":
             target = SalesTarget.objects.filter(is_default=True).first()
             if target is None:
-                return Response({"detail": "No baseline target."}, status=404)
+                # No baseline saved yet — return an empty (200) baseline rather
+                # than a 404, so the portal shows a clean editable zero form
+                # with no console noise. POSTing here persists it.
+                return Response({
+                    "id": None, "agent": None, "month": None, "year": None,
+                    "is_default": True, "visit_target": 0, "order_target": 0,
+                    "stock_request_target": 0, "revenue_target": 0,
+                    "stock_request_revenue_target": 0, "new_client_target": 0,
+                    "login_hours_target": 0, "pincodes": [], "city_targets": [],
+                    "created_at": None,
+                })
             return Response(SalesTargetSerializer(target).data)
         if not _is_manager(request.user):
             return Response({"detail": "Manager access required."}, status=403)

@@ -369,28 +369,6 @@ class SMSTemplate(models.Model):
         return self.name
 
 
-class AppVersion(models.Model):
-    """Mobile release channel. `version_code` is the ordering authority —
-    version STRINGS sort wrongly ("1.10" < "1.9" as text)."""
-
-    version = models.CharField(max_length=32)
-    version_code = models.PositiveIntegerField(unique=True)
-    apk_url = models.URLField(max_length=1000, blank=True)
-    release_notes = models.TextField(blank=True)
-    force_update = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    uploaded_by = models.ForeignKey(TenantUser, null=True, blank=True,
-                                    on_delete=models.SET_NULL, related_name="app_versions")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-version_code"]
-
-    def __str__(self):
-        return f"{self.version} ({self.version_code})"
-
-
-# ------------------------------------------------------------------ quick links
 class RoleQuickLink(models.Model):
     """A shortcut an admin pins for a whole role."""
 
@@ -457,3 +435,39 @@ class TaxSlab(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.percentage}%)"
+
+
+class LoginActivity(models.Model):
+    """A login audit row — who signed in (or tried), from where, how.
+
+    Lives in the tenant DB and is written on every tenant login attempt. A
+    failed attempt keeps `user` null (the credentials didn't resolve to one) but
+    still records what was tried, so a brute-force run is visible."""
+
+    class Event(models.TextChoices):
+        LOGIN = "login", "Login"
+        FAILED = "failed_login", "Failed login"
+        LOGOUT = "logout", "Logout"
+
+    user = models.ForeignKey(
+        TenantUser, null=True, blank=True, on_delete=models.SET_NULL, related_name="login_events"
+    )
+    user_name = models.CharField(max_length=200, blank=True)
+    username_attempted = models.CharField(max_length=254, blank=True)
+    user_role = models.CharField(max_length=64, blank=True)
+    event = models.CharField(max_length=16, choices=Event.choices, default=Event.LOGIN, db_index=True)
+    success = models.BooleanField(default=True, db_index=True)
+    method = models.CharField(max_length=20, default="password")   # password | otp | refresh
+    platform = models.CharField(max_length=20, default="web")      # web | mobile | unknown
+    ip_address = models.CharField(max_length=64, blank=True)
+    user_agent = models.CharField(max_length=400, blank=True)
+    # Geo city, resolved from the IP by a later job; left blank for now.
+    location = models.CharField(max_length=120, blank=True)
+    location_resolved = models.BooleanField(default=False)
+    detail = models.CharField(max_length=100, blank=True)          # failure reason
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["event", "-created_at"])]
+        verbose_name_plural = "Login activity"

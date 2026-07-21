@@ -37,6 +37,7 @@ import { InventoryIcon, WarningAmberIcon, AssignmentIcon, LocalShippingIcon, Arr
 import { warehouseService } from "@/lib/warehouse-service";
 import { distributorService, StockRequest } from "@/lib/distributor-service";
 import { purchaseService, PurchaseOrder } from "@/lib/purchase-service";
+import { authService } from "@/lib/auth-service";
 
 // Format an amount as whole-rupee INR (no stray decimals like ₹…245.8).
 const fmtINR = (n: any) => `₹ ${Math.round(Number(n) || 0).toLocaleString("en-IN")}`;
@@ -168,6 +169,11 @@ export default function WarehouseOverview() {
   const fetchAllData = async () => {
     try {
       setLoading(true);
+      // Stock requests/shortages come from DIST and purchase orders from PURCH.
+      // A warehouse (INV) tenant may not own those modules, so skip their
+      // fetches instead of 403-ing; the related tiles just read zero.
+      const hasDist = authService.hasModule("DIST");
+      const hasPurch = authService.hasModule("PURCH");
       const [
         rawResult,
         productsResult,
@@ -177,9 +183,9 @@ export default function WarehouseOverview() {
       ] = await Promise.all([
         warehouseService.getItems(),
         warehouseService.getProducts(),
-        distributorService.getStockRequests(),
-        distributorService.getShortages(),
-        purchaseService.getPurchaseOrders()
+        hasDist ? distributorService.getStockRequests() : Promise.resolve({ results: [] }),
+        hasDist ? distributorService.getShortages() : Promise.resolve({ results: [] }),
+        hasPurch ? purchaseService.getPurchaseOrders() : Promise.resolve({ results: [] })
       ]);
 
       const raw = rawResult?.results || [];

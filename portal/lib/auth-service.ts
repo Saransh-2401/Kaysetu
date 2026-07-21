@@ -127,6 +127,15 @@ export const authService = {
     },
 
     /**
+     * Is a given sellable module (e.g. "PURCH", "DIST", "CRM") entitled for the
+     * current tenant? Used to skip cross-module enrichment fetches that would
+     * otherwise 403 on a tenant that didn't buy that module.
+     */
+    hasModule(code: string): boolean {
+        return (this.getOrgContext()?.modules ?? []).includes(code);
+    },
+
+    /**
      * Logout user
      */
     logout(): void {

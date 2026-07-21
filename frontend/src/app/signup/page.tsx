@@ -182,7 +182,7 @@ export default function SignupPage() {
   return (
     <Container maxWidth="sm" sx={{ py: 8 }} data-testid="signup-page-container">
       <Typography component={Link} href="/" variant="h6" sx={{ textDecoration: "none", color: "primary.main", letterSpacing: 1 }}>
-        SALEXA
+        KAYSETU
       </Typography>
       <Box sx={{ mt: 3 }}>
         <Suspense>

@@ -17,8 +17,6 @@ config_router.register("email-templates", config_views.EmailTemplateViewSet,
                        basename="core-email-templates")
 config_router.register("sms-templates", config_views.SMSTemplateViewSet,
                        basename="core-sms-templates")
-config_router.register("app-versions", config_views.AppVersionViewSet,
-                       basename="core-app-versions")
 config_router.register("role-quick-links", config_views.RoleQuickLinkViewSet,
                        basename="core-role-quick-links")
 config_router.register("quick-links", config_views.QuickLinkViewSet, basename="core-quick-links")
@@ -43,6 +41,9 @@ urlpatterns = [
     path("me", views.MeView.as_view()),
     # Portal (Old Project) compatibility endpoints
     path("auth/users/me/", views.LegacyProfileView.as_view()),
+    # Ported pickers list users here (optionally ?role=<slug>); the canonical
+    # CRUD lives at /t/users/, this is a read-only alias over the same viewset.
+    path("auth/users/", views.TenantUserViewSet.as_view({"get": "list"})),
     path("auth/users/<int:pk>/change_password/", views.ChangePasswordView.as_view()),
     # Assignment pickers the ported forms populate their dropdowns from.
     path("auth/assigned-sales-agents/", config_views.AssignedSalesAgentsView.as_view()),
@@ -58,6 +59,14 @@ urlpatterns = [
     path("core/email-config/verify/", config_views.EmailConfigVerifyView.as_view()),
     path("core/email-config/send_test/", config_views.EmailConfigSendTestView.as_view()),
     path("core/sms-config/", config_views.SMSConfigView.as_view()),
+    # Admin logs — login audit (route-history log lives in the tracking app)
+    path("admin/login-activity/", config_views.LoginActivityView.as_view()),
+    path("admin/audit-logs/", config_views.EmptyLogView.as_view()),
+    path("admin/access-logs/", config_views.EmptyLogView.as_view()),
+    path("admin/deleted-documents/", config_views.EmptyLogView.as_view()),
+    path("admin/notifications/", config_views.EmptyLogView.as_view()),
+    path("admin/backups/", config_views.EmptyLogView.as_view()),
+    path("admin/backups/trigger/", config_views.BackupTriggerView.as_view()),
     path("core/", include(config_router.urls)),
     path("masters/", include(masters_router.urls)),
     path("warehouse/", include(warehouse_router.urls)),

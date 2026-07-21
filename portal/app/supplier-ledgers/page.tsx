@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { motion } from "framer-motion";
 import { purchaseService, Supplier, SupplierLedger } from "@/lib/purchase-service";
+import { authService } from "@/lib/auth-service";
 
 const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(n || 0);
@@ -34,6 +35,9 @@ export default function SupplierLedgerPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // The supplier list comes from PURCH; without it there are no supplier
+    // statements to show (a BOOKS tenant with no procurement).
+    if (!authService.hasModule("PURCH")) return;
     let active = true;
     (async () => {
       try {
