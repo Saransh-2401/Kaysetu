@@ -50,7 +50,7 @@ services:
     environment: &backend-env
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: "0"
-      ALLOWED_HOSTS: "api.kaysetu.kayease.com,ops.kaysetu.kayease.com,app.kaysetu.kayease.com,localhost"
+      ALLOWED_HOSTS: "api.kaysetu.kayease.com,ops.kaysetu.kayease.com,app.kaysetu.kayease.com,localhost,127.0.0.1"
       # Control DB via the pooler
       POSTGRES_DB: kaysetu_control
       POSTGRES_USER: ${PG_USER:-kaysetu}
