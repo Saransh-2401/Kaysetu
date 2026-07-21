@@ -1,0 +1,134 @@
+# KaySetu SaaS — Production stack.
+#
+# Usage:  docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Topology (host Caddy handles SSL + reverse proxy on 80/443):
+#   postgres   <- control DB + one DB per tenant
+#   pgbouncer  <- transaction pooling
+#   backend    <- Django/DRF (Gunicorn)      → localhost:3001
+#   scheduler  <- periodic jobs (outbox retry, maintenance)
+#   frontend   <- SuperAdmin ops console     → localhost:3002
+#   portal     <- Tenant application         → localhost:3003
+
+name: kaysetu-prod
+
+services:
+  # ────────────────────────────────── Data Plane
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${PG_USER:-kaysetu}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: kaysetu_control
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-kaysetu} -d kaysetu_control"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DB_HOST: postgres
+      DB_USER: ${PG_USER:-kaysetu}
+      DB_PASSWORD: ${PG_PASSWORD}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "2000"
+      DEFAULT_POOL_SIZE: "20"
+      AUTH_TYPE: scram-sha-256
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ────────────────────────────────── Application
+  backend:
+    build: ./backend
+    environment: &backend-env
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: "0"
+      ALLOWED_HOSTS: "api.kaysetu.kayease.com,ops.kaysetu.kayease.com,app.kaysetu.kayease.com,localhost"
+      # Control DB via the pooler
+      POSTGRES_DB: kaysetu_control
+      POSTGRES_USER: ${PG_USER:-kaysetu}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: "5432"
+      # Tenant DBs: query traffic via pooler, CREATE DATABASE direct
+      TENANT_DB_ENGINE: postgres
+      TENANT_PG_HOST: pgbouncer
+      TENANT_PG_PORT: "5432"
+      TENANT_PG_USER: ${PG_USER:-kaysetu}
+      TENANT_PG_PASSWORD: ${PG_PASSWORD}
+      TENANT_PG_MAINTENANCE_HOST: postgres
+      TENANT_PG_MAINTENANCE_PORT: "5432"
+      TENANT_PG_MAINTENANCE_DB: kaysetu_control
+      CORS_ALLOWED_ORIGINS: "https://ops.kaysetu.kayease.com,https://app.kaysetu.kayease.com"
+      PORTAL_BASE_URL: "https://app.kaysetu.kayease.com"
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-4}"
+      # Billing
+      BILLING_GATEWAY: "${BILLING_GATEWAY:-mock}"
+      RAZORPAY_KEY_ID: "${RAZORPAY_KEY_ID:-}"
+      RAZORPAY_KEY_SECRET: "${RAZORPAY_KEY_SECRET:-}"
+      RAZORPAY_WEBHOOK_SECRET: "${RAZORPAY_WEBHOOK_SECRET:-}"
+      BILLING_GST_RATE: "${BILLING_GST_RATE:-18}"
+      BILLING_GRACE_DAYS: "${BILLING_GRACE_DAYS:-3}"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:8000"   # host Caddy → localhost:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+      start_period: 25s
+
+  scheduler:
+    build: ./backend
+    entrypoint: ["python", "manage.py", "run_scheduler"]
+    environment: *backend-env
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+
+  # ────────────────────────────────── Frontends (production builds)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: "https://api.kaysetu.kayease.com/api"
+    environment:
+      API_BASE_INTERNAL: "http://backend:8000/api"
+    ports:
+      - "127.0.0.1:3002:3000"    # host Caddy → localhost:3002
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  portal:
+    build:
+      context: ./portal
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "https://api.kaysetu.kayease.com/api"
+        NEXT_PUBLIC_API_URL: "https://api.kaysetu.kayease.com/api"
+        NEXT_PUBLIC_APP_NAME: "${APP_NAME:-KaySetu}"
+    ports:
+      - "127.0.0.1:3003:3001"    # host Caddy → localhost:3003
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
