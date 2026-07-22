@@ -143,7 +143,8 @@ JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TTL = timedelta(hours=24)
 JWT_REFRESH_TTL = timedelta(days=30)
 
-PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "http://localhost:3000")
+# Dev portal runs on :3001 (:3000 is the ops console — never send tenants there).
+PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "http://localhost:3001")
 TRIAL_DAYS = int(os.environ.get("TRIAL_DAYS", "14"))
 
 # ---------------------------------------------------------------- billing

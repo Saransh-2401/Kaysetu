@@ -110,6 +110,7 @@ services:
     command: sh -c "npm install && npm run dev -- -p 3000 -H 0.0.0.0"
     environment:
       NEXT_PUBLIC_API_BASE: http://localhost:8000/api
+      NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
       API_BASE_INTERNAL: http://backend:8000/api
       WATCHPACK_POLLING: "true"     # file-change detection across the mount
     volumes:

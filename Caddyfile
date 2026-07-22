@@ -1,10 +1,10 @@
 # KaySetu — Add these blocks to your VPS Caddyfile.
 # Caddy obtains and renews SSL certificates automatically.
 #
-# The Docker containers bind to 127.0.0.1 only:
-#   backend  → localhost:8000
-#   frontend → localhost:3000
-#   portal   → localhost:3001
+# The Docker containers bind to 127.0.0.1 only (docker-compose.prod.yml):
+#   backend  → localhost:3001
+#   frontend → localhost:3002   (SuperAdmin ops console)
+#   portal   → localhost:3003   (tenant application)
 
 # ── API (Django backend) ──────────────────────────────────────
 api.kaysetu.kayease.com {
@@ -17,7 +17,7 @@ api.kaysetu.kayease.com {
 		-Server
 	}
 
-	reverse_proxy localhost:8000
+	reverse_proxy localhost:3001
 }
 
 # ── Ops Console (SuperAdmin frontend) ─────────────────────────
@@ -34,7 +34,7 @@ ops.kaysetu.kayease.com {
 	@nextStatic path /_next/static/*
 	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
 
-	reverse_proxy localhost:3000
+	reverse_proxy localhost:3002
 }
 
 # ── Tenant Portal ─────────────────────────────────────────────
@@ -51,5 +51,5 @@ app.kaysetu.kayease.com {
 	@nextStatic path /_next/static/*
 	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
 
-	reverse_proxy localhost:3001
+	reverse_proxy localhost:3003
 }

@@ -4,13 +4,14 @@
 
 ```bash
 docker compose up --build -d
-# frontend  -> http://localhost:3000
-# backend   -> http://localhost:8000/api  (health: /api/health)
+# frontend  -> http://localhost:3000       (SuperAdmin ops console + /signup)
+# portal    -> http://localhost:3001       (tenant application — tenant sign-in lives HERE)
+# backend   -> http://localhost:8000/api   (health: /api/health)
 ```
 
 Services: `postgres` (control DB + all tenant DBs), `pgbouncer` (transaction
-pooling — ALL app query traffic), `backend` (Django, stateless), `frontend`
-(Next.js standalone). First superadmin:
+pooling — ALL app query traffic), `backend` (Django, stateless), `scheduler`,
+`frontend` (ops console), `portal` (tenant app). First superadmin:
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
@@ -137,12 +138,12 @@ Everything is 12-factor already, so the move is mechanical:
 Later additions slot in the same way: Celery worker (provisioning + async) as
 its own Deployment, Redis as managed cache, media on S3-compatible storage.
 
-## Domain wiring (per the SaaS spec)
+## Domain wiring (see `Caddyfile` — it must match `docker-compose.prod.yml` ports)
 
-- Main domain -> frontend `/` (marketing + signup)
-- `admin.` subdomain -> frontend `/ops` (SuperAdmin)
-- Portal subdomain -> frontend `/portal` (org-code sign-in)
-- `api.` subdomain -> backend
+- `ops.kaysetu.kayease.com` -> frontend, host port **3002** (SuperAdmin console; root redirects to `/ops/login`)
+- `app.kaysetu.kayease.com` -> portal, host port **3003** (tenant landing + `/login` + all module screens)
+- `api.kaysetu.kayease.com` -> backend, host port **3001**
 
-A reverse proxy (Caddy/Traefik/nginx) terminates TLS and routes; add it as a
-compose service when the domains are ready.
+Host Caddy terminates TLS and reverse-proxies to the 127.0.0.1-bound container
+ports above. Tenant sign-in happens ONLY on the `app.` domain; the ops domain
+serves no tenant screens.

@@ -39,7 +39,7 @@ export default function DashboardShell({
 
   const logout = () => {
     clearSession(scope);
-    router.push(scope === "ops" ? "/ops/login" : "/portal/login");
+    router.push("/ops/login");
   };
 
   const drawer = (

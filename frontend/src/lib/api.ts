@@ -1,18 +1,23 @@
 "use client";
 /**
- * API client for both planes.
- *   scope "ops"    -> SuperAdmin (control plane), token from /api/auth/admin/login
- *   scope "portal" -> tenant users, token from /api/auth/tenant/login
+ * API client for the ops console (SuperAdmin, control plane).
  * Tokens live in localStorage per scope; a 401 clears the scope and bounces
- * to its login page. (Refresh-token rotation lands with the auth hardening pass.)
+ * to the login page. (Refresh-token rotation lands with the auth hardening pass.)
+ *
+ * Tenant users NEVER sign in here — their app is the separate portal build
+ * (PORTAL_URL). This app deliberately has no tenant-facing screens.
  */
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000/api";
 
-export type Scope = "ops" | "portal";
+/** Absolute URL of the tenant portal (the real customer-facing app). */
+export const PORTAL_URL =
+  process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001";
 
-const LOGIN_PAGE: Record<Scope, string> = { ops: "/ops/login", portal: "/portal/login" };
+export type Scope = "ops";
+
+const LOGIN_PAGE: Record<Scope, string> = { ops: "/ops/login" };
 
 export class ApiError extends Error {
   status: number;
@@ -102,23 +107,6 @@ export interface PublicPackage {
   per_user_price: string;
 }
 
-export interface PortalContext {
-  user: { id: number; email: string; full_name: string; is_owner: boolean; role: string | null };
-  org: {
-    org_code: string;
-    name: string;
-    industry: string;
-    labels: Record<string, string>;
-    appearance: { scheme?: string };
-    setup_state: { done?: string[]; completed?: boolean };
-    modules: string[];
-    status: string;
-    trial_ends_at: string | null;
-  };
-}
-
-export const CONTEXT_UPDATED_EVENT = "kaysetu:portal-context-updated";
-
 /** Mirrors the backend password rules (min 8, not all-numeric, not trivially
  * common). Returns an error message or null when acceptable. */
 export function passwordError(password: string, confirm?: string): string | null {
@@ -128,16 +116,6 @@ export function passwordError(password: string, confirm?: string): string | null
     return "Use at least one letter and one number.";
   if (confirm !== undefined && password !== confirm) return "Passwords do not match.";
   return null;
-}
-
-/** Merge fresh org fields into the stored portal context and notify listeners
- * (e.g. the layout re-themes instantly after an Appearance change). */
-export function updatePortalOrg(partialOrg: Partial<PortalContext["org"]>) {
-  const context = getContext<PortalContext>("portal");
-  if (!context) return;
-  const next = { ...context, org: { ...context.org, ...partialOrg } };
-  localStorage.setItem("kaysetu_portal_context", JSON.stringify(next));
-  window.dispatchEvent(new CustomEvent(CONTEXT_UPDATED_EVENT));
 }
 
 export interface Paginated<T> {

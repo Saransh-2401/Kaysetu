@@ -12,7 +12,7 @@ export default function AuthGuard({ scope, children }: { scope: Scope; children:
 
   useEffect(() => {
     if (!getToken(scope)) {
-      router.replace(scope === "ops" ? "/ops/login" : "/portal/login");
+      router.replace("/ops/login");
     } else {
       setReady(true);
     }

@@ -58,17 +58,18 @@ One JWT format (PyJWT, HS256, access 24h / refresh 30d), two scopes:
 
 ## 5b. The two Next.js apps (do not confuse them)
 
-- **`frontend/`** — the public and operator surface: marketing/pricing,
-  `/signup`, and `/ops` (the SuperAdmin console). Still live and still the only
-  home of those flows.
-- **`portal/`** — the tenant application: the previous platform's screens,
-  imported as-is and repointed at this backend. This is what a customer's staff
-  log into.
+- **`frontend/`** — the operator surface only: `/ops` (the SuperAdmin console)
+  plus the `/signup` provisioning wizard. Its root (`/`) redirects to
+  `/ops/login`; it has NO tenant-facing screens and no tenant sign-in.
+- **`portal/`** — the tenant application: public landing, `/login`, and the
+  previous platform's screens imported as-is and repointed at this backend.
+  This is what a customer's staff log into — ALL tenant links must point here
+  (`NEXT_PUBLIC_PORTAL_URL` / backend `PORTAL_BASE_URL`).
 
-`frontend/src/app/portal/` is the *interim* tenant portal that `portal/`
-superseded. It is dead code, but it sits inside an app whose other routes are
-very much alive — deleting `frontend/` wholesale would take the ops console and
-signup with it.
+The interim tenant portal that once lived at `frontend/src/app/portal/` was
+deleted (2026-07-22) after it superseded nothing and kept catching sign-ins on
+the ops domain. If a tenant-looking screen shows up under the ops domain again,
+it is a regression.
 
 ## 6. Reading across modules (analytics, dashboards, drawers)
 

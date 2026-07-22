@@ -11,6 +11,9 @@ COPY . .
 # NEXT_PUBLIC_* is inlined into the client bundle at BUILD time.
 ARG NEXT_PUBLIC_API_BASE=http://localhost:8000/api
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+# Where tenant-facing links (signup success, brand link) send people.
+ARG NEXT_PUBLIC_PORTAL_URL=http://localhost:3001
+ENV NEXT_PUBLIC_PORTAL_URL=$NEXT_PUBLIC_PORTAL_URL
 RUN npm run build
 
 FROM node:20-alpine AS runner

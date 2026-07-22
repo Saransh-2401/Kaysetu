@@ -5,11 +5,10 @@ import {
   Alert, Box, Button, Card, CardContent, CircularProgress, Container,
   IconButton, MenuItem, Stack, TextField, Typography,
 } from "@mui/material";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { api, ApiError, passwordError, type PublicPackage } from "@/lib/api";
+import { api, ApiError, passwordError, PORTAL_URL, type PublicPackage } from "@/lib/api";
 
 const INDUSTRIES = [
   { value: "manufacturing", label: "Manufacturing" },
@@ -28,7 +27,6 @@ interface SignupResult {
 
 function SignupForm() {
   const params = useSearchParams();
-  const router = useRouter();
   const [packages, setPackages] = useState<PublicPackage[]>([]);
   const [form, setForm] = useState({
     company_name: "",
@@ -101,7 +99,7 @@ function SignupForm() {
           <Button
             variant="contained"
             size="large"
-            onClick={() => router.push("/portal/login")}
+            onClick={() => window.location.assign(`${result.portal_url || PORTAL_URL}/login`)}
             data-testid="signup-goto-portal-btn"
           >
             Sign in to your portal
@@ -181,7 +179,7 @@ function SignupForm() {
 export default function SignupPage() {
   return (
     <Container maxWidth="sm" sx={{ py: 8 }} data-testid="signup-page-container">
-      <Typography component={Link} href="/" variant="h6" sx={{ textDecoration: "none", color: "primary.main", letterSpacing: 1 }}>
+      <Typography component="a" href={PORTAL_URL} variant="h6" sx={{ textDecoration: "none", color: "primary.main", letterSpacing: 1 }}>
         KAYSETU
       </Typography>
       <Box sx={{ mt: 3 }}>

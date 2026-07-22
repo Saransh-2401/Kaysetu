@@ -107,6 +107,7 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_BASE: "https://api.kaysetu.kayease.com/api"
+        NEXT_PUBLIC_PORTAL_URL: "https://app.kaysetu.kayease.com"
     environment:
       API_BASE_INTERNAL: "http://backend:8000/api"
     ports:
