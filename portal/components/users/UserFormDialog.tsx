@@ -95,6 +95,7 @@ export default function UserFormDialog({
     const theme = useTheme();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [seatLimitHit, setSeatLimitHit] = useState(false);
 
     // Resolve manager's cities from either new prop or legacy prop — mutable local copy
     const [managerCities, setManagerCities] = useState<string[]>(
@@ -310,6 +311,10 @@ export default function UserFormDialog({
             // Reset form on success
             handleClose();
         } catch (err: any) {
+            // Seat cap from billing: guide the admin to buy more seats.
+            if (err?.status === 402 || err?.details?.code === "seat_limit_reached") {
+                setSeatLimitHit(true);
+            }
             setError(err.message || "Failed to save user");
         } finally {
             setLoading(false);
@@ -390,7 +395,24 @@ export default function UserFormDialog({
 
             <DialogContent>
                 {error && (
-                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                    <Alert
+                        severity={seatLimitHit ? "warning" : "error"}
+                        sx={{ mb: 2 }}
+                        onClose={() => { setError(null); setSeatLimitHit(false); }}
+                        action={
+                            seatLimitHit ? (
+                                <Button
+                                    color="inherit"
+                                    size="small"
+                                    href="/billing"
+                                    data-testid="user-form-buy-seats-btn"
+                                >
+                                    Buy more seats
+                                </Button>
+                            ) : undefined
+                        }
+                        data-testid="user-form-error-alert"
+                    >
                         {error}
                     </Alert>
                 )}

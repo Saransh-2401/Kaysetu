@@ -404,6 +404,7 @@ export default function UserManagementPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<"ADD" | "EDIT">("ADD");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [seatLimitError, setSeatLimitError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<Partial<User>>({});
 
   // View Detail modal
@@ -623,6 +624,7 @@ export default function UserManagementPage() {
   };
 
   const handleOpenAdd = () => {
+    setSeatLimitError(null);
     setDialogMode("ADD");
     setCurrentUser({
       status: "Active",
@@ -1003,7 +1005,12 @@ export default function UserManagementPage() {
     } catch (e: any) {
       console.error(e);
       const errorMsg = formatDRFError(e);
-      showToast(errorMsg, "error");
+      // Seat cap from billing: keep the dialog open with a Buy-more-seats CTA.
+      if (e?.status === 402 || e?.details?.code === "seat_limit_reached") {
+        setSeatLimitError(errorMsg);
+      } else {
+        showToast(errorMsg, "error");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1459,6 +1466,21 @@ export default function UserManagementPage() {
             </IconButton>
           </DialogTitle>
           <DialogContent>
+            {seatLimitError && (
+              <Alert
+                severity="warning"
+                sx={{ mb: 2 }}
+                onClose={() => setSeatLimitError(null)}
+                action={
+                  <Button color="inherit" size="small" href="/billing" data-testid="users-buy-seats-btn">
+                    Buy more seats
+                  </Button>
+                }
+                data-testid="users-seat-limit-alert"
+              >
+                {seatLimitError}
+              </Alert>
+            )}
             {/* component="form" scopes browser autofill to THIS dialog so the
                 email/phone fields can't spill into the page's top search box. */}
             <Stack component="form" autoComplete="off" onSubmit={(e) => e.preventDefault()} spacing={3} sx={{ mt: 1 }}>

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.tenancy",
     "apps.foundation",
     "apps.billing",
+    "apps.support",
     "apps.tracking",
     "apps.field",
     "apps.crm",
@@ -157,6 +158,10 @@ BILLING = {
     "RAZORPAY_WEBHOOK_SECRET": os.environ.get("RAZORPAY_WEBHOOK_SECRET", ""),
     "GST_RATE": int(os.environ.get("BILLING_GST_RATE", "18")),
     "GRACE_DAYS": int(os.environ.get("BILLING_GRACE_DAYS", "3")),
+    # Seller identity printed on GST invoices.
+    "SELLER_NAME": os.environ.get("BILLING_SELLER_NAME", "KaySetu — Kayease Global Pvt. Ltd."),
+    "SELLER_ADDRESS": os.environ.get("BILLING_SELLER_ADDRESS", "Jaipur, Rajasthan, India"),
+    "SELLER_GSTIN": os.environ.get("BILLING_SELLER_GSTIN", ""),
 }
 
 # ---------------------------------------------------------------- misc

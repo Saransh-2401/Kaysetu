@@ -31,6 +31,8 @@ export const PAGE_REGISTRY: RegistryPage[] = [
   { label: "Travel Allowance", path: "/travel-allowance", moduleKey: "travel_allowance" },
   { label: "Attendance", path: "/admin/attendance", moduleKey: "attendance" },
   { label: "Company Settings", path: "/company", moduleKey: "company_settings" },
+  { label: "Plan & Billing", path: "/billing", moduleKey: "company_settings" },
+  { label: "Support Tickets", path: "/support", moduleKey: "company_settings" },
   { label: "Notifications", path: "/config/notifications", moduleKey: "notifications" },
   { label: "Reports & Analytics", path: "/admin/reports", moduleKey: "admin_reports" },
 

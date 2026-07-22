@@ -1,6 +1,8 @@
 import json
 import logging
 
+from django.conf import settings
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -12,6 +14,7 @@ from apps.foundation.permissions import IsTenantAdmin
 from . import services
 from .gateway import GatewayError, get_gateway
 from .models import PaymentOrder
+from .pdf import build_invoice_pdf, invoice_number
 
 logger = logging.getLogger("kaysetu.billing")
 
@@ -58,6 +61,7 @@ class BillingSummaryView(APIView):
                 "status": order.status,
                 "paid_at": order.paid_at,
                 "created_at": order.created_at,
+                "invoice_no": invoice_number(order) if order.status == PaymentOrder.Status.PAID else None,
             }
             for order in tenant.payment_orders.all()[:10]
         ]
@@ -65,6 +69,11 @@ class BillingSummaryView(APIView):
             {
                 "tenant_status": tenant.status,
                 "trial_ends_at": tenant.trial_ends_at,
+                "grace_days": settings.BILLING["GRACE_DAYS"],
+                "seats": {
+                    "limit": services.seat_limit(tenant),
+                    "used": services.seat_usage(tenant),
+                },
                 "subscription": subscription
                 and {
                     "package_code": subscription.package.code,
@@ -139,6 +148,24 @@ class VerifyView(APIView):
             return Response({"detail": "Payment signature mismatch."}, status=400)
         services.apply_payment_success(order, payment_id)
         return Response({"status": "paid", "tenant_status": order.tenant.status})
+
+
+class InvoicePdfView(APIView):
+    """Downloadable GST invoice for a paid order (tenant admins only)."""
+
+    permission_classes = [IsTenantAdmin]
+
+    def get(self, request, order_id: int):
+        try:
+            order = PaymentOrder.objects.select_related("tenant", "package").get(
+                pk=order_id, tenant=_tenant(request), status=PaymentOrder.Status.PAID
+            )
+        except PaymentOrder.DoesNotExist:
+            return Response({"detail": "No paid order with that id."}, status=404)
+        pdf_bytes = build_invoice_pdf(order)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{invoice_number(order)}.pdf"'
+        return response
 
 
 class RazorpayWebhookView(APIView):

@@ -18,6 +18,8 @@ from .serializers import CatalogItemSerializer, PartySerializer, RoleSerializer,
 
 
 def _org_payload(tenant, org: OrgSettings | None, modules: list[str]):
+    # Latest subscription drives the portal's renewal banner + billing page.
+    subscription = tenant.subscriptions.order_by("-started_at").first()
     return {
         "org_code": tenant.org_code,
         "name": org.company_name if org else tenant.name,
@@ -28,6 +30,14 @@ def _org_payload(tenant, org: OrgSettings | None, modules: list[str]):
         "modules": modules,
         "status": tenant.status,
         "trial_ends_at": tenant.trial_ends_at,
+        "subscription": subscription
+        and {
+            "package_code": subscription.package.code,
+            "status": subscription.status,
+            "seats": subscription.seats,
+            "billing_cycle": subscription.billing_cycle,
+            "current_period_end": subscription.current_period_end,
+        },
     }
 
 
@@ -261,6 +271,42 @@ class OrgSettingsView(APIView):
         return Response(serializer.data)
 
 
+def _seat_limit_response(request):
+    """402 when the org's paid/trial seat allowance is exhausted, else None.
+
+    The limit lives in the control plane (Subscription.seats, or the package's
+    included_users during trial); usage is the tenant DB's active user count.
+    """
+    from apps.control.models import Subscription
+
+    tenant = Tenant.objects.get(pk=request.auth["tid"])
+    subscription = (
+        tenant.subscriptions.filter(
+            status__in=[Subscription.Status.ACTIVE, Subscription.Status.PAST_DUE]
+        )
+        .order_by("-started_at")
+        .first()
+    )
+    limit = subscription.seats if subscription else (
+        tenant.package.included_users if tenant.package_id else None
+    )
+    if limit is None:
+        return None
+    used = TenantUser.objects.filter(is_active=True).count()
+    if used < limit:
+        return None
+    return Response(
+        {
+            "detail": f"Your plan includes {limit} user seat{'s' if limit != 1 else ''} and all "
+                      f"{used} are in use. Buy more seats to add this user.",
+            "code": "seat_limit_reached",
+            "seat_limit": limit,
+            "seats_used": used,
+        },
+        status=402,
+    )
+
+
 class TenantUserViewSet(viewsets.ModelViewSet):
     serializer_class = TenantUserSerializer
     permission_classes = [IsOwnerOrReadOnly]
@@ -277,6 +323,22 @@ class TenantUserViewSet(viewsets.ModelViewSet):
         if params.get("is_active") in ("true", "false"):
             qs = qs.filter(is_active=params["is_active"] == "true")
         return qs
+
+    def create(self, request, *args, **kwargs):
+        blocked = _seat_limit_response(request)
+        if blocked is not None:
+            return blocked
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        # Re-activating a deactivated user also consumes a seat.
+        instance = self.get_object()
+        wants_active = str(request.data.get("is_active", "")).lower() in ("true", "1")
+        if not instance.is_active and wants_active:
+            blocked = _seat_limit_response(request)
+            if blocked is not None:
+                return blocked
+        return super().update(request, *args, **kwargs)
 
 
 class RoleViewSet(viewsets.ModelViewSet):

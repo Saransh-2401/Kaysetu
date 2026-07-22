@@ -19,24 +19,55 @@ def quote(package: Package, seats: int, cycle: str) -> dict:
     extra_users = max(0, seats - package.included_users)
     if cycle == Subscription.Cycle.ANNUAL:
         base = package.base_price_annual
-        extra = package.per_user_price * 12 * extra_users
+        per_user_unit = package.per_user_price * 12
     else:
         base = package.base_price_monthly
-        extra = package.per_user_price * extra_users
+        per_user_unit = package.per_user_price
+    extra = per_user_unit * extra_users
     subtotal = (base + extra).quantize(TWO)
     tax = (subtotal * Decimal(settings.BILLING["GST_RATE"]) / 100).quantize(TWO)
     return {
         "package_code": package.code,
+        "package_name": package.name,
         "seats": seats,
         "included_users": package.included_users,
         "extra_users": extra_users,
         "billing_cycle": cycle,
         "currency": "INR",
+        # Frozen line-item prices — the GST invoice renders from these, so a
+        # later package price change never rewrites an already-issued invoice.
+        "base": str(base.quantize(TWO)),
+        "per_user_unit": str(per_user_unit.quantize(TWO)),
+        "extra_amount": str(extra.quantize(TWO)),
         "subtotal": str(subtotal),
         "tax_rate": settings.BILLING["GST_RATE"],
         "tax": str(tax),
         "total": str((subtotal + tax).quantize(TWO)),
     }
+
+
+def seat_limit(tenant: Tenant) -> int | None:
+    """Paid seats if a subscription exists (incl. past_due — grace period),
+    else the package's included users during trial. None = no cap."""
+    subscription = (
+        tenant.subscriptions.filter(
+            status__in=[Subscription.Status.ACTIVE, Subscription.Status.PAST_DUE]
+        )
+        .order_by("-started_at")
+        .first()
+    )
+    if subscription:
+        return subscription.seats
+    return tenant.package.included_users if tenant.package_id else None
+
+
+def seat_usage(tenant: Tenant) -> int:
+    """Active users inside the tenant's own database."""
+    from apps.foundation.models import TenantUser
+    from apps.tenancy.context import use_tenant
+
+    with use_tenant(tenant):
+        return TenantUser.objects.filter(is_active=True).count()
 
 
 def start_checkout(tenant: Tenant, *, package_code: str, seats: int, cycle: str) -> PaymentOrder:
@@ -129,11 +160,24 @@ def _apply_package_entitlements(tenant: Tenant, package: Package):
 
 
 def run_dunning() -> dict:
-    """Suspend tenants whose trial or paid period lapsed past the grace window.
-    Reminder notifications hook in here once SMTP/SMS is configured."""
+    """Two-stage dunning, run daily by the scheduler.
+
+    Stage 1 — period ended: subscription -> PAST_DUE. The tenant keeps working
+    through the grace window; the portal banner tells them to pay.
+    Stage 2 — grace exhausted: tenant -> SUSPENDED (login blocked) for lapsed
+    trials and unpaid PAST_DUE subscriptions alike.
+    """
     grace = timezone.timedelta(days=settings.BILLING["GRACE_DAYS"])
     now = timezone.now()
-    suspended = []
+    suspended, past_due = [], []
+
+    newly_due = Subscription.objects.filter(
+        status=Subscription.Status.ACTIVE, current_period_end__lt=now
+    ).select_related("tenant")
+    for subscription in newly_due:
+        subscription.status = Subscription.Status.PAST_DUE
+        subscription.save(update_fields=["status"])
+        past_due.append(subscription.tenant.org_code)
 
     expired_trials = Tenant.objects.filter(
         status=Tenant.Status.TRIAL, trial_ends_at__lt=now - grace
@@ -144,19 +188,18 @@ def run_dunning() -> dict:
         suspended.append(tenant.org_code)
 
     lapsed = Subscription.objects.filter(
-        status=Subscription.Status.ACTIVE, current_period_end__lt=now - grace
+        status=Subscription.Status.PAST_DUE, current_period_end__lt=now - grace
     ).select_related("tenant")
     for subscription in lapsed:
-        subscription.status = Subscription.Status.PAST_DUE
-        subscription.save(update_fields=["status"])
         tenant = subscription.tenant
         if tenant.status == Tenant.Status.ACTIVE:
             tenant.status = Tenant.Status.SUSPENDED
             tenant.save(update_fields=["status", "updated_at"])
             suspended.append(tenant.org_code)
 
-    if suspended:
+    if suspended or past_due:
         ControlAuditLog.objects.create(
-            action="billing.dunning_suspend", after={"tenants": suspended}
+            action="billing.dunning_sweep",
+            after={"suspended": suspended, "past_due": past_due},
         )
-    return {"suspended": suspended}
+    return {"suspended": suspended, "past_due": past_due}

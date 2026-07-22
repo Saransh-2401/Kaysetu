@@ -859,7 +859,7 @@ export default function CompanySettingsPage() {
                         Company Logo
                       </Typography>
                       <Avatar
-                        src={logoFile ? URL.createObjectURL(logoFile) : (company.logo || "/logo-placeholder.png")}
+                        src={logoFile ? URL.createObjectURL(logoFile) : (company.logo || "/logo-placeholder.svg")}
                         sx={{
                           width: 120,
                           height: 120,

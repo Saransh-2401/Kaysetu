@@ -17,6 +17,8 @@ const adminMenuItems: MenuItemType[] = [
   { text: "Overview", icon: <DashboardIcon />, path: "/admin", section: "Main", moduleKey: "admin_dashboard" },
   { text: "Reports & Analytics", icon: <BarChartIcon />, path: "/admin/reports", moduleKey: "admin_reports" },
   { text: "Company Settings", icon: <DomainIcon />, path: "/company", moduleKey: "company_settings" },
+  { text: "Plan & Billing", icon: <ReceiptLongIcon />, path: "/billing", moduleKey: "company_settings" },
+  { text: "Support", icon: <SupportAgentIcon />, path: "/support", moduleKey: "company_settings" },
   { text: "Appearance", icon: <PaletteIcon />, path: "/config/appearance", moduleKey: "company_settings" },
   { text: "Attendance", icon: <BadgeIcon />, path: "/admin/attendance", moduleKey: "attendance" },
   { text: "Tracking Health", icon: <LocationOnIcon />, path: "/admin/tracking-health", moduleKey: "tracking_health" },
