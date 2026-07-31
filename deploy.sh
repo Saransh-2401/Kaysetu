@@ -31,7 +31,9 @@ fi
 
 if [ ! -f .env.production ]; then
   echo "ERROR: .env.production not found."
-  echo "  Fill in your secrets before deploying."
+  echo "  It is gitignored (it holds live secrets), so create it from the template:"
+  echo "      cp .env.production.example .env.production"
+  echo "  then fill in the real values before deploying."
   exit 1
 fi
 
