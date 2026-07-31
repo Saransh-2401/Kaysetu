@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
@@ -91,6 +91,18 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState<null | "platform" | "industries">(null);
   const [scrolled, setScrolled] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (menuItem?: "platform" | "industries" | null) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (menuItem !== undefined) setMenu(menuItem);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setMenu(null);
+    }, 150);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -102,7 +114,6 @@ export default function Nav() {
   return (
     <header
       className="sticky top-0 z-50 w-full px-2"
-      onMouseLeave={() => setMenu(null)}
     >
       <div
         className={cn(
@@ -116,12 +127,12 @@ export default function Nav() {
           <Logo />
 
           {/* desktop nav */}
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden items-center gap-1 lg:flex" onMouseLeave={handleMouseLeave}>
             {nav.primary.map((item) =>
               "menu" in item && item.menu ? (
                 <button
                   key={item.label}
-                  onMouseEnter={() => setMenu(item.menu!)}
+                  onMouseEnter={() => handleMouseEnter(item.menu!)}
                   onClick={() => setMenu((m) => (m === item.menu ? null : item.menu!))}
                   className={`flex items-center gap-1 rounded-md px-3 py-2 text-[0.9rem] font-medium transition-colors ${
                     menu === item.menu ? "text-accent" : "text-ink/75 hover:text-ink"
@@ -136,7 +147,7 @@ export default function Nav() {
                 <a
                   key={item.label}
                   href={item.href}
-                  onMouseEnter={() => setMenu(null)}
+                  onMouseEnter={() => handleMouseEnter(null)}
                   className="rounded-md px-3 py-2 text-[0.9rem] font-medium text-ink/75 transition-colors hover:text-ink"
                 >
                   {item.label}
@@ -173,12 +184,14 @@ export default function Nav() {
 
       {/* desktop floating flyout */}
       {menu && (
-        <div className="absolute inset-x-0 top-full hidden px-2 lg:block">
+        <div className="absolute inset-x-0 top-full hidden px-2 lg:block pointer-events-none">
           <div
             className={cn(
-              "animate-dropdown mx-auto mt-2 overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl transition-all duration-300",
+              "animate-dropdown mx-auto mt-2 overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl transition-all duration-300 pointer-events-auto",
               scrolled ? "max-w-5xl" : "max-w-6xl"
             )}
+            onMouseEnter={() => handleMouseEnter()}
+            onMouseLeave={handleMouseLeave}
           >
             {/* thin accent hairline across the top */}
             <span className="block h-0.5 w-full bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
