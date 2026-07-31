@@ -7,6 +7,7 @@
 #   scheduler  <- periodic jobs (outbox retry, maintenance)
 #   frontend   <- SuperAdmin ops console + signup  (http://localhost:3000)
 #   portal     <- tenant application, per-module screens (http://localhost:3001)
+#   landing    <- public marketing site            (http://localhost:3002)
 #
 # The two Next.js apps run in DEV mode here on purpose: for a local test rig
 # that is far more reliable than a production standalone build (no build-time
@@ -73,6 +74,10 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
       PORTAL_BASE_URL: http://localhost:3001
       WEB_CONCURRENCY: "4"
+      # Media/image service. Unset locally on purpose: without a key the API
+      # refuses uploads loudly (503) instead of pretending they succeeded.
+      IMAGE_SERVICE_URL: "${IMAGE_SERVICE_URL:-https://img.kaysetu.in}"
+      IMAGE_SERVICE_API_KEY: "${IMAGE_SERVICE_API_KEY:-}"
     ports:
       - "8000:8000"
     depends_on:
@@ -139,7 +144,24 @@ services:
       backend:
         condition: service_healthy
 
+  # Public marketing site (kaysetu.in in production). Static content, so it has
+  # no backend dependency — a database problem must never take the website down.
+  landing:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- -p 3002 -H 0.0.0.0"
+    environment:
+      # Lead capture posts here from the browser.
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./KaySetu-Landing-Page-main:/app
+      - landing_node_modules:/app/node_modules
+    ports:
+      - "3002:3002"
+
 volumes:
   pgdata:
   frontend_node_modules:
   portal_node_modules:
+  landing_node_modules:

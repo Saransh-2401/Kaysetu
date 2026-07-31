@@ -1,0 +1,382 @@
+@import "tailwindcss";
+
+@theme {
+  /* Extra breakpoint for small phones (iPhone SE / 360-412px Android) */
+  --breakpoint-xs: 25rem;        /* 400px */
+
+  /* Brand theme — deep navy (#10234B) + teal accent (#009688) */
+  --color-paper: #eef2f5;        /* soft, airy page background */
+  --color-paper-2: #e3e9ee;
+  --color-card: #ffffff;         /* floating white cards */
+  --color-ink: #10234b;          /* deep navy — headlines & body */
+  --color-ink-2: #1c3461;
+  --color-muted: #56607a;        /* secondary text (navy-gray) */
+  --color-faint: #94a0b4;
+  --color-accent: #009688;       /* teal — CTAs, links, highlights */
+  --color-accent-soft: #26a69a;  /* lighter teal — hover, gradients */
+  --color-accent-ink: #00796b;   /* darker teal — pressed */
+  --color-espresso: #10234b;     /* deep navy — dark sections (Mobile, CTA) */
+  --color-line: rgba(16, 35, 75, 0.1);
+  --color-line-2: rgba(16, 35, 75, 0.055);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-mono-tech), ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+/* Backstop against sideways scroll on phones. `clip` (not `hidden`) is
+   deliberate — `hidden` would turn the root into a scroll container and
+   break every `position: sticky` on the page (Nav, ModuleShowcase). */
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* Never let a long unbroken token (SKU, URL, email) push the layout wide */
+h1, h2, h3, h4, p, li, a, span, td, th {
+  overflow-wrap: break-word;
+}
+
+/* Hide scrollbar chrome on horizontally-scrollable elements */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  /* Soft, airy field with a light teal/navy glow toward the top-right */
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(115% 72% at 80% -10%, rgba(0, 150, 136, 0.07) 0%, rgba(0, 150, 136, 0) 55%),
+    radial-gradient(90% 60% at 8% -5%, rgba(16, 35, 75, 0.05) 0%, rgba(16, 35, 75, 0) 55%);
+  background-attachment: fixed;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: " cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display headings — Cormorant Garamond: editorial serif, elegant and premium.
+   Bold weights use tight letter-spacing; lighter display leads stay open and refined. */
+.font-display {
+  font-family: var(--font-display);
+  font-feature-settings: "liga", "kern";
+  /* Cormorant defaults to old-style figures, so digits ride at different
+     heights and dip below the baseline — fine in running prose, wrong for
+     stat values and headline numbers. Force lining figures everywhere. */
+  font-variant-numeric: lining-nums;
+  -webkit-font-smoothing: antialiased;
+}
+.font-display.font-bold {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Technical kicker / label */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* Hairline grid backdrop for structure (very subtle) */
+.grid-lines {
+  background-image:
+    linear-gradient(to right, var(--color-line-2) 1px, transparent 1px);
+  background-size: 25% 100%;
+}
+
+.balance {
+  text-wrap: balance;
+}
+
+/* AURA skeuomorphic touches ---------------------------------- */
+
+/* Signature filled highlight box on a key phrase */
+.accent-box {
+  display: inline-block;
+  background: linear-gradient(180deg, #12b5a5 0%, #009688 100%);
+  color: #fff;
+  padding: 0.02em 0.3em 0.08em;
+  border-radius: 0.7rem;
+  box-shadow:
+    0 18px 40px -14px rgba(0, 150, 136, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Gradient primary button */
+.btn-primary {
+  background: linear-gradient(180deg, #14b8a6 0%, #009688 100%);
+  color: #fff;
+  box-shadow:
+    0 12px 26px -10px rgba(0, 150, 136, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 16px 32px -10px rgba(0, 150, 136, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Floating, soft-shadow cards */
+.shadow-soft {
+  box-shadow: 0 20px 45px -24px rgba(16, 35, 75, 0.28);
+}
+.shadow-float {
+  box-shadow:
+    0 30px 60px -28px rgba(16, 35, 75, 0.32),
+    0 4px 12px -6px rgba(16, 35, 75, 0.12);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* Nav mega-menu entrance */
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-dropdown {
+  animation: dropdownIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-dropdown { animation: none; }
+}
+
+/* ============================================================
+   Scroll-driven showcase — motion system
+   ============================================================ */
+
+/* Scroll-reveal: only hide when JS is active (html.js), so content is
+   never invisible without/before JS. .is-in flips it visible. */
+html.js .reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+html.js .reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Word-by-word masked reveal — each word rides up from behind a clip */
+.word-reveal-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  /* pad the clip so descenders (g, y, p) aren't sheared off */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+html.js .word-reveal .word-reveal-word {
+  display: inline-block;
+  transform: translateY(115%);
+  opacity: 0;
+  transition:
+    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+html.js .word-reveal.is-in .word-reveal-word {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Oversized, Stokt-style display type */
+.display-xl {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.94;
+}
+.gradient-ink {
+  background: linear-gradient(180deg, var(--color-ink) 0%, #33507f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Ghosted wordmark for the dark footer — light fading into the teal glow */
+.wordmark-ghost {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(38, 166, 154, 0.24) 60%,
+    rgba(0, 150, 136, 0.32) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Horizontal marquee strip */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-x var(--marquee-duration, 32s) linear infinite;
+}
+.marquee-mask {
+  /* edge fade removed — cards are clipped cleanly by overflow-hidden */
+}
+.group:hover .marquee-track,
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Live-data shimmer used inside coded product mockups */
+@keyframes bar-grow {
+  from { transform: scaleY(0.35); }
+  to { transform: scaleY(1); }
+}
+@keyframes route-dash {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes soft-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.live-dot { animation: soft-blink 1.8s ease-in-out infinite; }
+
+/* Module showcase — focal card + arc that draws to the active node */
+@keyframes module-pop {
+  0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-module-pop {
+  animation: module-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* Smoothly animate the coloured arc as it fills toward the active node */
+.arc-progress {
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* 2-second countdown ring that sweeps around the active node */
+@keyframes ring-countdown {
+  from { stroke-dashoffset: var(--circ); }
+  to { stroke-dashoffset: 0; }
+}
+.ring-countdown {
+  animation: ring-countdown var(--step, 2s) linear;
+}
+/* Slow orbital drift of the constellation flow dashes */
+@keyframes arc-flow {
+  to { stroke-dashoffset: -16; }
+}
+.arc-flow { animation: arc-flow 1.4s linear infinite; }
+
+/* A lit segment that travels the module arc, end to end */
+@keyframes arc-travel {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+.arc-travel { animation: arc-travel var(--travel, 3.4s) linear infinite; }
+
+/* Gentle vertical float for the arc nodes (staggered per icon) */
+@keyframes node-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.node-float { animation: node-float var(--float, 3.6s) ease-in-out infinite; }
+
+/* ============================================================
+   Industry pages — connected-pipeline & signature motion
+   ============================================================ */
+
+/* A dashed "current flowing through a pipe" rail — the animated
+   connector behind the industry workflow nodes. */
+@keyframes pipe-flow {
+  to { background-position: -200px 0; }
+}
+.pipe-flow {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-accent) 0 10px,
+    transparent 10px 26px
+  );
+  background-size: 200px 100%;
+  animation: pipe-flow 3.2s linear infinite;
+}
+.pipe-flow-v {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--color-accent) 0 8px,
+    transparent 8px 22px
+  );
+  background-size: 100% 160px;
+  animation: pipe-flow-v 3s linear infinite;
+}
+@keyframes pipe-flow-v {
+  to { background-position: 0 160px; }
+}
+
+/* Soft breathing glow behind hero signature panels */
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.06); }
+}
+.aura-pulse { animation: aura-pulse 6s ease-in-out infinite; }
+
+/* Ghost watermark icon that drifts almost imperceptibly */
+@keyframes ghost-drift {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-10px) rotate(-2deg); }
+}
+.ghost-drift { animation: ghost-drift 9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pipe-flow, .pipe-flow-v { animation: none; }
+  .aura-pulse { animation: none; }
+  .ghost-drift { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  html.js .word-reveal .word-reveal-word { opacity: 1; transform: none; transition: none; }
+  .marquee-track { animation: none; }
+  .live-dot { animation: none; }
+  .animate-module-pop { animation: none; }
+  .arc-progress { transition: none; }
+  .arc-flow { animation: none; }
+  .arc-travel { animation: none; }
+  .node-float { animation: none; }
+  .ring-countdown { animation: none; }
+}

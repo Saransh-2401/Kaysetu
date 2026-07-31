@@ -1,0 +1,64 @@
+<svg width="560" height="300" viewBox="0 0 560 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Distribution flow from manufacturer to retailer">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6f4f1"/>
+      <stop offset="1" stop-color="#d9ede6" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="truck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef1f6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- soft ground -->
+  <ellipse cx="280" cy="250" rx="270" ry="34" fill="url(#ground)"/>
+
+  <!-- route -->
+  <path d="M70 236 C 170 210, 250 262, 340 232 S 470 212, 500 232"
+        stroke="#4db6ac" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 10"/>
+
+  <!-- manufacturer -->
+  <g>
+    <rect x="42" y="176" width="84" height="60" rx="6" fill="#ffffff" stroke="#dfe4ec"/>
+    <path d="M42 176 L84 150 L126 176 Z" fill="#bfe0da"/>
+    <rect x="58" y="196" width="16" height="16" rx="2" fill="#e8ecf5"/>
+    <rect x="94" y="196" width="16" height="16" rx="2" fill="#e8ecf5"/>
+    <rect x="70" y="140" width="10" height="18" rx="2" fill="#cbd5e1"/>
+  </g>
+
+  <!-- pin -->
+  <g transform="translate(158 150)">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 20 12 20s12-11.6 12-20C24 5.4 18.6 0 12 0z" fill="#009688"/>
+    <circle cx="12" cy="12" r="5" fill="#ffffff"/>
+  </g>
+
+  <!-- truck -->
+  <g transform="translate(196 168)">
+    <rect x="0" y="6" width="66" height="46" rx="5" fill="url(#truck)" stroke="#dfe4ec"/>
+    <path d="M66 20 h22 l16 16 v16 h-38 z" fill="url(#truck)" stroke="#dfe4ec"/>
+    <rect x="70" y="24" width="16" height="12" rx="2" fill="#cdeae6"/>
+    <text x="14" y="36" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#009688">Kaysetu</text>
+    <circle cx="18" cy="56" r="9" fill="#1f2937"/><circle cx="18" cy="56" r="4" fill="#9ca3af"/>
+    <circle cx="86" cy="56" r="9" fill="#1f2937"/><circle cx="86" cy="56" r="4" fill="#9ca3af"/>
+  </g>
+
+  <!-- distributor warehouse -->
+  <g transform="translate(320 160)">
+    <rect x="0" y="20" width="120" height="76" rx="6" fill="#009688"/>
+    <rect x="0" y="20" width="120" height="20" rx="6" fill="#00796b"/>
+    <text x="60" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff">DISTRIBUTOR</text>
+    <rect x="14" y="52" width="30" height="44" rx="3" fill="#e8ecf5"/>
+    <rect x="52" y="52" width="30" height="44" rx="3" fill="#e8ecf5"/>
+    <rect x="90" y="52" width="18" height="44" rx="3" fill="#cdd6ea"/>
+  </g>
+
+  <!-- retailer shop -->
+  <g transform="translate(462 172)">
+    <rect x="0" y="18" width="84" height="66" rx="6" fill="#ffffff" stroke="#dfe4ec"/>
+    <rect x="0" y="18" width="84" height="16" fill="#009688"/>
+    <path d="M0 34 h84 v6 l-84 0 z" fill="#4db6ac"/>
+    <text x="42" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#ffffff">RETAIL</text>
+    <rect x="12" y="46" width="24" height="38" rx="2" fill="#e8ecf5"/>
+    <rect x="48" y="46" width="24" height="24" rx="2" fill="#cdeae6"/>
+  </g>
+</svg>

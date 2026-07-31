@@ -226,8 +226,27 @@ class AllowanceClaimViewSet(viewsets.ModelViewSet):
         upload = request.FILES.get("file")
         if upload is None:
             return Response({"detail": "A file is required."}, status=400)
+
+        # Prefer the external media service (stateless app servers can't share a
+        # local disk); fall back to local storage when no key is configured.
+        from apps.foundation import media_service
+
+        file_url = ""
+        if media_service.is_configured():
+            file_url = media_service.upload_and_get_url(
+                upload, media_service.SECTION_TRAVEL_ALLOWANCE
+            )
+            if not file_url:
+                return Response(
+                    {"detail": "Upload failed. Please try again."}, status=502
+                )
+
         doc = AllowanceDocument.objects.create(
-            claim=claim, file=upload, file_name=upload.name,
+            claim=claim,
+            # "" not None — the column is NOT NULL (blank=True only allows empty).
+            file="" if file_url else upload,
+            file_url=file_url,
+            file_name=upload.name,
             doc_type=request.data.get("doc_type", AllowanceDocument.DocType.RECEIPT),
             uploaded_by=request.user,
         )

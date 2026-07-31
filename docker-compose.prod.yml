@@ -9,6 +9,7 @@
 #   scheduler  <- periodic jobs (outbox retry, maintenance)
 #   frontend   <- SuperAdmin ops console     → localhost:3002
 #   portal     <- Tenant application         → localhost:3003
+#   landing    <- Public marketing site      → localhost:3004
 
 name: kaysetu-prod
 
@@ -50,7 +51,7 @@ services:
     environment: &backend-env
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: "0"
-      ALLOWED_HOSTS: "api.kaysetu.kayease.com,ops.kaysetu.kayease.com,app.kaysetu.kayease.com,localhost,127.0.0.1"
+      ALLOWED_HOSTS: "api.kaysetu.in,ops.kaysetu.in,app.kaysetu.in,localhost,127.0.0.1"
       # Control DB via the pooler
       POSTGRES_DB: kaysetu_control
       POSTGRES_USER: ${PG_USER:-kaysetu}
@@ -66,8 +67,9 @@ services:
       TENANT_PG_MAINTENANCE_HOST: postgres
       TENANT_PG_MAINTENANCE_PORT: "5432"
       TENANT_PG_MAINTENANCE_DB: kaysetu_control
-      CORS_ALLOWED_ORIGINS: "https://ops.kaysetu.kayease.com,https://app.kaysetu.kayease.com"
-      PORTAL_BASE_URL: "https://app.kaysetu.kayease.com"
+      # kaysetu.in included: the marketing site POSTs leads cross-origin.
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-https://ops.kaysetu.in,https://app.kaysetu.in,https://kaysetu.in,https://www.kaysetu.in}"
+      PORTAL_BASE_URL: "https://app.kaysetu.in"
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-4}"
       # Billing
       BILLING_GATEWAY: "${BILLING_GATEWAY:-mock}"
@@ -76,6 +78,9 @@ services:
       RAZORPAY_WEBHOOK_SECRET: "${RAZORPAY_WEBHOOK_SECRET:-}"
       BILLING_GST_RATE: "${BILLING_GST_RATE:-18}"
       BILLING_GRACE_DAYS: "${BILLING_GRACE_DAYS:-3}"
+      # Media / image service (img.kaysetu.in)
+      IMAGE_SERVICE_URL: "${IMAGE_SERVICE_URL:-https://img.kaysetu.in}"
+      IMAGE_SERVICE_API_KEY: "${IMAGE_SERVICE_API_KEY:-}"
     restart: unless-stopped
     ports:
       - "127.0.0.1:3001:8000"   # host Caddy → localhost:3001
@@ -106,8 +111,8 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_BASE: "https://api.kaysetu.kayease.com/api"
-        NEXT_PUBLIC_PORTAL_URL: "https://app.kaysetu.kayease.com"
+        NEXT_PUBLIC_API_BASE: "https://api.kaysetu.in/api"
+        NEXT_PUBLIC_PORTAL_URL: "https://app.kaysetu.in"
     environment:
       API_BASE_INTERNAL: "http://backend:8000/api"
     ports:
@@ -121,8 +126,8 @@ services:
     build:
       context: ./portal
       args:
-        NEXT_PUBLIC_API_BASE_URL: "https://api.kaysetu.kayease.com/api"
-        NEXT_PUBLIC_API_URL: "https://api.kaysetu.kayease.com/api"
+        NEXT_PUBLIC_API_BASE_URL: "https://api.kaysetu.in/api"
+        NEXT_PUBLIC_API_URL: "https://api.kaysetu.in/api"
         NEXT_PUBLIC_APP_NAME: "${APP_NAME:-KaySetu}"
     ports:
       - "127.0.0.1:3003:3001"    # host Caddy → localhost:3003
@@ -130,6 +135,18 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  # Public marketing site (kaysetu.in). Static content only — deliberately does
+  # NOT depend on the backend so a database issue can never take the site down.
+  landing:
+    build:
+      context: ./KaySetu-Landing-Page-main
+      args:
+        # The contact/demo forms POST leads here from the browser.
+        NEXT_PUBLIC_API_BASE_URL: "https://api.kaysetu.in/api"
+    ports:
+      - "127.0.0.1:3004:3000"    # host Caddy → localhost:3004
+    restart: unless-stopped
 
 volumes:
   pgdata:

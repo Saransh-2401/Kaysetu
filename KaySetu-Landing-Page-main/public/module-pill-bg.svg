@@ -1,0 +1,46 @@
+<svg width="800" height="220" viewBox="0 0 800 220" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stylised green landscape">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bfeee4"/>
+      <stop offset="0.55" stop-color="#8fd9c8"/>
+      <stop offset="1" stop-color="#5cc3ac"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.72" cy="0.2" r="0.5">
+      <stop offset="0" stop-color="#fdfff5" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#fdfff5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fae94"/>
+      <stop offset="1" stop-color="#2f9a82"/>
+    </linearGradient>
+    <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f8f6f"/>
+      <stop offset="1" stop-color="#1f7a5d"/>
+    </linearGradient>
+    <linearGradient id="near" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c6b4d"/>
+      <stop offset="1" stop-color="#0f5238"/>
+    </linearGradient>
+  </defs>
+
+  <!-- sky + sun glow -->
+  <rect width="800" height="220" fill="url(#sky)"/>
+  <rect width="800" height="220" fill="url(#sun)"/>
+  <circle cx="576" cy="44" r="26" fill="#fefff6" fill-opacity="0.9"/>
+
+  <!-- far ridgeline -->
+  <path d="M0 120 L90 92 L170 118 L250 84 L340 116 L430 78 L520 112 L620 86 L720 120 L800 96 L800 220 L0 220 Z" fill="url(#far)"/>
+  <!-- mid hills -->
+  <path d="M0 150 C 120 118, 210 150, 320 132 S 520 108, 640 140 S 760 150, 800 134 L800 220 L0 220 Z" fill="url(#mid)"/>
+  <!-- soft mist band -->
+  <path d="M0 158 C 160 146, 300 168, 460 156 S 700 150, 800 160 L800 176 L0 176 Z" fill="#eafff8" fill-opacity="0.22"/>
+  <!-- near hills -->
+  <path d="M0 190 C 140 168, 260 196, 400 182 S 640 168, 800 190 L800 220 L0 220 Z" fill="url(#near)"/>
+
+  <!-- scattered tree hints on the near hill -->
+  <g fill="#0c4a32" fill-opacity="0.55">
+    <path d="M120 182 l6 -14 l6 14 z"/><path d="M150 186 l5 -12 l5 12 z"/>
+    <path d="M300 180 l6 -15 l6 15 z"/><path d="M660 182 l6 -14 l6 14 z"/>
+    <path d="M690 186 l5 -12 l5 12 z"/>
+  </g>
+</svg>

@@ -1,28 +1,16 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 27.5.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 4000 4000" style="enable-background:new 0 0 4000 4000;" xml:space="preserve">
-<g>
-	<rect y="0" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;" width="4000" height="4000"/>
-	
-		<rect x="1602.869" y="1238.978" transform="matrix(0.5 -0.866 0.866 0.5 -499.5781 2226.9719)" style="fill-rule:evenodd;clip-rule:evenodd;" width="151.922" height="614.313"/>
-	<polygon style="fill-rule:evenodd;clip-rule:evenodd;" points="2545.25,1754.966 2624.891,1629.066 2545.25,1579.529 
-		2490.211,1547.749 2448.107,1603.199 2490.211,1723.189 	"/>
-	<path style="fill-rule:evenodd;clip-rule:evenodd;" d="M2338.284,1175.801L1922.059,935.49l-416.235,240.312v480.628
-		l270.024,155.897v175.422l-421.936-243.615v-656.031c189.386-109.342,378.764-218.687,568.147-328.028l568.151,328.028v635.088
-		l-151.927-87.713V1175.801z"/>
-	<path style="fill-rule:evenodd;clip-rule:evenodd;" d="M2545.25,1056.311v148.187v376.378v174.09l151.933,87.719v-0.005v-174.08
-		V968.598l-775.124-447.515l-775.116,447.515v719.603v175.437l835.876,482.593c0-237.445-0.01-474.826-0.01-712.303l-151.917-87.713
-		c-0.006,178.955-0.006,357.906-0.006,536.861l-532.017-307.161l-0.012-719.603l623.201-359.791L2545.25,1056.311z"/>
-	<polygon style="fill-rule:evenodd;clip-rule:evenodd;" points="1454.74,2245.029 1375.095,2370.929 1454.74,2420.466 
-		1509.777,2452.246 1551.877,2396.796 1509.777,2276.806 	"/>
-	<path style="fill-rule:evenodd;clip-rule:evenodd;" d="M1661.706,2824.194l416.225,240.312l416.235-240.312v-480.628
-		l-270.03-155.895v-175.423l421.942,243.615v656.031c-189.386,109.342-378.764,218.688-568.147,328.03l-568.154-328.03v-635.088
-		l151.929,87.713V2824.194z"/>
-	<path style="fill-rule:evenodd;clip-rule:evenodd;" d="M1454.74,2943.684v-148.185v-376.38v-174.09l-151.935-87.718v0.005v174.08
-		v700.001l775.126,447.515l775.114-447.515v-719.603v-175.437l-835.874-482.593c0,237.445,0.006,474.826,0.006,712.305
-		l151.92,87.713c0.006-178.957,0.006-357.908,0.006-536.863l532.015,307.162l0.01,719.603l-623.197,359.792L1454.74,2943.684z"/>
-	<polygon style="fill-rule:evenodd;clip-rule:evenodd;" points="2026.478,2371.444 2558.493,2678.602 2634.451,2547.037 
-		2102.446,2239.874 	"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KaySetu">
+  <title>KaySetu</title>
+  <!-- "Setu" = bridge: two navy arches carried on a teal span. Colours sampled
+       from the master mark (public/logo.png on the marketing site). -->
+  <rect width="512" height="512" fill="#ffffff"/>
+  <g fill="none" stroke="#10234B" stroke-width="30">
+    <path d="M78 330 A79 79 0 0 1 236 330"/>
+    <path d="M276 330 A79 79 0 0 1 434 330"/>
+  </g>
+  <!-- Teal keystone where the two arches meet -->
+  <path d="M254 262 q26 32 26 68 h-28 q0-36 2-68 z" fill="#009688"/>
+  <!-- Deck -->
+  <line x1="62" y1="330" x2="450" y2="330" stroke="#1FA397" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="62" cy="330" r="9" fill="#1FA397"/>
+  <circle cx="450" cy="330" r="9" fill="#1FA397"/>
 </svg>

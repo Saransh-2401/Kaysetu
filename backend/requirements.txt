@@ -4,3 +4,4 @@ django-cors-headers>=4.6
 PyJWT>=2.10
 python-dotenv>=1.0
 reportlab>=4.0
+requests>=2.32

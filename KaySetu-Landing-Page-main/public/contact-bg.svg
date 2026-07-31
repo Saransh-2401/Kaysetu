@@ -1,0 +1,74 @@
+<svg width="1600" height="1100" viewBox="0 0 1600 1100" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Connected KaySetu workflow — leads bridged into one system">
+  <defs>
+    <linearGradient id="cField" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef2f5"/>
+      <stop offset="1" stop-color="#e3e9ee"/>
+    </linearGradient>
+    <radialGradient id="cGlowTeal" cx="0.82" cy="0.12" r="0.6">
+      <stop offset="0" stop-color="#009688" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#009688" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cGlowNavy" cx="0.1" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#10234b" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#10234b" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cArc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10234b" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#009688" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#10234b" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+
+  <!-- base field + soft brand glows -->
+  <rect width="1600" height="1100" fill="url(#cField)"/>
+  <rect width="1600" height="1100" fill="url(#cGlowTeal)"/>
+  <rect width="1600" height="1100" fill="url(#cGlowNavy)"/>
+
+  <!-- faint structural grid (echoes .grid-lines) -->
+  <g stroke="#10234b" stroke-opacity="0.04" stroke-width="1">
+    <path d="M400 0 V1100"/><path d="M800 0 V1100"/><path d="M1200 0 V1100"/>
+    <path d="M0 275 H1600"/><path d="M0 550 H1600"/><path d="M0 825 H1600"/>
+  </g>
+
+  <!-- the "Setu" bridge — twin cables sweeping across, connecting both banks -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M-40 640 C 360 360, 760 360, 800 470 C 840 360, 1240 360, 1640 640"
+          stroke="url(#cArc)" stroke-width="2.5"/>
+    <path d="M-40 720 C 360 520, 760 520, 800 600 C 840 520, 1240 520, 1640 720"
+          stroke="#009688" stroke-opacity="0.14" stroke-width="1.5" stroke-dasharray="2 10"/>
+  </g>
+  <!-- bridge deck + vertical stays -->
+  <g stroke="#10234b" stroke-opacity="0.07" stroke-width="1">
+    <path d="M120 596 L120 700"/><path d="M280 512 L280 690"/><path d="M440 470 L440 684"/>
+    <path d="M600 452 L600 680"/><path d="M800 470 L800 600"/>
+    <path d="M1000 452 L1000 680"/><path d="M1160 470 L1160 684"/><path d="M1320 512 L1320 690"/>
+    <path d="M1480 596 L1480 700"/>
+  </g>
+
+  <!-- connected-workflow constellation: Lead -> Visit -> Order -> Stock -> Ledger -->
+  <g stroke="#009688" stroke-opacity="0.20" stroke-width="1.4">
+    <path d="M200 250 L470 190 L720 300 L980 210 L1230 320 L1430 240"/>
+    <path d="M470 190 L560 400 L720 300"/>
+    <path d="M980 210 L1080 430 L1230 320"/>
+    <path d="M200 250 L330 440 L560 400"/>
+  </g>
+
+  <!-- primary teal nodes -->
+  <g fill="#009688">
+    <circle cx="200" cy="250" r="4"/><circle cx="720" cy="300" r="4"/>
+    <circle cx="1230" cy="320" r="4"/><circle cx="560" cy="400" r="4"/>
+  </g>
+  <!-- secondary navy nodes -->
+  <g fill="#10234b" fill-opacity="0.45">
+    <circle cx="470" cy="190" r="3"/><circle cx="980" cy="210" r="3"/>
+    <circle cx="1430" cy="240" r="3"/><circle cx="330" cy="440" r="3"/>
+    <circle cx="1080" cy="430" r="3"/>
+  </g>
+  <!-- glowing hub halos on the bridge towers -->
+  <circle cx="800" cy="470" r="11" fill="#009688" fill-opacity="0.14"/>
+  <circle cx="800" cy="470" r="4.5" fill="#009688" fill-opacity="0.6"/>
+  <circle cx="720" cy="300" r="10" fill="#009688" fill-opacity="0.12"/>
+
+  <!-- soft top-fade so page content near the header stays clean -->
+  <rect width="1600" height="1100" fill="url(#cField)" fill-opacity="0.35"/>
+</svg>

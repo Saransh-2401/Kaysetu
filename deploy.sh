@@ -6,7 +6,8 @@
 # Prerequisites:
 #   - Docker + Docker Compose V2 installed
 #   - Caddy already running on the host (managing SSL)
-#   - DNS A-records for api/ops/app.kaysetu.kayease.com → this VPS
+#   - DNS A-records for kaysetu.in, www, api, ops, app → this VPS
+#     (img.kaysetu.in points at the separate media service, not this box)
 # ─────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -36,8 +37,9 @@ fi
 
 # Warn if secrets haven't been changed
 if grep -q "CHANGE-ME" .env.production; then
-  warn "PG_PASSWORD in .env.production still has a placeholder!"
-  warn "Change it NOW before proceeding. Aborting."
+  warn "These values in .env.production are still placeholders:"
+  grep -n "CHANGE-ME" .env.production | sed 's/^/    /'
+  warn "Fill them in before proceeding. Aborting."
   exit 1
 fi
 
@@ -62,6 +64,17 @@ done
 echo ""
 ok "API is healthy."
 
+# ──────────────────────────────────────────── Tenant-DB migrations
+# The entrypoint only migrates the CONTROL database. Tenant-plane apps
+# (foundation, field, travel, books, …) live in one database per tenant, and
+# the provisioner only migrates a tenant DB when it is first created — so an
+# UPGRADE that adds a tenant-app migration leaves every existing tenant on the
+# old schema until this runs. Symptom is a 500 on the affected screen with
+# "no such column", which is easy to mistake for a code bug.
+say "Migrating existing tenant databases..."
+$COMPOSE exec -T backend python manage.py migrate_tenants \
+  || warn "Tenant migration reported an error (see above) — check before serving traffic."
+
 # ──────────────────────────────────────────── Bootstrap
 say "Seeding SuperAdmin and demo tenants..."
 $COMPOSE exec -T backend python manage.py bootstrap \
@@ -82,9 +95,11 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 say "Deployment complete! Your services will be live at:"
 echo ""
-echo "    SuperAdmin console   https://ops.kaysetu.kayease.com/ops/login"
-echo "    Tenant portal        https://app.kaysetu.kayease.com"
-echo "    API                  https://api.kaysetu.kayease.com/api"
+echo "    Marketing site       https://kaysetu.in"
+echo "    Tenant portal        https://app.kaysetu.in"
+echo "    SuperAdmin console   https://ops.kaysetu.in/ops/login"
+echo "    API                  https://api.kaysetu.in/api"
+echo "    Media service        https://img.kaysetu.in   (separate service)"
 echo ""
 echo "    View logs:       $COMPOSE logs -f"
 echo "    Stop stack:      $COMPOSE down"

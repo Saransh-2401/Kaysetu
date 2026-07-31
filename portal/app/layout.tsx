@@ -19,7 +19,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://kaysetu.kayease.com"
+    process.env.NEXT_PUBLIC_APP_URL || "https://kaysetu.in"
   ),
   title: {
     template: "%s | KaySetu CRM",
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://kaysetu.kayease.com",
+    url: "https://kaysetu.in",
     title: "KaySetu - Premium Enterprise CRM Solution",
     description:
       "Boost your sales team productivity with KaySetu - The all-in-one CRM & ERP platform.",

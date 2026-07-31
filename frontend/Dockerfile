@@ -1,4 +1,4 @@
-# Salexa frontend — Next.js standalone build (small runtime image, K8s-ready).
+# KaySetu frontend — Next.js standalone build (small runtime image, K8s-ready).
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./

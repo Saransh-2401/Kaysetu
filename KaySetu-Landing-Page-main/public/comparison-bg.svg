@@ -1,0 +1,85 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Connected enterprise network over a dark skyline">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a2230"/>
+      <stop offset="0.55" stop-color="#08201d"/>
+      <stop offset="1" stop-color="#04120f"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.5" cy="0.28" r="0.6">
+      <stop offset="0" stop-color="#0f8a7a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#0f8a7a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.82" cy="0.85" r="0.5">
+      <stop offset="0" stop-color="#0d6f8f" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0d6f8f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bldg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c2a33"/>
+      <stop offset="1" stop-color="#061a19"/>
+    </linearGradient>
+  </defs>
+
+  <!-- base + glows -->
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <rect width="1600" height="900" fill="url(#glowA)"/>
+  <rect width="1600" height="900" fill="url(#glowB)"/>
+
+  <!-- faint perspective floor grid -->
+  <g stroke="#4db6ac" stroke-opacity="0.06" stroke-width="1">
+    <path d="M0 720 H1600"/><path d="M0 780 H1600"/><path d="M0 840 H1600"/>
+    <path d="M200 900 L640 700"/><path d="M520 900 L740 700"/><path d="M840 900 L860 700"/>
+    <path d="M1160 900 L960 700"/><path d="M1420 900 L1080 700"/>
+  </g>
+
+  <!-- connectivity network -->
+  <g stroke="#4db6ac" stroke-opacity="0.28" stroke-width="1.4">
+    <path d="M180 250 L420 180 L610 300 L820 210 L1030 320 L1240 220 L1440 300"/>
+    <path d="M420 180 L520 360 L820 210"/>
+    <path d="M610 300 L740 470 L1030 320"/>
+    <path d="M1030 320 L1180 470 L1240 220"/>
+    <path d="M180 250 L300 430 L520 360"/>
+  </g>
+  <g fill="#7fe3d6">
+    <circle cx="180" cy="250" r="3.5"/><circle cx="610" cy="300" r="3.5"/>
+    <circle cx="1030" cy="320" r="3.5"/><circle cx="1440" cy="300" r="3.5"/>
+    <circle cx="740" cy="470" r="3.5"/><circle cx="300" cy="430" r="3.5"/>
+  </g>
+  <g fill="#2f8f80">
+    <circle cx="420" cy="180" r="2.6"/><circle cx="820" cy="210" r="2.6"/>
+    <circle cx="1240" cy="220" r="2.6"/><circle cx="520" cy="360" r="2.6"/>
+    <circle cx="1180" cy="470" r="2.6"/>
+  </g>
+  <!-- glowing hub nodes -->
+  <circle cx="820" cy="210" r="9" fill="#12a58f" fill-opacity="0.35"/>
+  <circle cx="740" cy="470" r="10" fill="#12a58f" fill-opacity="0.30"/>
+
+  <!-- skyline silhouette -->
+  <g fill="url(#bldg)">
+    <rect x="40" y="600" width="90" height="300" rx="3"/>
+    <rect x="150" y="540" width="70" height="360" rx="3"/>
+    <rect x="240" y="640" width="110" height="260" rx="3"/>
+    <rect x="380" y="560" width="80" height="340" rx="3"/>
+    <rect x="480" y="660" width="120" height="240" rx="3"/>
+    <rect x="1010" y="640" width="110" height="260" rx="3"/>
+    <rect x="1140" y="560" width="80" height="340" rx="3"/>
+    <rect x="1240" y="620" width="120" height="280" rx="3"/>
+    <rect x="1380" y="540" width="80" height="360" rx="3"/>
+    <rect x="1480" y="640" width="90" height="260" rx="3"/>
+  </g>
+  <!-- lit windows -->
+  <g fill="#4db6ac" fill-opacity="0.5">
+    <rect x="60" y="620" width="6" height="8"/><rect x="80" y="640" width="6" height="8"/><rect x="100" y="620" width="6" height="8"/>
+    <rect x="170" y="560" width="6" height="8"/><rect x="190" y="590" width="6" height="8"/><rect x="170" y="620" width="6" height="8"/>
+    <rect x="400" y="580" width="6" height="8"/><rect x="420" y="610" width="6" height="8"/>
+    <rect x="1160" y="580" width="6" height="8"/><rect x="1180" y="610" width="6" height="8"/>
+    <rect x="1400" y="560" width="6" height="8"/><rect x="1420" y="590" width="6" height="8"/>
+    <rect x="1270" y="650" width="6" height="8"/><rect x="1300" y="680" width="6" height="8"/>
+  </g>
+  <g fill="#f0a24b" fill-opacity="0.4">
+    <rect x="260" y="670" width="6" height="8"/><rect x="290" y="700" width="6" height="8"/>
+    <rect x="500" y="690" width="6" height="8"/><rect x="1030" y="670" width="6" height="8"/>
+  </g>
+
+  <!-- vignette -->
+  <rect width="1600" height="900" fill="#020c0a" fill-opacity="0.18"/>
+</svg>

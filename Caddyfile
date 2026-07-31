@@ -5,9 +5,14 @@
 #   backend  → localhost:3001
 #   frontend → localhost:3002   (SuperAdmin ops console)
 #   portal   → localhost:3003   (tenant application)
+#   landing  → localhost:3004   (public marketing site, kaysetu.in)
+#
+# img.kaysetu.in is NOT served from this stack — it is the separate media
+# service (same contract as the previous platform: POST /upload/<section> with
+# an X-API-Key header). The backend uploads to it and stores the returned URL.
 
 # ── API (Django backend) ──────────────────────────────────────
-api.kaysetu.kayease.com {
+api.kaysetu.in {
 	header {
 		X-Content-Type-Options    nosniff
 		X-Frame-Options           DENY
@@ -21,7 +26,7 @@ api.kaysetu.kayease.com {
 }
 
 # ── Ops Console (SuperAdmin frontend) ─────────────────────────
-ops.kaysetu.kayease.com {
+ops.kaysetu.in {
 	header {
 		X-Content-Type-Options    nosniff
 		X-Frame-Options           DENY
@@ -38,7 +43,7 @@ ops.kaysetu.kayease.com {
 }
 
 # ── Tenant Portal ─────────────────────────────────────────────
-app.kaysetu.kayease.com {
+app.kaysetu.in {
 	header {
 		X-Content-Type-Options    nosniff
 		X-Frame-Options           DENY
@@ -52,4 +57,26 @@ app.kaysetu.kayease.com {
 	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
 
 	reverse_proxy localhost:3003
+}
+
+# ── Public marketing site (apex) ──────────────────────────────
+# www redirects to the apex so the two never compete for SEO or cookies.
+www.kaysetu.in {
+	redir https://kaysetu.in{uri} permanent
+}
+
+kaysetu.in {
+	header {
+		X-Content-Type-Options    nosniff
+		X-Frame-Options           SAMEORIGIN
+		X-XSS-Protection          "1; mode=block"
+		Referrer-Policy            strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		-Server
+	}
+
+	@nextStatic path /_next/static/*
+	header @nextStatic Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy localhost:3004
 }

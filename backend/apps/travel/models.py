@@ -89,7 +89,10 @@ class AllowanceDocument(models.Model):
     claim = models.ForeignKey(
         "travel.AllowanceClaim", on_delete=models.CASCADE, related_name="documents"
     )
-    file = models.FileField(upload_to=_claim_document_path)
+    # Uploads go to the external media service and we keep the returned URL;
+    # `file` stays for local/dev storage when no service key is configured.
+    file = models.FileField(upload_to=_claim_document_path, blank=True)
+    file_url = models.URLField(max_length=1000, blank=True)
     file_name = models.CharField(max_length=255, blank=True)
     doc_type = models.CharField(max_length=20, choices=DocType.choices, default=DocType.RECEIPT)
     uploaded_by = models.ForeignKey(

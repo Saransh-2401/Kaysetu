@@ -2,6 +2,7 @@ from django.db.models import Count
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -10,6 +11,7 @@ from rest_framework.views import APIView
 from apps.control.models import Tenant
 from apps.tenancy.context import get_tenant, use_tenant
 
+from . import media_service
 from .auth import SCOPE_TENANT, decode_token, make_token_pair, resolve_user
 from .module_map import build_effective_permissions
 from .models import CatalogItem, EntitlementSnapshot, OrgSettings, Party, Role, TenantUser
@@ -310,6 +312,16 @@ def _seat_limit_response(request):
 class TenantUserViewSet(viewsets.ModelViewSet):
     serializer_class = TenantUserSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    # The user forms post multipart (photo + KYC scans alongside the fields).
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    # Uploaded file field -> media-service section. Same layout as the previous
+    # platform so stored URLs and the service's folders stay consistent.
+    UPLOAD_SECTIONS = {
+        "profile_image": media_service.SECTION_USER_PROFILE,
+        "aadhaar_card": media_service.SECTION_USER_AADHAAR,
+        "pan_card": media_service.SECTION_USER_PAN,
+    }
 
     def get_queryset(self):
         qs = TenantUser.objects.select_related("role").order_by("full_name")
@@ -324,10 +336,44 @@ class TenantUserViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_active=params["is_active"] == "true")
         return qs
 
+    def _absorb_uploads(self, request):
+        """Push any uploaded photo/KYC files to the media service and rewrite
+        the payload with the returned URLs.
+
+        These model fields are URLFields — without this the multipart file the
+        form sends is silently dropped and the user is saved with no photo.
+        Returns an error Response when the service rejects an upload, because
+        saving a KYC record whose scan vanished is worse than failing loudly.
+        """
+        files = getattr(request, "FILES", None)
+        if not files:
+            return None
+        uploaded = {field: files[field] for field in self.UPLOAD_SECTIONS if field in files}
+        if not uploaded:
+            return None
+        if not media_service.is_configured():
+            return Response(
+                {"detail": "File uploads are unavailable — the media service is not configured."},
+                status=503,
+            )
+        # QueryDict from a multipart request is immutable; copy before writing.
+        request._full_data = data = request.data.copy()
+        for field, file_obj in uploaded.items():
+            url = media_service.upload_and_get_url(file_obj, self.UPLOAD_SECTIONS[field])
+            if not url:
+                return Response(
+                    {field: "Upload failed. Please try again."}, status=502
+                )
+            data[field] = url
+        return None
+
     def create(self, request, *args, **kwargs):
         blocked = _seat_limit_response(request)
         if blocked is not None:
             return blocked
+        failed = self._absorb_uploads(request)
+        if failed is not None:
+            return failed
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
@@ -338,6 +384,9 @@ class TenantUserViewSet(viewsets.ModelViewSet):
             blocked = _seat_limit_response(request)
             if blocked is not None:
                 return blocked
+        failed = self._absorb_uploads(request)
+        if failed is not None:
+            return failed
         return super().update(request, *args, **kwargs)
 
 

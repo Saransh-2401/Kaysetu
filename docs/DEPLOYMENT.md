@@ -140,10 +140,73 @@ its own Deployment, Redis as managed cache, media on S3-compatible storage.
 
 ## Domain wiring (see `Caddyfile` — it must match `docker-compose.prod.yml` ports)
 
-- `ops.kaysetu.kayease.com` -> frontend, host port **3002** (SuperAdmin console; root redirects to `/ops/login`)
-- `app.kaysetu.kayease.com` -> portal, host port **3003** (tenant landing + `/login` + all module screens)
-- `api.kaysetu.kayease.com` -> backend, host port **3001**
+- `kaysetu.in` (+ `www.` redirect) -> landing, host port **3004** (public marketing site)
+- `app.kaysetu.in` -> portal, host port **3003** (tenant `/login` + all module screens)
+- `ops.kaysetu.in` -> frontend, host port **3002** (SuperAdmin console; root redirects to `/ops/login`)
+- `api.kaysetu.in` -> backend, host port **3001**
+- `img.kaysetu.in` -> the separate media service (**not** part of this stack)
 
 Host Caddy terminates TLS and reverse-proxies to the 127.0.0.1-bound container
 ports above. Tenant sign-in happens ONLY on the `app.` domain; the ops domain
 serves no tenant screens.
+
+## Upgrading a running deployment
+
+`./deploy.sh` is safe to re-run — it rebuilds, migrates and restarts in place.
+Two things it does that a bare `docker compose up -d` does NOT:
+
+* **`migrate_tenants`** — the entrypoint migrates only the CONTROL database.
+  Tenant-plane apps (`foundation`, `field`, `travel`, `books`, …) live in one
+  database per tenant, and the provisioner migrates a tenant DB only when it is
+  first created. Ship a tenant-app migration without this and every EXISTING
+  org keeps the old schema; the screen 500s with "no such column", which looks
+  like a code bug and isn't.
+* Re-runs `bootstrap` (idempotent — it will not duplicate tenants).
+
+**Rebuild, don't just restart**, whenever any of these change: Python
+dependencies, or any `NEXT_PUBLIC_*` value. The frontend/portal/landing bake
+their API URLs into the JS bundle at build time, so a restart keeps serving the
+old host.
+
+## Marketing lead capture (kaysetu.in -> ops console)
+
+The contact form and footer demo box on the marketing site POST to the API:
+
+```
+POST https://api.kaysetu.in/api/public/leads      (unauthenticated)
+  name*, email*, phone, company, message, source, attachment (PNG/JPG/PDF <=5MB)
+  + utm_source / utm_medium / utm_campaign / page_url / referrer
+  + "website"  <- honeypot; if filled the submission is dropped
+```
+
+Leads land in the SuperAdmin console under **Leads** (`/ops/leads`), where they
+can be assigned, noted, status-tracked and linked to the tenant they became.
+
+Two things that will silently break lead capture if missed:
+
+1. **CORS** — `kaysetu.in` and `www.kaysetu.in` MUST be in
+   `CORS_ALLOWED_ORIGINS`. The marketing site is a different origin from the
+   API, so without them every submission dies in the preflight.
+2. **`NEXT_PUBLIC_API_BASE_URL` is baked in at BUILD time** for the landing
+   image (compose passes it as a build arg). Changing it needs a rebuild, not
+   just a restart.
+
+Abuse controls: `10/hour` per IP (`leads` throttle scope) plus the honeypot.
+Attachments go to the media service; if that upload fails the enquiry is still
+saved without the file — losing the whole lead over an attachment is worse.
+
+## Media / image service
+
+Uploads (user photo + KYC scans, TA receipts) are POSTed to the external media
+service rather than written to container disk — the API runs as several
+stateless replicas, so a locally written file would 404 from the next replica.
+
+```
+POST https://img.kaysetu.in/upload/<section>
+headers: X-API-Key: $IMAGE_SERVICE_API_KEY
+body:    multipart "file"   ->  {"original_url": "...", "processed_url": "..."}
+```
+
+Set `IMAGE_SERVICE_URL` and `IMAGE_SERVICE_API_KEY` in `.env.production`.
+**Without a key the API refuses uploads with 503** — deliberately loud, because
+silently saving a KYC record whose scan vanished is far worse than failing.

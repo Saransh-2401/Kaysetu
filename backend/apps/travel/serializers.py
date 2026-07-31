@@ -34,10 +34,12 @@ class AllowanceDocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ["claim", "file_name", "created_at"]
 
     def get_file_url(self, obj):
-        try:
-            return obj.file.url
-        except ValueError:
-            return ""
+        # Media-service URL when uploaded there; otherwise the locally stored
+        # file, absolutised — a relative path is unresolvable to the mobile app
+        # and to the portal served from a different origin.
+        from apps.foundation.media import media_url
+
+        return obj.file_url or media_url(obj.file)
 
 
 class NotificationPreferenceSerializer(serializers.ModelSerializer):

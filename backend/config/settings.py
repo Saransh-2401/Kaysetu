@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "apps.foundation",
     "apps.billing",
     "apps.support",
+    "apps.marketing",
     "apps.tracking",
     "apps.field",
     "apps.crm",
@@ -136,6 +137,10 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "auth": "30/min",
         "signup": "20/hour",
+        # Public, unauthenticated lead capture on the marketing site. Low
+        # enough to blunt bulk spam, high enough that a genuine visitor
+        # correcting a mistake is never blocked.
+        "leads": "10/hour",
     },
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
@@ -174,6 +179,16 @@ if not DEBUG:
 # In production this is served by the reverse proxy / object storage, not Django.
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "var" / "media"))
+
+# External media service (img.kaysetu.in) — same contract as the previous
+# platform: POST <URL>/upload/<section> with an X-API-Key header, response
+# carries original_url/processed_url. Uploads go there and we store the URL, so
+# the API never hands out a relative path the mobile client cannot resolve and
+# the app servers stay stateless (no shared disk between replicas).
+IMAGE_SERVICE_URL = os.environ.get("IMAGE_SERVICE_URL", "https://img.kaysetu.in").rstrip("/")
+IMAGE_SERVICE_API_KEY = os.environ.get("IMAGE_SERVICE_API_KEY", "")
+# Fallback host for any FileField still stored locally (TA documents in dev).
+MEDIA_BASE_URL = os.environ.get("MEDIA_BASE_URL", "").rstrip("/")
 
 LANGUAGE_CODE = "en-us"
 # Operational wall-clock timezone (attendance day rollover, auto-punchout time).
