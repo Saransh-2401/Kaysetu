@@ -67,9 +67,9 @@ def company_payload(org, tenant):
         "logo": getattr(org, "logo_url", "") or "",
         "logo_url": getattr(org, "logo_url", "") or "",
         "address": address,
-        "full_address": ", ".join(str(v) for v in [
+        "full_address": (address.get("full_address") if isinstance(address, dict) else "") or ", ".join(str(v) for v in [
             address.get("line1"), address.get("line2"), address.get("city"),
-            address.get("state"), address.get("postal_code")] if v),
+            address.get("state"), address.get("postal_code")] if isinstance(address, dict) and v),
         "latitude": getattr(org, "latitude", None),
         "longitude": getattr(org, "longitude", None),
         "operating_cities": getattr(org, "operating_cities", []) or [],
@@ -162,9 +162,13 @@ class CompanyViewSet(viewsets.ViewSet):
             org.logo_url = data["logo"]
 
         # `full_address` passed from frontend autocomplete
-        if "full_address" in data and ("address" not in data or not data["address"]):
+        if "full_address" in data and data["full_address"]:
             full_addr = str(data["full_address"])
-            org.address = {"line1": full_addr, "full_address": full_addr}
+            curr_addr = data.get("address") if isinstance(data.get("address"), dict) else {}
+            curr_addr["full_address"] = full_addr
+            if not curr_addr.get("line1"):
+                curr_addr["line1"] = full_addr
+            data["address"] = curr_addr
 
         errors = {}
         for field in COMPANY_FIELDS:
