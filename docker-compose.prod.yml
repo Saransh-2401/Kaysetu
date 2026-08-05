@@ -129,6 +129,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: "https://api.kaysetu.in/api"
         NEXT_PUBLIC_API_URL: "https://api.kaysetu.in/api"
         NEXT_PUBLIC_APP_NAME: "${APP_NAME:-KaySetu}"
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
     ports:
       - "127.0.0.1:3003:3001"    # host Caddy → localhost:3003
     restart: unless-stopped
