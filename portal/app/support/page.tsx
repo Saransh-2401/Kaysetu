@@ -172,7 +172,7 @@ export default function SupportPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }} data-testid="support-page-container">
+    <Box data-testid="support-page-container">
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
         <SupportAgentIcon color="primary" />
         <Typography variant="h4" fontWeight={800}>
@@ -203,7 +203,7 @@ export default function SupportPage() {
         </Alert>
       )}
 
-      <Paper sx={{ borderRadius: 2 }} data-testid="support-tickets-card">
+      <Paper sx={{ borderRadius: 1 }} data-testid="support-tickets-card">
         <Tabs
           value={tab}
           onChange={(_, value) => setTab(value)}

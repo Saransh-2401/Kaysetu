@@ -90,11 +90,15 @@ def company_payload(org, tenant):
     }
 
 
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+
+
 class CompanyViewSet(viewsets.ViewSet):
     """The tenant's own company profile. A singleton served as a collection,
     because the ported screens address it as `/core/companies/{id}/`."""
 
     permission_classes = [IsAdminOrReadOnly]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def _org(self):
         org, _ = OrgSettings.objects.get_or_create(
@@ -118,18 +122,40 @@ class CompanyViewSet(viewsets.ViewSet):
         return self._save(request)
 
     def _save(self, request):
+        import json
         from decimal import Decimal, InvalidOperation
+        from .media_service import SECTION_COMPANIES, upload_and_get_url
 
         org = self._org()
-        data = request.data
-        # `name` is what the portal's form field is called; the column is
-        # company_name. Accept both rather than silently dropping the edit.
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+
+        # Handle logo upload if a file was attached in request.FILES
+        if request.FILES and "logo" in request.FILES:
+            logo_url = upload_and_get_url(request.FILES["logo"], SECTION_COMPANIES)
+            if logo_url:
+                org.logo_url = logo_url
+
+        # Parse stringified JSON fields from FormData requests
+        for json_field in ("operating_cities", "address", "custom_color_scheme"):
+            if json_field in data and isinstance(data[json_field], str):
+                try:
+                    data[json_field] = json.loads(data[json_field])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        # `name` is what the portal's form field is called; the column is company_name.
         if "name" in data and "company_name" not in data:
             org.company_name = data["name"]
 
-        # Numeric fields are validated HERE. Assigning a request value straight
-        # to the model deferred the failure to save(), which surfaced as a 500
-        # on something as ordinary as a mistyped latitude.
+        # `logo` string URL passed from frontend
+        if "logo" in data and "logo_url" not in data and isinstance(data["logo"], str):
+            org.logo_url = data["logo"]
+
+        # `full_address` passed from frontend autocomplete
+        if "full_address" in data and ("address" not in data or not data["address"]):
+            full_addr = str(data["full_address"])
+            org.address = {"line1": full_addr, "full_address": full_addr}
+
         errors = {}
         for field in COMPANY_FIELDS:
             if field not in data:

@@ -386,12 +386,10 @@ export default function CompanySettingsPage() {
       if (updatedCompany.fiscal_month_start) syncFiscalMonth(updatedCompany.fiscal_month_start);
       setMessage({ type: 'success', text: "Company settings saved successfully" });
 
-      // Refresh to get the updated logo URL from backend if needed
-      if (logoFile) {
-        const data = await coreService.getCurrentCompany();
-        setCompany(data);
-        setLogoFile(null);
-      }
+      // Refresh to sync latest company state (and logo URL if updated)
+      const data = await coreService.getCurrentCompany();
+      setCompany(data);
+      if (logoFile) setLogoFile(null);
 
     } catch (error) {
       console.error("Failed to save:", error);

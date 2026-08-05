@@ -519,25 +519,10 @@ class CurrentCompanyView(APIView):
     permission_classes = [IsTenantUser]
 
     def get(self, request):
+        from .config_views import company_payload
         org = OrgSettings.objects.filter(pk=1).first()
         tenant = get_tenant()
-        address = (org.address if org and isinstance(getattr(org, "address", None), dict) else {}) or {}
-        payload = {
-            "id": 1,
-            "name": (org.company_name if org else None) or (tenant.name if tenant else ""),
-            "legal_name": (org.company_name if org else "") or "",
-            "tax_id": getattr(org, "gstin", "") or "",
-            "email": getattr(org, "email", "") or "",
-            "phone": getattr(org, "phone", "") or "",
-            "address": address,
-            "full_address": ", ".join(
-                str(v) for v in [address.get("line1"), address.get("line2"), address.get("city"),
-                                 address.get("state"), address.get("postal_code")] if v
-            ),
-            "industry": (org.industry if org else "") or "",
-            "currency": "INR",
-            "org_code": tenant.org_code if tenant else "",
-        }
+        payload = company_payload(org, tenant)
         # the portal calls this both as a detail and a list endpoint
         if request.query_params.get("as") == "list":
             return Response({"count": 1, "results": [payload]})
