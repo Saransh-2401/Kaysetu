@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────
-# KaySetu — One-command production deployment.
+# KaySetu — 1-command production deployment.
 # Run ON THE VPS from the project root:   chmod +x deploy.sh && ./deploy.sh
 #
 # Prerequisites:
