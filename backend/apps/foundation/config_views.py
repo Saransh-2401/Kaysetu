@@ -127,13 +127,19 @@ class CompanyViewSet(viewsets.ViewSet):
         from .media_service import SECTION_COMPANIES, upload_and_get_url
 
         org = self._org()
-        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        # QueryDict.dict() flattens single values (dict(QueryDict) produces list values like ['val'])
+        if hasattr(request.data, "dict"):
+            data = request.data.dict()
+        else:
+            data = dict(request.data)
 
         # Handle logo upload if a file was attached in request.FILES
         if request.FILES and "logo" in request.FILES:
             logo_url = upload_and_get_url(request.FILES["logo"], SECTION_COMPANIES)
             if logo_url:
                 org.logo_url = logo_url
+                data.pop("logo_url", None)
+                data.pop("logo", None)
 
         # Parse stringified JSON fields from FormData requests
         for json_field in ("operating_cities", "address", "custom_color_scheme"):
@@ -142,6 +148,10 @@ class CompanyViewSet(viewsets.ViewSet):
                     data[json_field] = json.loads(data[json_field])
                 except (json.JSONDecodeError, TypeError):
                     pass
+
+        # Parse stringified boolean fields
+        if "is_active" in data and isinstance(data["is_active"], str):
+            data["is_active"] = data["is_active"].lower() in ("true", "1")
 
         # `name` is what the portal's form field is called; the column is company_name.
         if "name" in data and "company_name" not in data:
