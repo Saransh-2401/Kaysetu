@@ -362,16 +362,20 @@ export default function CompanySettingsPage() {
 
       if (logoFile) {
         const formData = new FormData();
-        // Append all fields
+        // Append all scalar/object fields — skip the existing logo URL (replacing with new File)
         Object.keys(updatedCompany).forEach(key => {
+          if (key === 'logo') return; // replaced by the new File below
           const val = (updatedCompany as any)[key];
-          if (val !== undefined && val !== null) {
-            // Handle array fields (like operating_cities)
-            if (Array.isArray(val)) {
-              formData.append(key, JSON.stringify(val));
-            } else {
-              formData.append(key, val);
-            }
+          if (val === undefined || val === null) return;
+          if (Array.isArray(val)) {
+            // Arrays must be JSON-encoded so backend receives a real list
+            formData.append(key, JSON.stringify(val));
+          } else if (typeof val === 'object') {
+            // Plain objects (e.g. `address`) must be JSON-encoded;
+            // FormData.append() on a plain object silently produces "[object Object]"
+            formData.append(key, JSON.stringify(val));
+          } else {
+            formData.append(key, String(val));
           }
         });
         formData.append('logo', logoFile);

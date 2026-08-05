@@ -907,11 +907,14 @@ export default function UserManagementPage() {
       if (currentUser.phone) formData.append("phone", currentUser.phone);
 
       // Map Frontend Role Label to Backend slug
+      // Backend `role` is read-only (display name); `role_slug` is the writable field.
       const backendRole = roleMapsRef.current.roleToSlug[currentUser.role || ""] || currentUser.role;
-      if (backendRole) formData.append("role", backendRole);
+      if (backendRole) formData.append("role_slug", backendRole);
 
       if (currentUser.department) formData.append("department", currentUser.department);
-      if (currentUser.status) formData.append("status", currentUser.status);
+      // Backend `status` is a read-only computed field (derived from is_active).
+      // We must send `is_active` directly — the backend's update() checks for it explicitly.
+      formData.append("is_active", currentUser.status === "Active" ? "true" : "false");
       if (currentUser.tags && Array.isArray(currentUser.tags)) {
         formData.append("tags", JSON.stringify(currentUser.tags));
       }

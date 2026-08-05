@@ -215,7 +215,7 @@ export default function BillingPage() {
   })();
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100, mx: "auto" }} data-testid="billing-page-container">
+    <Box sx={{ p: { xs: 2, md: 3 } }} data-testid="billing-page-container">
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
         <CreditCardIcon color="primary" />
         <Typography variant="h4" fontWeight={800}>
@@ -261,7 +261,7 @@ export default function BillingPage() {
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2.5} sx={{ mb: 2.5 }}>
         {/* Current plan */}
-        <Paper sx={{ p: 2.5, flex: 1, borderRadius: 3 }} data-testid="billing-current-plan-card">
+        <Paper sx={{ p: 2.5, flex: 1, borderRadius: 2 }} data-testid="billing-current-plan-card">
           <Typography variant="overline" color="text.secondary">
             Current plan
           </Typography>
@@ -295,7 +295,7 @@ export default function BillingPage() {
         </Paper>
 
         {/* Seats */}
-        <Paper sx={{ p: 2.5, flex: 1, borderRadius: 3 }} data-testid="billing-seats-card">
+        <Paper sx={{ p: 2.5, flex: 1, borderRadius: 2 }} data-testid="billing-seats-card">
           <Stack direction="row" alignItems="center" spacing={1}>
             <GroupIcon color="primary" fontSize="small" />
             <Typography variant="overline" color="text.secondary">
@@ -321,7 +321,7 @@ export default function BillingPage() {
       </Stack>
 
       {/* Subscribe / change plan */}
-      <Paper sx={{ p: 2.5, borderRadius: 3, mb: 2.5 }} data-testid="billing-subscribe-card">
+      <Paper sx={{ p: 2.5, borderRadius: 2, mb: 2.5 }} data-testid="billing-subscribe-card">
         <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
           {sub ? "Renew / change plan" : "Subscribe"}
         </Typography>
@@ -443,7 +443,7 @@ export default function BillingPage() {
       </Paper>
 
       {/* Payment history */}
-      <Paper sx={{ p: 2.5, borderRadius: 3 }} data-testid="billing-history-card">
+      <Paper sx={{ p: 2.5, borderRadius: 2 }} data-testid="billing-history-card">
         <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>
           Payment history & invoices
         </Typography>
