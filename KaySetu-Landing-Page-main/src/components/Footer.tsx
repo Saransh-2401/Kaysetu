@@ -33,10 +33,10 @@ export default function Footer() {
     <footer className="bg-white text-slate-900 mt-auto overflow-hidden font-sans border-t border-line">
       <div className="flex flex-col xl:flex-row relative">
         {/* Left Section: Brand & Links */}
-        <div className="xl:w-[55%] px-10 py-6 lg:px-16 lg:py-10 xl:pl-20 xl:pr-10 xl:py-12 flex flex-col md:flex-row gap-16 xl:gap-24 relative z-10">
+        <div className="xl:w-[55%] 2xl:w-[60%] px-10 py-6 lg:px-16 lg:py-10 xl:pl-20 xl:pr-10 xl:py-12 flex flex-col md:flex-row xl:flex-col 2xl:flex-row gap-10 lg:gap-16 xl:gap-12 2xl:gap-20 relative z-10">
 
           {/* Brand & Socials */}
-          <div className="max-w-[400px] shrink-0">
+          <div className="w-full md:max-w-[350px] 2xl:max-w-[400px] shrink-0">
             <Link href="/" className="inline-block transition-opacity hover:opacity-80 shrink-0 -mb-10 -mt-6">
               <img
                 src="/logo3.png"
@@ -65,7 +65,7 @@ export default function Footer() {
           </div>
 
           {/* Link Columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 xl:gap-16 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 lg:gap-10 xl:gap-8 2xl:gap-12 w-full">
             {footer.columns.slice(0, 3).map((col) => (
               <div key={col.title}>
                 <h4 className="font-bold text-accent text-[0.85rem] uppercase tracking-wide mb-6">
