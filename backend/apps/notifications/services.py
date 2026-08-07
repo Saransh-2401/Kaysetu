@@ -118,7 +118,7 @@ def audience_users(event_key, *, extra_user_ids=None):
 
 def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
                  reference_doctype="", reference_name="", is_urgent=None, exclude_user_id=None,
-                 context=None):
+                 context=None, force_channels=None):
     """Tell whoever cares that `event_key` happened. Returns a delivery summary.
 
     Unknown keys are refused loudly: a typo'd event would otherwise notify
@@ -170,6 +170,15 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
                 role_overrides=role_cache[role_slug].get(event_key, {}),
                 user_overrides=user_overrides.get(user.pk, {}),
             )
+            if force_channels is not None:
+                # An explicit send (an admin broadcast) means exactly the
+                # channels that were ticked — not each person's standing
+                # preference. Without this, ticking "Email" on a broadcast did
+                # nothing, because the announcement event defaults to in_app +
+                # push and email stayed off for everyone.
+                channels = {c: (c in force_channels) for c in catalog.CHANNELS}
+                if entry["mandatory"]:
+                    channels["in_app"] = True
             profile = profiles.get(user.pk)
             # Muting and quiet hours never suppress a critical event, nor a
             # mandatory one (an org-wide announcement must still land).
@@ -292,6 +301,10 @@ def broadcast(*, title, body="", audience_type="all", roles=None, user_ids=None,
         result = notify_event(
             "announcement", subject=title, message=body, users=recipients,
             reference_doctype="broadcast", reference_name=str(record.pk),
+            # Honour exactly what the admin ticked. These were recorded on the
+            # broadcast row but never reached delivery, so choosing "Email" sent
+            # no email — the announcement event defaults to in_app + push.
+            force_channels=channels or ["in_app"],
         ) if recipients else {"delivered_in_app": 0}
     return record, warnings, result
 

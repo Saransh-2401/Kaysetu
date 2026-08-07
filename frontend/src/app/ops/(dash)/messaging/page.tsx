@@ -356,16 +356,32 @@ export default function MessagingPage() {
                   </Box>
                 )}
 
-                <FormControlLabel label="Active (uncheck to stop sending this message)"
+                <FormControlLabel
+                  // The label wraps rather than being clipped by the card edge.
+                  sx={{ alignItems: "flex-start", m: 0, "& .MuiFormControlLabel-label": { pt: 0.75 } }}
+                  label={
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>Active</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Turn off to stop sending this message entirely.
+                      </Typography>
+                    </Box>
+                  }
                   control={<Switch checked={draft.is_active} data-testid="ops-template-active-switch"
                     onChange={(e) => setDraftField({ is_active: e.target.checked })} />} />
 
-                <Box>
+                <Stack direction="row" spacing={1.5} alignItems="center">
                   <Button variant="contained" onClick={saveTemplate} disabled={!dirty || savingTpl}
                     data-testid="ops-template-save-btn">
                     {savingTpl ? "Saving…" : "Save template"}
                   </Button>
-                </Box>
+                  {/* Say WHY the button is inert, instead of leaving a dead control. */}
+                  {!dirty && !savingTpl && (
+                    <Typography variant="caption" color="text.secondary">
+                      No changes to save
+                    </Typography>
+                  )}
+                </Stack>
               </Stack>
             </Paper>
           )}

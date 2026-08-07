@@ -262,3 +262,144 @@ def test_org_alerts_endpoint_is_admin_only_and_persists(api, make_tenant, tenant
     again = next(e for e in client.get("/api/notifications/org-alerts/").data["events"]
                  if e["key"] == "visit_assigned")
     assert again["effective"]["in_app"] is False
+
+
+def test_broadcast_honours_the_channels_the_admin_ticked(api, make_tenant, tenant_token, monkeypatch):
+    """Ticking "Email" on Send Notification must actually send email.
+
+    The channel list was stored on the broadcast row but never passed to
+    delivery, so it fell back to the `announcement` catalog default
+    (in_app + push, email OFF) and no mail ever went out.
+    """
+    from apps.control import messaging
+    from apps.notifications.services import broadcast
+    from apps.tenancy.context import use_tenant
+
+    tenant, _ = make_tenant(package_code="P1")
+    sent = []
+    monkeypatch.setattr(messaging, "send_email",
+                        lambda to, subject, body: (sent.append(to), (True, ""))[1])
+
+    with use_tenant(tenant):
+        _record, _warnings, result = broadcast(
+            title="Server maintenance", body="Sunday 2am.",
+            audience_type="all", channels=["email"],
+        )
+
+    assert result["delivered_email"] >= 1, result
+    assert sent, "no email was dispatched"
+    # announcement is mandatory, so the in-app copy still lands regardless.
+    assert result["delivered_in_app"] >= 1
+
+
+def test_broadcast_without_email_ticked_sends_no_email(api, make_tenant, tenant_token, monkeypatch):
+    from apps.control import messaging
+    from apps.notifications.services import broadcast
+    from apps.tenancy.context import use_tenant
+
+    tenant, _ = make_tenant(package_code="P1")
+    sent = []
+    monkeypatch.setattr(messaging, "send_email",
+                        lambda to, subject, body: (sent.append(to), (True, ""))[1])
+
+    with use_tenant(tenant):
+        _r, _w, result = broadcast(title="In-app only", body="x",
+                                   audience_type="all", channels=["in_app"])
+
+    assert sent == []
+    assert result["delivered_email"] == 0
+    assert result["delivered_in_app"] >= 1
+
+
+# ── Every shipped template must actually render ──────────────────────────
+
+def test_every_template_renders_with_its_declared_variables(api, admin_token):
+    """Each template must be fillable from the variables it advertises.
+
+    A body referencing {customer_name} while declaring only {order_number} would
+    ship a literal placeholder to a customer — this catches that at build time
+    instead of in someone's inbox.
+    """
+    from apps.control import messaging
+    from apps.control.models import MessageTemplate
+
+    broken = []
+    for tpl in MessageTemplate.objects.all():
+        context = {v: f"TEST_{v.upper()}" for v in (tpl.available_variables or [])}
+        for field in ("subject", "body", "content"):
+            raw = getattr(tpl, field) or ""
+            if not raw:
+                continue
+            leftovers = messaging.unfilled(messaging.render(raw, context))
+            if leftovers:
+                broken.append(f"{tpl.channel}/{tpl.trigger_key}.{field} -> {leftovers}")
+
+    assert not broken, "templates reference variables they do not declare:\n" + "\n".join(broken)
+
+
+def test_every_declared_variable_is_actually_used(api, admin_token):
+    """The reverse check: a variable advertised but never used is misleading,
+    because Ops sees a chip for something the message will not show."""
+    from apps.control.models import MessageTemplate
+
+    unused = []
+    for tpl in MessageTemplate.objects.all():
+        blob = " ".join([tpl.subject or "", tpl.body or "", tpl.content or ""])
+        for variable in (tpl.available_variables or []):
+            if "{%s}" % variable not in blob:
+                unused.append(f"{tpl.channel}/{tpl.trigger_key} declares unused {{{variable}}}")
+
+    assert not unused, "\n".join(unused)
+
+
+def test_every_email_template_is_wellformed_html(api, admin_token):
+    """Mail clients strip <style> blocks, so styling must be inline, and the
+    document has to be balanced or Gmail renders it as plain text."""
+    from apps.control.models import MessageTemplate
+
+    problems = []
+    for tpl in MessageTemplate.objects.filter(channel="email"):
+        body = tpl.body or ""
+        if "<style>" in body.lower():
+            problems.append(f"{tpl.trigger_key}: uses a <style> block")
+        if body.count("<table") != body.count("</table>"):
+            problems.append(f"{tpl.trigger_key}: unbalanced <table>")
+        if body.count("<html") and not body.count("</html>"):
+            problems.append(f"{tpl.trigger_key}: unclosed <html>")
+        if "style=" not in body:
+            problems.append(f"{tpl.trigger_key}: no inline styling at all")
+    assert not problems, "\n".join(problems)
+
+
+def test_sms_templates_are_short_enough_to_send(api, admin_token):
+    """A rendered SMS over 320 chars costs three segments and often truncates."""
+    from apps.control import messaging
+    from apps.control.models import MessageTemplate
+
+    too_long = []
+    for tpl in MessageTemplate.objects.filter(channel="sms"):
+        context = {v: f"TEST_{v.upper()}" for v in (tpl.available_variables or [])}
+        rendered = messaging.render(tpl.content or "", context)
+        if len(rendered) > 320:
+            too_long.append(f"{tpl.trigger_key}: {len(rendered)} chars")
+    assert not too_long, "\n".join(too_long)
+
+
+def test_send_notification_endpoint_delivers_on_the_chosen_channels(
+        api, make_tenant, tenant_token, monkeypatch):
+    """The Send Notification screen, end to end over HTTP."""
+    from apps.control import messaging
+
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+    sent = []
+    monkeypatch.setattr(messaging, "send_email",
+                        lambda to, subject, body: (sent.append((to, subject)), (True, ""))[1])
+
+    resp = client.post("/api/notifications/broadcast/", {
+        "title": "Payroll day", "body": "Salaries credited.",
+        "audience_type": "all", "channels": ["email"],
+    }, format="json")
+    assert resp.status_code in (200, 201), resp.data
+    assert sent, f"no email dispatched; response was {resp.data}"
+    assert "Payroll day" in sent[0][1] or "Payroll day" in str(resp.data)

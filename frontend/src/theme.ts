@@ -55,6 +55,16 @@ export function buildTheme(scheme: ColorScheme): Theme {
               transform: "translateY(-2px)",
               boxShadow: `0px 8px 20px ${alpha(scheme.primary, 0.4)}`,
             },
+            // MUI greys a disabled button via `background-color`, which the
+            // gradient `background` shorthand above outranks — so a disabled
+            // button kept the dark fill AND took the grey label, leaving dark
+            // text on a dark button. Clear the gradient explicitly.
+            "&.Mui-disabled": {
+              background: "rgba(0,0,0,0.12)",
+              color: "rgba(0,0,0,0.38)",
+              boxShadow: "none",
+              transform: "none",
+            },
           },
           outlined: {
             borderWidth: "2px",
