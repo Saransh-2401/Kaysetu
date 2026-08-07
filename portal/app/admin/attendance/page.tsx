@@ -33,6 +33,7 @@ import {
     InputLabel,
     Alert,
 } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import { motion } from "framer-motion";
 import { BadgeIcon, CalendarTodayIcon, ExitToAppIcon, DownloadIcon, EditIcon, HistoryIcon, CloseIcon } from "@/components/icons";
 import { apiClient } from "@/lib/api-client";
@@ -115,54 +116,150 @@ const ROLE_LABELS: Record<string, string> = {
     distributor: "Distributor",
 };
 
+// ─── Shared style tokens ─────────────────────────────────────────────────────
+// One place for the table + chip language so both tabs render identically and
+// nothing drifts into the "everything is a pill" look.
+
+const RADIUS = "8px";
+
+/** Compact, squared-off status chip — same metrics everywhere in the table. */
+const chipSx = {
+    height: 22,
+    borderRadius: "6px",
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    "& .MuiChip-label": { px: 0.9 },
+} as const;
+
+/** Dense, ledger-style table: tinted uppercase header, hairline row rules. */
+function tableSx(theme: Theme) {
+    return {
+        "& .MuiTableCell-root": {
+            px: 1.75,
+            py: 1.1,
+            fontSize: "0.8125rem",
+            whiteSpace: "nowrap",
+            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.45)}`,
+        },
+        "& .MuiTableHead-root .MuiTableCell-root": {
+            py: 1.15,
+            fontSize: "0.6875rem",
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "text.secondary",
+            bgcolor: alpha(theme.palette.primary.main, 0.035),
+            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+        },
+        "& .MuiTableBody-root .MuiTableRow-root:last-of-type .MuiTableCell-root": {
+            borderBottom: 0,
+        },
+        "& .MuiTableBody-root .MuiTableRow-root:hover": {
+            bgcolor: alpha(theme.palette.primary.main, 0.03),
+        },
+    } as const;
+}
+
+type Col = { key: string; align?: "left" | "center" | "right" };
+
+const AGENT_COLS: Col[] = [
+    { key: "Agent" },
+    { key: "Punch In", align: "center" },
+    { key: "Punch Out", align: "center" },
+    { key: "Hours", align: "center" },
+    { key: "Type", align: "center" },
+    { key: "Checked Out By" },
+    { key: "Status", align: "center" },
+    { key: "App Status", align: "center" },
+    { key: "TA Basis", align: "center" },
+    { key: "Action", align: "right" },
+];
+
+const OFFICE_COLS: Col[] = [
+    { key: "Name" },
+    { key: "Role" },
+    { key: "Check In", align: "center" },
+    { key: "Check Out", align: "center" },
+    { key: "Hours", align: "center" },
+    { key: "Type", align: "center" },
+    { key: "Checked Out By" },
+    { key: "Status", align: "center" },
+    { key: "Action", align: "right" },
+];
+
+function TableHeadRow({ cols }: { cols: Col[] }) {
+    return (
+        <TableHead>
+            <TableRow>
+                {cols.map((c) => (
+                    <TableCell key={c.key} align={c.align ?? "left"}>{c.key}</TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
 // ─── Small UI components ─────────────────────────────────────────────────────
 
 function AgentAvatar({ name, color, src }: { name: string; color: "primary" | "secondary"; src?: string | null }) {
     const theme = useTheme();
     const imgUrl = src ? (src.startsWith("http") ? src : `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") || "http://localhost:8000"}${src}`) : undefined;
     return (
-        <Avatar src={imgUrl} sx={{ width: 28, height: 28, fontSize: "0.7rem", bgcolor: alpha(theme.palette[color].main, 0.15), color: `${color}.main`, fontWeight: 700 }}>
+        <Avatar src={imgUrl} variant="rounded" sx={{ width: 28, height: 28, borderRadius: "6px", fontSize: "0.7rem", bgcolor: alpha(theme.palette[color].main, 0.14), color: `${color}.main`, fontWeight: 700 }}>
             {(name || "?")[0].toUpperCase()}
         </Avatar>
     );
 }
 
+/** Neutral (absent / offline) chip tone that also works in dark mode. */
+function useMutedChipSx() {
+    const theme = useTheme();
+    return {
+        ...chipSx,
+        bgcolor: alpha(theme.palette.text.primary, 0.06),
+        color: "text.secondary",
+    };
+}
+
 function StatusChip({ punchedIn, punchedOut }: { punchedIn: boolean; punchedOut: boolean }) {
-    if (!punchedIn) return <Chip label="Absent" size="small" sx={{ bgcolor: "grey.100", color: "text.disabled", fontSize: "0.65rem" }} />;
-    if (!punchedOut) return <Chip label="Present" size="small" color="success" sx={{ fontSize: "0.65rem" }} />;
-    return <Chip label="Done" size="small" sx={{ bgcolor: "grey.200", color: "text.secondary", fontSize: "0.65rem" }} />;
+    const theme = useTheme();
+    const muted = useMutedChipSx();
+    if (!punchedIn) return <Chip label="Absent" size="small" data-testid="attendance-status-absent" sx={muted} />;
+    if (!punchedOut) return <Chip label="Present" size="small" data-testid="attendance-status-present" sx={{ ...chipSx, bgcolor: alpha(theme.palette.success.main, 0.14), color: "success.dark" }} />;
+    return <Chip label="Done" size="small" data-testid="attendance-status-done" sx={{ ...chipSx, bgcolor: alpha(theme.palette.text.primary, 0.08), color: "text.secondary" }} />;
 }
 
 function OfficeStatusChip({ checkedIn }: { checkedIn: boolean }) {
-    if (!checkedIn) return <Chip label="Absent" size="small" sx={{ bgcolor: "grey.100", color: "text.disabled", fontSize: "0.65rem" }} />;
-    return <Chip label="Present" size="small" color="success" sx={{ fontSize: "0.65rem" }} />;
+    const theme = useTheme();
+    const muted = useMutedChipSx();
+    if (!checkedIn) return <Chip label="Absent" size="small" data-testid="attendance-office-status-absent" sx={muted} />;
+    return <Chip label="Present" size="small" data-testid="attendance-office-status-present" sx={{ ...chipSx, bgcolor: alpha(theme.palette.success.main, 0.14), color: "success.dark" }} />;
 }
 
 function TypeChip({ type }: { type: "manual" | "auto" | null }) {
     const theme = useTheme();
-    if (!type) return <Typography variant="caption" color="text.disabled">—</Typography>;
+    if (!type) return <Typography variant="body2" color="text.disabled">—</Typography>;
     return (
-        <Chip label={type === "auto" ? "Auto" : "Manual"} size="small"
-            sx={{ fontSize: "0.62rem", height: 18, bgcolor: type === "auto" ? alpha(theme.palette.warning.main, 0.12) : alpha(theme.palette.success.main, 0.12), color: type === "auto" ? "warning.dark" : "success.dark", fontWeight: 700 }}
+        <Chip label={type === "auto" ? "Auto" : "Manual"} size="small" data-testid={`attendance-type-${type}`}
+            sx={{ ...chipSx, height: 20, fontSize: "0.66rem", bgcolor: type === "auto" ? alpha(theme.palette.warning.main, 0.14) : alpha(theme.palette.success.main, 0.14), color: type === "auto" ? "warning.dark" : "success.dark", fontWeight: 700 }}
         />
     );
 }
 
 function AppStatusChip({ lastSeen }: { lastSeen: string | null }) {
     const theme = useTheme();
-    if (!lastSeen) return <Chip label="Offline" size="small" sx={{ bgcolor: "grey.100", color: "text.disabled", fontSize: "0.65rem" }} />;
+    const muted = useMutedChipSx();
+    if (!lastSeen) return <Chip label="Offline" size="small" data-testid="attendance-app-status-offline" sx={muted} />;
     const online = isAgentOnline(lastSeen);
     return (
         <Tooltip title={`Last seen: ${new Date(lastSeen).toLocaleString()}`}>
             <Chip
                 label={online ? "Online" : offlineLabel(lastSeen)}
                 size="small"
-                sx={{
-                    fontSize: "0.65rem",
-                    bgcolor: online ? alpha(theme.palette.success.main, 0.12) : "grey.100",
-                    color: online ? "success.dark" : "text.disabled",
-                    fontWeight: 700,
-                }}
+                data-testid={`attendance-app-status-${online ? "online" : "stale"}`}
+                sx={online
+                    ? { ...chipSx, bgcolor: alpha(theme.palette.success.main, 0.14), color: "success.dark", fontWeight: 700 }
+                    : muted}
             />
         </Tooltip>
     );
@@ -175,25 +272,22 @@ function MockChip() {
             <Chip
                 label="Fake GPS"
                 size="small"
-                sx={{
-                    fontSize: "0.65rem",
-                    bgcolor: alpha(theme.palette.error.main, 0.12),
-                    color: "error.dark",
-                    fontWeight: 700,
-                }}
+                data-testid="attendance-mock-gps-chip"
+                sx={{ ...chipSx, bgcolor: alpha(theme.palette.error.main, 0.12), color: "error.dark", fontWeight: 700 }}
             />
         </Tooltip>
     );
 }
 
-function IconBtn({ loading, disabled, onClick, title }: { loading: boolean; disabled: boolean; onClick: () => void; title: string }) {
+function IconBtn({ loading, disabled, onClick, title, testId }: { loading: boolean; disabled: boolean; onClick: () => void; title: string; testId: string }) {
+    const theme = useTheme();
     return (
         <Tooltip title={title}>
             <span>
-                <Button size="small" variant="outlined" color="warning" disabled={disabled} onClick={onClick}
-                    sx={{ minWidth: 0, width: 28, height: 28, p: 0, borderRadius: "8px" }}>
+                <IconButton size="small" disabled={disabled} onClick={onClick} data-testid={testId}
+                    sx={{ width: 28, height: 28, borderRadius: RADIUS, border: `1px solid ${alpha(theme.palette.warning.main, 0.35)}`, color: "warning.main", "&:hover": { bgcolor: alpha(theme.palette.warning.main, 0.08) } }}>
                     {loading ? <CircularProgress size={12} color="inherit" /> : <ExitToAppIcon sx={{ fontSize: 14 }} />}
-                </Button>
+                </IconButton>
             </span>
         </Tooltip>
     );
@@ -332,7 +426,7 @@ function EditAttendanceDialog({
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-            PaperProps={{ elevation: 0, sx: { borderRadius: "12px", border: `1px solid ${alpha(theme.palette.divider, 0.1)}` } }}>
+            PaperProps={{ elevation: 0, sx: { borderRadius: "10px", border: `1px solid ${alpha(theme.palette.divider, 0.6)}` } }}>
             <Box sx={{ px: 3, pt: 2.5, pb: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <Box>
                     <Typography variant="subtitle1" fontWeight={700} lineHeight={1.3}>Edit Attendance</Typography>
@@ -448,7 +542,7 @@ function EditLogDialog({
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-            PaperProps={{ elevation: 0, sx: { borderRadius: "12px", border: `1px solid ${alpha(theme.palette.divider, 0.1)}` } }}>
+            PaperProps={{ elevation: 0, sx: { borderRadius: "10px", border: `1px solid ${alpha(theme.palette.divider, 0.6)}` } }}>
             <Box sx={{ px: 3, pt: 2.5, pb: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <Box>
                     <Typography variant="subtitle1" fontWeight={700} lineHeight={1.3}>Edit History</Typography>
@@ -880,24 +974,30 @@ export default function AttendancePage() {
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
 
                     {/* ── Header ── */}
-                    <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "flex-start", sm: "center" }} justifyContent="space-between" spacing={2} mb={3}>
+                    <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "flex-start", sm: "center" }} justifyContent="space-between" spacing={2} mb={2.5}>
                         <Stack direction="row" alignItems="center" spacing={1.5}>
-                            <Box sx={{ width: 44, height: 44, borderRadius: "12px", bgcolor: alpha(theme.palette.primary.main, 0.1), display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <BadgeIcon sx={{ color: "primary.main" }} />
+                            <Box sx={{ width: 38, height: 38, borderRadius: RADIUS, bgcolor: alpha(theme.palette.primary.main, 0.09), display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <BadgeIcon sx={{ fontSize: 20, color: "primary.main" }} />
                             </Box>
                             <Box>
-                                <Typography variant="h5" fontWeight={800}>Attendance</Typography>
-                                <Typography variant="body2" color="text.secondary">Track daily check-in / check-out for all staff</Typography>
+                                <Typography variant="h6" fontWeight={700} sx={{ fontSize: "1.15rem", lineHeight: 1.3, letterSpacing: "-0.01em" }}>Attendance</Typography>
+                                <Typography variant="caption" color="text.secondary">Track daily check-in / check-out for all staff</Typography>
                             </Box>
                         </Stack>
 
-                        <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Stack direction="row" spacing={1} alignItems="center">
                             <Button
                                 variant="outlined"
                                 size="small"
-                                startIcon={<DownloadIcon />}
+                                startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
                                 onClick={() => setExportOpen(true)}
-                                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+                                data-testid="attendance-export-btn"
+                                sx={{
+                                    borderRadius: RADIUS, textTransform: "none", fontWeight: 600, fontSize: "0.8125rem",
+                                    px: 1.75, py: 0.75, height: 36,
+                                    borderWidth: 1, borderColor: alpha(theme.palette.primary.main, 0.35),
+                                    "&:hover": { borderWidth: 1 },
+                                }}
                             >
                                 Export
                             </Button>
@@ -906,24 +1006,39 @@ export default function AttendancePage() {
                                 size="small"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                InputProps={{ startAdornment: <CalendarTodayIcon sx={{ fontSize: 16, color: "text.secondary", mr: 0.5 }} /> }}
-                                sx={{ minWidth: 180 }}
+                                inputProps={{ "data-testid": "attendance-date-input" }}
+                                InputProps={{ startAdornment: <CalendarTodayIcon sx={{ fontSize: 15, color: "text.secondary", mr: 0.75 }} /> }}
+                                sx={{
+                                    width: 168,
+                                    "& .MuiOutlinedInput-root": { borderRadius: RADIUS, height: 36, fontSize: "0.8125rem", bgcolor: "background.paper" },
+                                }}
                             />
                         </Stack>
                     </Stack>
 
                     {/* ── Tabs ── */}
-                    <Paper elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, borderRadius: 3, overflow: "hidden" }}>
-                        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`, px: 2, pt: 1 }}>
-                            <Tab label={<Stack direction="row" alignItems="center" spacing={0.8}><span>Sales Agents</span><Chip label={`${presentAgents}/${agents.length}`} size="small" sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }} /></Stack>} />
+                    <Paper elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.6)}`, borderRadius: "10px", overflow: "hidden" }}>
+                        <Tabs
+                            value={tab}
+                            onChange={(_, v) => setTab(v)}
+                            sx={{
+                                minHeight: 44,
+                                px: 1.5,
+                                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                                "& .MuiTab-root": { minHeight: 44, py: 0, px: 1.5, fontSize: "0.8125rem", fontWeight: 600, textTransform: "none", color: "text.secondary" },
+                                "& .Mui-selected": { fontWeight: 700 },
+                                "& .MuiTabs-indicator": { height: 2 },
+                            }}
+                        >
+                            <Tab data-testid="attendance-tab-agents" label={<Stack direction="row" alignItems="center" spacing={0.75}><span>Sales Agents</span><Chip label={`${presentAgents}/${agents.length}`} size="small" sx={{ ...chipSx, height: 19, fontSize: "0.65rem", fontWeight: 700, bgcolor: alpha(theme.palette.text.primary, 0.07), color: "text.secondary" }} /></Stack>} />
                             {isAdmin && (
-                                <Tab label={<Stack direction="row" alignItems="center" spacing={0.8}><span>Office Staff</span><Chip label={presentOffice} size="small" sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }} /></Stack>} />
+                                <Tab data-testid="attendance-tab-office" label={<Stack direction="row" alignItems="center" spacing={0.75}><span>Office Staff</span><Chip label={presentOffice} size="small" sx={{ ...chipSx, height: 19, fontSize: "0.65rem", fontWeight: 700, bgcolor: alpha(theme.palette.text.primary, 0.07), color: "text.secondary" }} /></Stack>} />
                             )}
                         </Tabs>
 
                         {/* Sales Agents — field GPS punch, needs the TRACK module */}
                         {tab === 0 && (
-                            <Box sx={{ p: 2 }}>
+                            <Box data-testid="attendance-agents-panel">
                                 {!trackEntitled ? (
                                     <ModuleUpgradeNotice
                                         feature="Sales Agent attendance"
@@ -933,47 +1048,42 @@ export default function AttendancePage() {
                                         compact
                                     />
                                 )
-                                    : agentsLoading ? <Stack alignItems="center" py={6}><CircularProgress size={32} /></Stack>
-                                    : agents.length === 0 ? <Stack alignItems="center" py={6}><Typography color="text.secondary">No sales agents found</Typography></Stack>
+                                    : agentsLoading ? <Stack alignItems="center" py={7}><CircularProgress size={28} /></Stack>
+                                    : agents.length === 0 ? <Stack alignItems="center" py={7}><Typography variant="body2" color="text.secondary">No sales agents found</Typography></Stack>
                                     : (
-                                        <TableContainer sx={{ overflowX: 'auto' }}>
-                                            <Table size="small" sx={{ minWidth: 750 }}>
-                                                <TableHead>
-                                                    <TableRow>
-                                                        {["Agent", "Punch In", "Punch Out", "Hours", "Type", "Checked Out By", "Status", "App Status", "TA Basis", "Action"].map((h) => (
-                                                            <TableCell key={h} sx={{ fontWeight: 700 }}>{h}</TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                </TableHead>
+                                        <TableContainer sx={{ overflowX: "auto" }}>
+                                            <Table size="small" sx={{ minWidth: 980, ...tableSx(theme) }}>
+                                                <TableHeadRow cols={AGENT_COLS} />
                                                 <TableBody>
                                                     {agents.map((row) => (
-                                                        <TableRow key={row.agent_id} sx={{ "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
+                                                        <TableRow key={row.agent_id} data-testid={`attendance-agent-row-${row.agent_id}`}>
                                                             <TableCell>
-                                                                <Stack direction="row" alignItems="center" spacing={1}
+                                                                <Stack direction="row" alignItems="center" spacing={1.25}
                                                                     onClick={() => openUserDetail(row.agent_id)}
-                                                                    sx={{ cursor: "pointer", "&:hover": { opacity: 0.8 } }}>
+                                                                    data-testid={`attendance-agent-name-${row.agent_id}`}
+                                                                    sx={{ cursor: "pointer", "&:hover .name": { color: "primary.main" } }}>
                                                                     <AgentAvatar name={row.agent_name} color="secondary" src={row.profile_image} />
-                                                                    <Typography variant="body2" fontWeight={600} sx={{ "&:hover": { textDecoration: "underline" } }}>{row.agent_name}</Typography>
+                                                                    <Typography className="name" variant="body2" fontWeight={600} sx={{ fontSize: "0.8125rem", transition: "color .15s" }}>{row.agent_name}</Typography>
                                                                 </Stack>
                                                             </TableCell>
-                                                            <TableCell><Typography variant="body2">{formatTime(row.punch_in_time)}</Typography></TableCell>
-                                                            <TableCell><Typography variant="body2">{formatTime(row.punch_out_time)}</Typography></TableCell>
-                                                            <TableCell><Typography variant="body2" fontWeight={600}>{row.working_hours ? formatWorkingHours(row.working_hours) : "—"}</Typography></TableCell>
-                                                            <TableCell><TypeChip type={row.punch_out_type} /></TableCell>
-                                                            <TableCell><Typography variant="caption" color="text.secondary">{row.checked_out_by_name ?? "—"}</Typography></TableCell>
-                                                            <TableCell><StatusChip punchedIn={Boolean(row.punch_in_time)} punchedOut={Boolean(row.punch_out_time)} /></TableCell>
-                                                            <TableCell>
-                                                                <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                                                            <TableCell align="center">{formatTime(row.punch_in_time) || <Box component="span" sx={{ color: "text.disabled" }}>—</Box>}</TableCell>
+                                                            <TableCell align="center">{formatTime(row.punch_out_time) || <Box component="span" sx={{ color: "text.disabled" }}>—</Box>}</TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{row.working_hours ? formatWorkingHours(row.working_hours) : <Box component="span" sx={{ color: "text.disabled", fontWeight: 400 }}>—</Box>}</TableCell>
+                                                            <TableCell align="center"><TypeChip type={row.punch_out_type} /></TableCell>
+                                                            <TableCell sx={{ color: "text.secondary" }}>{row.checked_out_by_name ?? "—"}</TableCell>
+                                                            <TableCell align="center"><StatusChip punchedIn={Boolean(row.punch_in_time)} punchedOut={Boolean(row.punch_out_time)} /></TableCell>
+                                                            <TableCell align="center">
+                                                                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center" flexWrap="wrap" useFlexGap>
                                                                     <AppStatusChip lastSeen={row.last_seen} />
                                                                     {row.mock_detected && <MockChip />}
                                                                 </Stack>
                                                             </TableCell>
-                                                            <TableCell>
+                                                            <TableCell align="center">
                                                                 {/* Travel-allowance distance basis for this day (admin sets at EOD). */}
                                                                 {!row.record_id ? (
-                                                                    <Typography variant="caption" color="text.secondary">—</Typography>
+                                                                    <Box component="span" sx={{ color: "text.disabled" }}>—</Box>
                                                                 ) : isAdmin ? (
-                                                                    <FormControl size="small" sx={{ minWidth: 96 }}>
+                                                                    <FormControl size="small" sx={{ minWidth: 104 }}>
                                                                         <Select
                                                                             value={row.allowance_basis || ""}
                                                                             displayEmpty
@@ -985,32 +1095,34 @@ export default function AttendancePage() {
                                                                                     setAgents((prev) => prev.map((a) => a.agent_id === row.agent_id ? { ...a, allowance_basis: basis } : a));
                                                                                 } catch { /* leave previous value on failure */ }
                                                                             }}
-                                                                            sx={{ fontSize: "0.78rem" }}
+                                                                            sx={{ height: 30, borderRadius: "6px", fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
                                                                         >
-                                                                            <MenuItem value="" data-testid={`attendance-basis-none-${row.agent_id}`}>Not set</MenuItem>
-                                                                            <MenuItem value="home" data-testid={`attendance-basis-home-${row.agent_id}`}>Home</MenuItem>
-                                                                            <MenuItem value="office" data-testid={`attendance-basis-office-${row.agent_id}`}>Office</MenuItem>
+                                                                            <MenuItem value="" data-testid={`attendance-basis-none-${row.agent_id}`} sx={{ fontSize: "0.8125rem" }}>Not set</MenuItem>
+                                                                            <MenuItem value="home" data-testid={`attendance-basis-home-${row.agent_id}`} sx={{ fontSize: "0.8125rem" }}>Home</MenuItem>
+                                                                            <MenuItem value="office" data-testid={`attendance-basis-office-${row.agent_id}`} sx={{ fontSize: "0.8125rem" }}>Office</MenuItem>
                                                                         </Select>
                                                                     </FormControl>
                                                                 ) : (
-                                                                    <Chip size="small" label={row.allowance_basis ? row.allowance_basis : "Not set"} variant="outlined" />
+                                                                    <Chip size="small" variant="outlined" data-testid={`attendance-basis-chip-${row.agent_id}`}
+                                                                        label={row.allowance_basis ? row.allowance_basis : "Not set"}
+                                                                        sx={{ ...chipSx, textTransform: "capitalize" }} />
                                                                 )}
                                                             </TableCell>
-                                                            <TableCell>
-                                                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                                            <TableCell align="right">
+                                                                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
                                                                     {row.record_id && row.punch_in_time && !row.punch_out_time && (
-                                                                        <IconBtn loading={checkingOut === row.record_id} disabled={checkingOut !== null} onClick={() => handleAgentCheckOut(row.record_id!)} title="Punch out this agent" />
+                                                                        <IconBtn loading={checkingOut === row.record_id} disabled={checkingOut !== null} onClick={() => handleAgentCheckOut(row.record_id!)} title="Punch out this agent" testId={`attendance-agent-checkout-btn-${row.agent_id}`} />
                                                                     )}
                                                                     <Tooltip title="Edit attendance">
-                                                                        <IconButton size="small" onClick={() => handleEditAgent(row)}
-                                                                            sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`, borderRadius: "8px" }}>
+                                                                        <IconButton size="small" onClick={() => handleEditAgent(row)} data-testid={`attendance-agent-edit-btn-${row.agent_id}`}
+                                                                            sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.primary.main, 0.28)}`, borderRadius: RADIUS, "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}>
                                                                             <EditIcon sx={{ fontSize: 14, color: "primary.main" }} />
                                                                         </IconButton>
                                                                     </Tooltip>
                                                                     {row.record_id && row.has_edit_logs && (
                                                                         <Tooltip title="View edit history">
-                                                                            <IconButton size="small" onClick={() => handleLogAgent(row)}
-                                                                                sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`, borderRadius: "8px" }}>
+                                                                            <IconButton size="small" onClick={() => handleLogAgent(row)} data-testid={`attendance-agent-history-btn-${row.agent_id}`}
+                                                                                sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.warning.main, 0.28)}`, borderRadius: RADIUS, "&:hover": { bgcolor: alpha(theme.palette.warning.main, 0.08) } }}>
                                                                                 <HistoryIcon sx={{ fontSize: 14, color: "warning.main" }} />
                                                                             </IconButton>
                                                                         </Tooltip>
@@ -1028,7 +1140,7 @@ export default function AttendancePage() {
 
                         {/* Office Staff — admin only; needs the ATT module */}
                         {isAdmin && tab === 1 && (
-                            <Box sx={{ p: 2 }}>
+                            <Box data-testid="attendance-office-panel">
                                 {!attEntitled ? (
                                     <ModuleUpgradeNotice
                                         feature="Office Staff attendance"
@@ -1038,51 +1150,46 @@ export default function AttendancePage() {
                                         compact
                                     />
                                 )
-                                    : officeLoading ? <Stack alignItems="center" py={6}><CircularProgress size={32} /></Stack>
-                                    : officeStaff.length === 0 ? <Stack alignItems="center" py={6}><Typography color="text.secondary">No check-in records for {date}</Typography></Stack>
+                                    : officeLoading ? <Stack alignItems="center" py={7}><CircularProgress size={28} /></Stack>
+                                    : officeStaff.length === 0 ? <Stack alignItems="center" py={7}><Typography variant="body2" color="text.secondary">No check-in records for {date}</Typography></Stack>
                                     : (
-                                        <TableContainer sx={{ overflowX: 'auto' }}>
-                                            <Table size="small" sx={{ minWidth: 800 }}>
-                                                <TableHead>
-                                                    <TableRow>
-                                                        {["Name", "Role", "Check In", "Check Out", "Hours", "Type", "Checked Out By", "Status", "Action"].map((h) => (
-                                                            <TableCell key={h} sx={{ fontWeight: 700 }}>{h}</TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                </TableHead>
+                                        <TableContainer sx={{ overflowX: "auto" }}>
+                                            <Table size="small" sx={{ minWidth: 900, ...tableSx(theme) }}>
+                                                <TableHeadRow cols={OFFICE_COLS} />
                                                 <TableBody>
                                                     {officeStaff.map((row) => (
-                                                        <TableRow key={row.user_id} sx={{ "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
+                                                        <TableRow key={row.user_id} data-testid={`attendance-office-row-${row.user_id}`}>
                                                             <TableCell>
-                                                                <Stack direction="row" alignItems="center" spacing={1}
+                                                                <Stack direction="row" alignItems="center" spacing={1.25}
                                                                     onClick={() => openUserDetail(row.user_id)}
-                                                                    sx={{ cursor: "pointer", "&:hover": { opacity: 0.8 } }}>
+                                                                    data-testid={`attendance-office-name-${row.user_id}`}
+                                                                    sx={{ cursor: "pointer", "&:hover .name": { color: "primary.main" } }}>
                                                                     <AgentAvatar name={row.user_name} color="primary" src={row.profile_image} />
-                                                                    <Typography variant="body2" fontWeight={600} sx={{ "&:hover": { textDecoration: "underline" } }}>{row.user_name}</Typography>
+                                                                    <Typography className="name" variant="body2" fontWeight={600} sx={{ fontSize: "0.8125rem", transition: "color .15s" }}>{row.user_name}</Typography>
                                                                 </Stack>
                                                             </TableCell>
-                                                            <TableCell><Typography variant="caption" color="text.secondary">{ROLE_LABELS[row.user_role] ?? row.user_role}</Typography></TableCell>
-                                                            <TableCell><Typography variant="body2">{formatTime(row.check_in_time)}</Typography></TableCell>
-                                                            <TableCell><Typography variant="body2">{formatTime(row.check_out_time)}</Typography></TableCell>
-                                                            <TableCell><Typography variant="body2" fontWeight={600}>{row.working_hours ? formatWorkingHours(row.working_hours) : "—"}</Typography></TableCell>
-                                                            <TableCell><TypeChip type={row.check_out_type} /></TableCell>
-                                                            <TableCell><Typography variant="caption" color="text.secondary">{row.checked_out_by_name ?? "—"}</Typography></TableCell>
-                                                            <TableCell><OfficeStatusChip checkedIn={row.checked_in} /></TableCell>
-                                                            <TableCell>
-                                                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                                            <TableCell sx={{ color: "text.secondary" }}>{ROLE_LABELS[row.user_role] ?? row.user_role}</TableCell>
+                                                            <TableCell align="center">{formatTime(row.check_in_time) || <Box component="span" sx={{ color: "text.disabled" }}>—</Box>}</TableCell>
+                                                            <TableCell align="center">{formatTime(row.check_out_time) || <Box component="span" sx={{ color: "text.disabled" }}>—</Box>}</TableCell>
+                                                            <TableCell align="center" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{row.working_hours ? formatWorkingHours(row.working_hours) : <Box component="span" sx={{ color: "text.disabled", fontWeight: 400 }}>—</Box>}</TableCell>
+                                                            <TableCell align="center"><TypeChip type={row.check_out_type} /></TableCell>
+                                                            <TableCell sx={{ color: "text.secondary" }}>{row.checked_out_by_name ?? "—"}</TableCell>
+                                                            <TableCell align="center"><OfficeStatusChip checkedIn={row.checked_in} /></TableCell>
+                                                            <TableCell align="right">
+                                                                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
                                                                     {row.checked_in && !row.checked_out && (
-                                                                        <IconBtn loading={checkingOut === row.id} disabled={checkingOut !== null} onClick={() => handleOfficeCheckOut(row.id)} title="Check out this user" />
+                                                                        <IconBtn loading={checkingOut === row.id} disabled={checkingOut !== null} onClick={() => handleOfficeCheckOut(row.id)} title="Check out this user" testId={`attendance-office-checkout-btn-${row.user_id}`} />
                                                                     )}
                                                                     <Tooltip title="Edit attendance">
-                                                                        <IconButton size="small" onClick={() => handleEditOffice(row)}
-                                                                            sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`, borderRadius: "8px" }}>
+                                                                        <IconButton size="small" onClick={() => handleEditOffice(row)} data-testid={`attendance-office-edit-btn-${row.user_id}`}
+                                                                            sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.primary.main, 0.28)}`, borderRadius: RADIUS, "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}>
                                                                             <EditIcon sx={{ fontSize: 14, color: "primary.main" }} />
                                                                         </IconButton>
                                                                     </Tooltip>
                                                                     {row.has_edit_logs && (
                                                                         <Tooltip title="View edit history">
-                                                                            <IconButton size="small" onClick={() => handleLogOffice(row)}
-                                                                                sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`, borderRadius: "8px" }}>
+                                                                            <IconButton size="small" onClick={() => handleLogOffice(row)} data-testid={`attendance-office-history-btn-${row.user_id}`}
+                                                                                sx={{ width: 28, height: 28, border: `1px solid ${alpha(theme.palette.warning.main, 0.28)}`, borderRadius: RADIUS, "&:hover": { bgcolor: alpha(theme.palette.warning.main, 0.08) } }}>
                                                                                 <HistoryIcon sx={{ fontSize: 14, color: "warning.main" }} />
                                                                             </IconButton>
                                                                         </Tooltip>
@@ -1122,8 +1229,8 @@ export default function AttendancePage() {
 
             {/* ── Export Dialog ── */}
             <Dialog open={exportOpen} onClose={() => !exportLoading && setExportOpen(false)} maxWidth="xs" fullWidth
-                PaperProps={{ elevation: 0, sx: { borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.12)}` } }}>
-                <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>
+                PaperProps={{ elevation: 0, sx: { borderRadius: "10px", border: `1px solid ${alpha(theme.palette.divider, 0.6)}` } }}>
+                <DialogTitle sx={{ fontWeight: 700, fontSize: "1.05rem", pb: 0 }}>
                     Export Attendance Report
                 </DialogTitle>
                 <DialogContent sx={{ pt: 2 }}>
@@ -1140,6 +1247,8 @@ export default function AttendancePage() {
                         onChange={(e) => setExportMonth(e.target.value)}
                         disabled={exportLoading}
                         InputLabelProps={{ shrink: true }}
+                        inputProps={{ "data-testid": "attendance-export-month-input" }}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: RADIUS } }}
                     />
                     {exportLoading && (
                         <Box mt={2.5}>
@@ -1152,15 +1261,18 @@ export default function AttendancePage() {
                     )}
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                    <Button onClick={() => setExportOpen(false)} disabled={exportLoading} sx={{ textTransform: "none" }}>
+                    <Button onClick={() => setExportOpen(false)} disabled={exportLoading} size="small" data-testid="attendance-export-cancel-btn"
+                        sx={{ textTransform: "none", color: "text.secondary", borderRadius: RADIUS, px: 2 }}>
                         Cancel
                     </Button>
                     <Button
                         variant="contained"
+                        size="small"
                         onClick={handleExport}
                         disabled={exportLoading || !exportMonth}
-                        startIcon={exportLoading ? <CircularProgress size={14} color="inherit" /> : <DownloadIcon />}
-                        sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                        data-testid="attendance-export-confirm-btn"
+                        startIcon={exportLoading ? <CircularProgress size={14} color="inherit" /> : <DownloadIcon sx={{ fontSize: 16 }} />}
+                        sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.8125rem", borderRadius: RADIUS, px: 2 }}
                     >
                         {exportLoading ? "Generating…" : `Export ${exportMonthLabel}`}
                     </Button>

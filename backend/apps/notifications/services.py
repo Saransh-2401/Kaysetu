@@ -29,10 +29,10 @@ from .models import (
 
 logger = logging.getLogger("kaysetu.notifications")
 
-# Channels we actually dispatch. Email and SMS go out on the PLATFORM account
-# (apps.control.messaging) using the platform templates. `push` is still only
-# resolved and reported — no push provider is wired yet.
-DELIVERABLE_CHANNELS = {"in_app", "email", "sms"}
+# Every channel is dispatched. Email, SMS and push all go out on the PLATFORM
+# account (apps.control.messaging) using the platform templates — a tenant
+# configures none of them and pays for none of them.
+DELIVERABLE_CHANNELS = {"in_app", "email", "sms", "push"}
 
 
 def _tenant_atomic():
@@ -195,7 +195,7 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
                     reference_doctype=reference_doctype, reference_name=reference_name,
                     is_urgent=urgent,
                 ))
-            if channels.get("email") or channels.get("sms"):
+            if channels.get("email") or channels.get("sms") or channels.get("push"):
                 outbound.append((user, channels))
         if created:
             Notification.objects.bulk_create(created)
@@ -215,6 +215,7 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
         "delivered_in_app": len(created),
         "delivered_email": sent["email"],
         "delivered_sms": sent["sms"],
+        "delivered_push": sent["push"],
         "skipped_muted": skipped_muted,
         "channels": channel_tally,
         "not_dispatched": pending,   # resolved on, but no provider wired yet
@@ -227,12 +228,21 @@ def _dispatch_external(event_key, outbound, subject, message, context):
     Entirely best-effort: notifications must never break the business operation
     that triggered them, and one bad address must not stop the rest of the batch.
     """
-    result = {"email": 0, "sms": 0}
+    result = {"email": 0, "sms": 0, "push": 0}
     if not outbound:
         return result
 
     from apps.control import messaging
     from apps.tenancy.context import get_tenant
+
+    from .models import DeviceToken
+
+    # One query for every push recipient rather than one per user.
+    push_user_ids = [u.pk for u, ch in outbound if ch.get("push")]
+    tokens_by_user = {}
+    if push_user_ids:
+        for row in DeviceToken.objects.filter(user_id__in=push_user_ids, is_active=True):
+            tokens_by_user.setdefault(row.user_id, []).append(row.token)
 
     tenant = get_tenant()
     base = {
@@ -259,6 +269,18 @@ def _dispatch_external(event_key, outbound, subject, message, context):
                     result["sms"] += 1
             except Exception:                     # noqa: BLE001
                 logger.exception("sms for %s -> %s failed", event_key, user.pk)
+        if channels.get("push"):
+            tokens = tokens_by_user.get(user.pk) or []
+            if tokens:
+                try:
+                    count, _ = messaging.send_push(
+                        tokens, subject, message,
+                        # The app uses these to deep-link straight to the record.
+                        data={"event_key": event_key, "org_code": base.get("org_code", "")},
+                    )
+                    result["push"] += count
+                except Exception:                 # noqa: BLE001
+                    logger.exception("push for %s -> %s failed", event_key, user.pk)
     return result
 
 

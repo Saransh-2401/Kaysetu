@@ -1,5 +1,5 @@
 "use client";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,8 +20,20 @@ export default function AuthGuard({ scope, children }: { scope: Scope; children:
 
   if (!ready) {
     return (
-      <Box sx={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
-        <CircularProgress data-testid={`${scope}-authguard-spinner`} />
+      <Box
+        sx={{
+          display: "grid",
+          placeItems: "center",
+          minHeight: "100vh",
+          bgcolor: "background.default",
+        }}
+      >
+        <Stack alignItems="center" spacing={2}>
+          <CircularProgress size={28} data-testid={`${scope}-authguard-spinner`} />
+          <Typography variant="caption" color="text.secondary">
+            Checking your session…
+          </Typography>
+        </Stack>
       </Box>
     );
   }

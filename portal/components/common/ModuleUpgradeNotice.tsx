@@ -39,39 +39,36 @@ export default function ModuleUpgradeNotice({
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                py: compact ? 4 : 8,
+                py: compact ? 6 : 9,
                 px: 2,
             }}
         >
             <Paper
                 elevation={0}
                 sx={{
-                    maxWidth: 460,
+                    maxWidth: 420,
                     width: "100%",
                     textAlign: "center",
-                    p: compact ? 3 : 4,
-                    borderRadius: 4,
-                    border: `1px solid ${alpha(gold, 0.35)}`,
-                    background: `linear-gradient(180deg, ${alpha(gold, 0.06)} 0%, ${alpha(
-                        theme.palette.background.paper,
-                        1
-                    )} 60%)`,
+                    p: compact ? 3 : 3.5,
+                    borderRadius: "10px",
+                    border: `1px solid ${alpha(gold, 0.3)}`,
+                    bgcolor: alpha(gold, 0.04),
                 }}
             >
-                <Stack alignItems="center" spacing={1.5}>
+                <Stack alignItems="center" spacing={1.25}>
                     <Box
                         sx={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: "50%",
+                            width: 44,
+                            height: 44,
+                            borderRadius: "10px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: `linear-gradient(135deg, ${gold} 0%, ${alpha(gold, 0.7)} 100%)`,
-                            boxShadow: `0 8px 24px ${alpha(gold, 0.35)}`,
+                            bgcolor: alpha(gold, 0.18),
+                            border: `1px solid ${alpha(gold, 0.4)}`,
                         }}
                     >
-                        <LockIcon sx={{ fontSize: 30, color: theme.palette.primary.main }} />
+                        <LockIcon sx={{ fontSize: 22, color: theme.palette.primary.main }} />
                     </Box>
 
                     {moduleCode && (
@@ -80,28 +77,32 @@ export default function ModuleUpgradeNotice({
                             size="small"
                             data-testid={`${testId}-module-chip`}
                             sx={{
+                                height: 20,
+                                borderRadius: "6px",
+                                fontSize: "0.68rem",
                                 fontWeight: 700,
                                 letterSpacing: 0.4,
                                 color: theme.palette.primary.main,
-                                bgcolor: alpha(gold, 0.18),
-                                border: `1px solid ${alpha(gold, 0.4)}`,
+                                bgcolor: alpha(gold, 0.16),
+                                border: `1px solid ${alpha(gold, 0.35)}`,
                             }}
                         />
                     )}
 
-                    <Typography variant="h6" fontWeight={800}>
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: "1rem" }}>
                         {feature} is locked
                     </Typography>
 
-                    <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360 }}>
-                        {feature} is part of the <strong>{moduleName}</strong> module, which isn&apos;t
-                        included in your current plan. Upgrade your plan to unlock it.
+                    <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 340, fontSize: "0.8125rem", lineHeight: 1.6 }}>
+                        {feature} is part of the <strong>{moduleName}</strong>{" "}
+                        module, which isn&apos;t included in your current plan. Upgrade your plan to
+                        unlock it.
                     </Typography>
 
                     <Typography
                         variant="caption"
-                        color="text.secondary"
-                        sx={{ mt: 0.5, fontStyle: "italic" }}
+                        color="text.disabled"
+                        sx={{ mt: 0.25, fontSize: "0.72rem" }}
                         data-testid={`${testId}-hint`}
                     >
                         Contact your account administrator to add the {moduleName} module.

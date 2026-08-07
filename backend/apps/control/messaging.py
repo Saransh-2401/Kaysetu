@@ -10,6 +10,7 @@ decide what to tell the operator.
 """
 import logging
 import re
+from urllib.parse import quote
 
 logger = logging.getLogger("kaysetu.control")
 
@@ -77,13 +78,28 @@ def send_email(to_address: str, subject: str, html_body: str):
         return False, f"{type(exc).__name__}: {exc}"
 
 
+SMS_TIMEOUT = 15          # seconds; a hung gateway must not hold a request open
+
+
+def normalise_msisdn(raw: str) -> str:
+    """Indian mobile in the 91XXXXXXXXXX form every gateway here expects."""
+    digits = "".join(ch for ch in (raw or "") if ch.isdigit())
+    if len(digits) > 10 and digits.startswith("91"):
+        digits = digits[-10:]
+    elif len(digits) > 10:
+        digits = digits[-10:]
+    return f"91{digits}" if len(digits) == 10 else digits
+
+
 def send_sms(to_phone: str, text: str, dlt_template_id: str = ""):
     """Send one SMS on the platform account. Returns (sent, error).
 
-    No SMS gateway is wired into the platform yet — credentials and the DLT id
-    are stored and ready, and this is the single place a provider gets plugged
-    in. It reports honestly rather than pretending to have sent.
+    Dispatches to whichever gateway Ops selected. Every provider here is a thin
+    HTTP call: this stays the single integration point, so adding another is one
+    branch rather than a change anywhere else in the codebase.
     """
+    import requests
+
     config = get_config()
     if not config.sms_ready():
         return False, "Platform SMS is not configured (SuperAdmin → Messaging)."
@@ -91,7 +107,154 @@ def send_sms(to_phone: str, text: str, dlt_template_id: str = ""):
         # Indian carriers reject a send with no DLT id; failing here is more
         # useful than a silent carrier-side drop.
         return False, "This template has no DLT template id, so the carrier would reject it."
-    return False, "No SMS provider is wired up yet — credentials and DLT id are stored and ready."
+
+    msisdn = normalise_msisdn(to_phone)
+    if len(msisdn) != 12:
+        return False, f"'{to_phone}' is not a valid 10-digit Indian mobile number."
+
+    provider = (config.sms_provider or "").lower()
+    if not provider:
+        return False, "No SMS provider selected (SuperAdmin → Messaging)."
+
+    try:
+        if provider == "smsgatewayhub":
+            # Same call the previous platform made, so an existing account and
+            # its approved DLT templates keep working unchanged.
+            response = requests.get(
+                "https://www.smsgatewayhub.com/api/mt/SendSMS",
+                params={
+                    "APIKey": config.sms_api_key, "senderid": config.sms_sender_id,
+                    "channel": "2", "DCS": "0", "flashsms": "0",
+                    "number": msisdn, "text": text, "route": "clickhere",
+                    "EntityId": config.sms_entity_id, "dlttemplateid": dlt_template_id,
+                },
+                timeout=SMS_TIMEOUT,
+            )
+            if response.status_code >= 400:
+                return False, f"Gateway returned HTTP {response.status_code}: {response.text[:200]}"
+            # SMSGatewayHub answers 200 with a JSON body; ErrorCode 000 is the
+            # only success, everything else is a rejection dressed as a 200.
+            try:
+                payload = response.json()
+            except ValueError:
+                return False, f"Gateway returned an unreadable response: {response.text[:200]}"
+            if str(payload.get("ErrorCode", "")).strip() != "000":
+                return False, (f"Gateway rejected the message: "
+                               f"{payload.get('ErrorCode')} {payload.get('ErrorMessage', '')}".strip())
+            return True, ""
+
+        if provider == "msg91":
+            response = requests.get(
+                "https://api.msg91.com/api/sendhttp.php",
+                params={
+                    "authkey": config.sms_api_key, "mobiles": msisdn, "message": text,
+                    "sender": config.sms_sender_id, "route": "4", "country": "91",
+                    "DLT_TE_ID": dlt_template_id,
+                },
+                timeout=SMS_TIMEOUT,
+            )
+        elif provider == "textlocal":
+            response = requests.post(
+                "https://api.textlocal.in/send/",
+                data={
+                    "apikey": config.sms_api_key, "numbers": msisdn, "message": text,
+                    "sender": config.sms_sender_id, "dlt_template_id": dlt_template_id,
+                },
+                timeout=SMS_TIMEOUT,
+            )
+        elif provider == "generic":
+            if not config.sms_endpoint:
+                return False, "The generic provider needs an endpoint URL."
+            url = (config.sms_endpoint
+                   .replace("{phone}", msisdn)
+                   .replace("{text}", quote(text))
+                   .replace("{sender}", config.sms_sender_id)
+                   .replace("{api_key}", config.sms_api_key)
+                   .replace("{entity_id}", config.sms_entity_id)
+                   .replace("{dlt_template_id}", dlt_template_id))
+            response = requests.get(url, timeout=SMS_TIMEOUT)
+        else:
+            return False, f"Unknown SMS provider '{provider}'."
+
+        if response.status_code >= 400:
+            return False, f"Gateway returned HTTP {response.status_code}: {response.text[:200]}"
+        body = (response.text or "").strip()
+        # Gateways habitually answer 200 with an error body, so a 200 alone is
+        # not proof of delivery.
+        if any(marker in body.lower() for marker in ("error", "failure", "invalid")):
+            return False, f"Gateway rejected the message: {body[:200]}"
+        return True, ""
+    except Exception as exc:                       # noqa: BLE001 - reported upward
+        logger.warning("sms send failed via %s: %s", provider, exc)
+        return False, f"{type(exc).__name__}: {exc}"
+
+
+# ── Push (FCM HTTP v1) ────────────────────────────────────────────────────
+# Deliberately the firebase-admin SDK and a service-account JSON, NOT the old
+# "FCM server key": Google turned the legacy HTTP API off in June 2024, so a
+# server key cannot send anything at all any more.
+_fcm_app = None
+_fcm_fingerprint = None
+
+
+def _fcm_app_for(service_account_json: str):
+    """Initialise (once) and return the Firebase app for these credentials.
+
+    firebase_admin keeps a process-global app registry, so re-initialising on
+    every send would raise. The credentials are re-read only when they actually
+    change, which is what lets Ops rotate them without a restart.
+    """
+    global _fcm_app, _fcm_fingerprint
+    import json
+
+    import firebase_admin
+    from firebase_admin import credentials
+
+    fingerprint = hash(service_account_json)
+    if _fcm_app is not None and _fcm_fingerprint == fingerprint:
+        return _fcm_app
+
+    if _fcm_app is not None:                       # credentials changed — swap
+        try:
+            firebase_admin.delete_app(_fcm_app)
+        except Exception:                          # noqa: BLE001
+            pass
+        _fcm_app = None
+
+    cred = credentials.Certificate(json.loads(service_account_json))
+    _fcm_app = firebase_admin.initialize_app(cred, name="kaysetu-push")
+    _fcm_fingerprint = fingerprint
+    return _fcm_app
+
+
+def send_push(tokens, title: str, body: str, data: dict | None = None):
+    """Push to a list of device tokens. Returns (sent_count, error).
+
+    Best-effort like every other channel here: a Firebase outage must not break
+    the notification that triggered it.
+    """
+    config = get_config()
+    if not config.fcm_service_account:
+        return 0, "Push is not configured (SuperAdmin → Messaging)."
+    tokens = [t for t in (tokens or []) if t]
+    if not tokens:
+        return 0, "No registered devices."
+
+    try:
+        from firebase_admin import messaging as fcm
+
+        app = _fcm_app_for(config.fcm_service_account)
+        message = fcm.MulticastMessage(
+            tokens=tokens[:500],                   # v1 caps a multicast at 500
+            notification=fcm.Notification(title=title, body=body),
+            # FCM data values must all be strings, or the send is rejected.
+            data={k: str(v) for k, v in (data or {}).items()},
+        )
+        response = fcm.send_each_for_multicast(message, app=app)
+        return int(response.success_count), ""
+    except Exception as exc:                       # noqa: BLE001
+        logger.warning("push send failed: %s", exc)
+        return 0, f"{type(exc).__name__}: {exc}"
 
 
 #: A {placeholder} the catalog might use. Restricted to lower_snake identifiers

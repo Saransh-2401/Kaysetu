@@ -403,3 +403,178 @@ def test_send_notification_endpoint_delivers_on_the_chosen_channels(
     assert resp.status_code in (200, 201), resp.data
     assert sent, f"no email dispatched; response was {resp.data}"
     assert "Payroll day" in sent[0][1] or "Payroll day" in str(resp.data)
+
+
+# ── SMS + Push transports ────────────────────────────────────────────────
+
+def test_sms_refuses_to_send_without_provider_dlt_or_valid_number(api, admin_token):
+    """Every refusal is explicit — a silent carrier-side drop is worse."""
+    from apps.control import messaging
+    from apps.control.models import PlatformMessagingConfig
+
+    config, _ = PlatformMessagingConfig.objects.get_or_create(pk=1)
+    config.sms_provider = ""
+    config.sms_api_key = ""
+    config.sms_entity_id = ""
+    config.save()
+
+    ok, err = messaging.send_sms("9876500011", "hi", "1234")
+    assert not ok and "not configured" in err.lower()
+
+    # Key + entity but no provider selected must NOT report ready.
+    config.sms_api_key = "k"
+    config.sms_entity_id = "e"
+    config.save()
+    assert config.sms_ready() is False
+    ok, err = messaging.send_sms("9876500011", "hi", "1234")
+    assert not ok
+
+    config.sms_provider = "msg91"
+    config.save()
+    assert config.sms_ready() is True
+    # DLT id is mandatory in India.
+    ok, err = messaging.send_sms("9876500011", "hi", "")
+    assert not ok and "dlt" in err.lower()
+    # And the number has to be a real 10-digit mobile.
+    ok, err = messaging.send_sms("123", "hi", "1234")
+    assert not ok and "valid" in err.lower()
+
+
+def test_msisdn_normalisation_accepts_the_formats_admins_type():
+    from apps.control.messaging import normalise_msisdn
+
+    for raw in ("9876500011", "+919876500011", "09876500011", "+91 98765 00011"):
+        assert normalise_msisdn(raw) == "919876500011", raw
+
+
+def test_sms_reports_a_gateway_error_body_as_failure(api, admin_token, monkeypatch):
+    """Gateways answer 200 with an error body — a 200 is not proof of delivery."""
+    import requests
+
+    from apps.control import messaging
+    from apps.control.models import PlatformMessagingConfig
+
+    config, _ = PlatformMessagingConfig.objects.get_or_create(pk=1)
+    config.sms_provider = "msg91"
+    config.sms_api_key = "k"
+    config.sms_entity_id = "e"
+    config.sms_sender_id = "KAYSTU"
+    config.save()
+
+    class Resp:
+        status_code = 200
+        text = '{"type":"error","message":"invalid authkey"}'
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: Resp())
+    ok, err = messaging.send_sms("9876500011", "hi", "1234")
+    assert not ok and "rejected" in err.lower()
+
+    class Good:
+        status_code = 200
+        text = "3ac1f0b8"          # msg91 returns a message id on success
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: Good())
+    ok, err = messaging.send_sms("9876500011", "hi", "1234")
+    assert ok, err
+
+
+def test_push_requires_a_key_and_tokens(api, admin_token):
+    from apps.control import messaging
+    from apps.control.models import PlatformMessagingConfig
+
+    config, _ = PlatformMessagingConfig.objects.get_or_create(pk=1)
+    config.fcm_service_account = ""
+    config.save()
+    count, err = messaging.send_push(["tok"], "t", "b")
+    assert count == 0 and "not configured" in err.lower()
+
+    config.fcm_service_account = "{\"type\":\"service_account\"}"
+    config.save()
+    count, err = messaging.send_push([], "t", "b")
+    assert count == 0 and "no registered devices" in err.lower()
+
+
+def test_device_token_registration_and_push_delivery(api, make_tenant, tenant_token, monkeypatch):
+    """A device registers, then a push-enabled event reaches it."""
+    from apps.control import messaging
+    from apps.control.models import PlatformMessagingConfig
+
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    registered = client.post("/api/notifications/device-tokens/",
+                             {"token": "fcm-token-abc", "platform": "android"})
+    assert registered.status_code == 201, registered.data
+
+    config, _ = PlatformMessagingConfig.objects.get_or_create(pk=1)
+    config.fcm_service_account = "{\"type\":\"service_account\"}"
+    config.save()
+
+    pushed = {}
+    monkeypatch.setattr(messaging, "send_push",
+                        lambda tokens, title, body, data=None: (pushed.update(
+                            {"tokens": tokens, "title": title}), (len(tokens), ""))[1])
+
+    from apps.notifications.services import broadcast
+    from apps.tenancy.context import use_tenant
+
+    with use_tenant(tenant):
+        _r, _w, result = broadcast(title="Cyclone alert", body="Stay safe.",
+                                   audience_type="all", channels=["push"])
+
+    assert result["delivered_push"] >= 1, result
+    assert pushed["tokens"] == ["fcm-token-abc"]
+    assert pushed["title"] == "Cyclone alert"
+
+    # Signing out retires the token, so it stops receiving.
+    assert client.delete("/api/notifications/device-tokens/",
+                         {"token": "fcm-token-abc"}, format="json").status_code == 200
+
+
+def test_smsgatewayhub_matches_the_old_platforms_contract(api, admin_token, monkeypatch):
+    """Same gateway, same account, same approved DLT templates as before.
+
+    SMSGatewayHub answers HTTP 200 even when it rejects a message — only
+    ErrorCode "000" means it was accepted.
+    """
+    import requests
+
+    from apps.control import messaging
+    from apps.control.models import PlatformMessagingConfig
+
+    config, _ = PlatformMessagingConfig.objects.get_or_create(pk=1)
+    config.sms_provider = "smsgatewayhub"
+    config.sms_api_key = "key"
+    config.sms_sender_id = "KAYSTU"
+    config.sms_entity_id = "entity"
+    config.save()
+
+    captured = {}
+
+    class Resp:
+        status_code = 200
+        def __init__(self, payload): self._payload = payload
+        def json(self): return self._payload
+
+    def fake_get(url, params=None, timeout=None):
+        captured["url"] = url
+        captured["params"] = params
+        return Resp({"ErrorCode": "000", "ErrorMessage": "Success", "JobId": "1"})
+
+    monkeypatch.setattr(requests, "get", fake_get)
+    ok, err = messaging.send_sms("+91 98765 00011", "Your code is 123456", "170199")
+    assert ok, err
+    assert captured["url"] == "https://www.smsgatewayhub.com/api/mt/SendSMS"
+    p = captured["params"]
+    # The exact parameter contract the old platform used.
+    assert p["APIKey"] == "key" and p["senderid"] == "KAYSTU"
+    assert p["EntityId"] == "entity" and p["dlttemplateid"] == "170199"
+    assert p["channel"] == "2" and p["route"] == "clickhere"
+    assert p["number"] == "919876500011"          # normalised from a spaced +91
+
+    # A rejection arrives as HTTP 200 with a non-000 code and must NOT count.
+    monkeypatch.setattr(requests, "get",
+                        lambda *a, **k: Resp({"ErrorCode": "005",
+                                              "ErrorMessage": "Invalid Template"}))
+    ok, err = messaging.send_sms("9876500011", "hi", "170199")
+    assert not ok and "005" in err and "Invalid Template" in err

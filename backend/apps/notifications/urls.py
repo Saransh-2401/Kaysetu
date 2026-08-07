@@ -15,6 +15,9 @@ urlpatterns = [
     path("notifications/role-defaults/", views.RoleDefaultsView.as_view()),
     # Org-wide event switches ("System Alerts" in the portal).
     path("notifications/org-alerts/", views.OrgAlertsView.as_view()),
+    # Mobile push registration (FCM token per device).
+    path("notifications/device-tokens/", views.DeviceTokenView.as_view()),
+
 
     path("notifications/", include(router.urls)),
 ]

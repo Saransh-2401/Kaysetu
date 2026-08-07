@@ -333,9 +333,29 @@ class PlatformMessagingConfig(models.Model):
     from_name = models.CharField(max_length=120, blank=True)
 
     # ── SMS
+    class SmsProvider(models.TextChoices):
+        NONE = "", "Not configured"
+        # The gateway the previous platform used — same account, same DLT
+        # registrations, so nothing has to be re-approved to move across.
+        SMSGATEWAYHUB = "smsgatewayhub", "SMSGatewayHub"
+        MSG91 = "msg91", "MSG91"
+        TEXTLOCAL = "textlocal", "Textlocal"
+        GENERIC = "generic", "Generic HTTP (custom URL)"
+
+    sms_provider = models.CharField(max_length=20, choices=SmsProvider.choices, blank=True)
     sms_api_key = models.CharField(max_length=500, blank=True)
     sms_sender_id = models.CharField(max_length=20, blank=True)
     sms_entity_id = models.CharField(max_length=64, blank=True)
+    # Only for the GENERIC provider. Supports {phone} {text} {sender} {api_key}
+    # {dlt_template_id} {entity_id} placeholders in the URL.
+    sms_endpoint = models.CharField(max_length=500, blank=True)
+
+    # ── Push (FCM)
+    # The Firebase SERVICE ACCOUNT JSON, pasted whole. Not the old "server key":
+    # Google shut the legacy FCM HTTP API down in June 2024, so a server key can
+    # no longer send anything. Platform-level like the rest — KaySetu owns the
+    # Firebase project and tenants neither configure nor pay for it.
+    fcm_service_account = models.TextField(blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -346,7 +366,12 @@ class PlatformMessagingConfig(models.Model):
         return bool(self.smtp_host and self.smtp_username and self.smtp_password)
 
     def sms_ready(self):
-        return bool(self.sms_api_key and self.sms_entity_id)
+        # A key without a provider selected can't send anywhere, so reporting
+        # "ready" would be a lie the Ops screen then shows as a green chip.
+        return bool(self.sms_provider and self.sms_api_key and self.sms_entity_id)
+
+    def push_ready(self):
+        return bool(self.fcm_service_account)
 
     def __str__(self):
         return "Platform messaging configuration"

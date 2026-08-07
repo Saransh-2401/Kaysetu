@@ -158,8 +158,10 @@ class PlatformMessagingConfigSerializer(serializers.ModelSerializer):
 
     has_smtp_password = serializers.SerializerMethodField()
     has_sms_api_key = serializers.SerializerMethodField()
+    has_fcm_key = serializers.SerializerMethodField()
     email_ready = serializers.SerializerMethodField()
     sms_ready = serializers.SerializerMethodField()
+    push_ready = serializers.SerializerMethodField()
 
     def get_has_smtp_password(self, obj):
         return bool(obj.smtp_password)
@@ -167,28 +169,36 @@ class PlatformMessagingConfigSerializer(serializers.ModelSerializer):
     def get_has_sms_api_key(self, obj):
         return bool(obj.sms_api_key)
 
+    def get_has_fcm_key(self, obj):
+        return bool(obj.fcm_service_account)
+
     def get_email_ready(self, obj):
         return obj.email_ready()
 
     def get_sms_ready(self, obj):
         return obj.sms_ready()
 
+    def get_push_ready(self, obj):
+        return bool(obj.fcm_service_account)
+
     class Meta:
         model = PlatformMessagingConfig
         fields = ["id", "smtp_host", "smtp_port", "smtp_username", "smtp_password",
                   "smtp_use_tls", "smtp_use_ssl", "from_email", "from_name",
-                  "sms_api_key", "sms_sender_id", "sms_entity_id",
-                  "has_smtp_password", "has_sms_api_key", "email_ready", "sms_ready",
-                  "updated_at"]
+                  "sms_provider", "sms_api_key", "sms_sender_id", "sms_entity_id",
+                  "sms_endpoint", "fcm_service_account",
+                  "has_smtp_password", "has_sms_api_key", "has_fcm_key",
+                  "email_ready", "sms_ready", "push_ready", "updated_at"]
         extra_kwargs = {
             "smtp_password": {"write_only": True, "required": False, "allow_blank": True},
             "sms_api_key": {"write_only": True, "required": False, "allow_blank": True},
+            "fcm_service_account": {"write_only": True, "required": False, "allow_blank": True},
         }
 
     def update(self, instance, validated_data):
         # Blank means "leave it alone", not "clear it" — otherwise editing the
         # from-name would silently break sending for every tenant.
-        for secret in ("smtp_password", "sms_api_key"):
+        for secret in ("smtp_password", "sms_api_key", "fcm_service_account"):
             if not validated_data.get(secret):
                 validated_data.pop(secret, None)
         return super().update(instance, validated_data)

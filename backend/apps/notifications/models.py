@@ -142,3 +142,37 @@ class NotificationBroadcast(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+
+
+class DeviceToken(models.Model):
+    """An FCM registration token for one signed-in device.
+
+    Tenant-side because a token belongs to a tenant user, while the Firebase
+    credentials that send to it are platform-side (KaySetu owns the project and
+    pays for it) — same split as email and SMS.
+
+    One user can have several devices, so tokens are unique on their own rather
+    than per user. A token is reassigned on conflict instead of duplicated:
+    handsets get passed on, and FCM would otherwise deliver to the wrong person.
+    """
+
+    class Platform(models.TextChoices):
+        ANDROID = "android", "Android"
+        IOS = "ios", "iOS"
+        WEB = "web", "Web"
+
+    user = models.ForeignKey(
+        "foundation.TenantUser", on_delete=models.CASCADE, related_name="device_tokens"
+    )
+    token = models.CharField(max_length=255, unique=True, db_index=True)
+    platform = models.CharField(max_length=10, choices=Platform.choices, default=Platform.ANDROID)
+    is_active = models.BooleanField(default=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-last_seen"]
+        indexes = [models.Index(fields=["user", "is_active"])]
+
+    def __str__(self):
+        return f"{self.platform}:{self.token[:12]}…"

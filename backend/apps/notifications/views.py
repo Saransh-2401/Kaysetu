@@ -340,3 +340,44 @@ class OrgAlertsView(APIView):
 
     def post(self, request):
         return self.patch(request)
+
+
+class DeviceTokenView(APIView):
+    """Register / retire this device's push token.
+
+    The mobile app posts its FCM token after sign-in and deletes it on sign-out.
+    Without this, push has nowhere to deliver — the credentials live on the
+    platform but the address book is per tenant.
+    """
+
+    permission_classes = [IsTenantUser]
+
+    def post(self, request):
+        from .models import DeviceToken
+
+        token = (request.data.get("token") or "").strip()
+        if not token:
+            return Response({"detail": "token is required."}, status=400)
+        platform = (request.data.get("platform") or "android").lower()
+        if platform not in dict(DeviceToken.Platform.choices):
+            platform = DeviceToken.Platform.ANDROID
+
+        # Reassign rather than duplicate: handsets get handed on, and FCM would
+        # otherwise keep delivering this user's alerts to whoever has it now.
+        row, _created = DeviceToken.objects.update_or_create(
+            token=token,
+            defaults={"user": request.user, "platform": platform, "is_active": True},
+        )
+        return Response({"id": row.pk, "platform": row.platform, "registered": True}, status=201)
+
+    def delete(self, request):
+        from .models import DeviceToken
+
+        token = (request.data.get("token") or request.query_params.get("token") or "").strip()
+        qs = DeviceToken.objects.filter(user=request.user)
+        if token:
+            qs = qs.filter(token=token)
+        # Deactivate rather than delete, so a token that FCM later reports as
+        # stale can still be traced back.
+        updated = qs.update(is_active=False)
+        return Response({"retired": updated})

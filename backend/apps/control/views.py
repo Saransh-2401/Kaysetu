@@ -320,6 +320,38 @@ class StatsView(APIView):
 
     permission_classes = [IsControlAdmin]
 
+    #: How many trailing weeks of signups the Command Center trend chart plots.
+    SIGNUP_TREND_WEEKS = 8
+
+    def _signup_trend(self, now):
+        """Signups per week for the last SIGNUP_TREND_WEEKS, oldest first.
+
+        Counted in one query and bucketed in Python: the number of rows is
+        bounded by the tenant count, and this avoids a DB-specific date_trunc.
+        """
+        span_start = (now - timezone.timedelta(weeks=self.SIGNUP_TREND_WEEKS - 1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        # Align to the Monday of the oldest bucket so weeks don't drift by weekday.
+        span_start -= timezone.timedelta(days=span_start.weekday())
+
+        counts = [0] * self.SIGNUP_TREND_WEEKS
+        for (created_at,) in Tenant.objects.filter(created_at__gte=span_start).values_list(
+            "created_at"
+        ):
+            index = (timezone.localtime(created_at) - span_start).days // 7
+            # A signup timestamped after "now" (clock skew) would overflow the
+            # last bucket; clamp instead of dropping it.
+            counts[min(max(index, 0), self.SIGNUP_TREND_WEEKS - 1)] += 1
+
+        return [
+            {
+                "label": (span_start + timezone.timedelta(weeks=i)).strftime("%d %b"),
+                "value": counts[i],
+            }
+            for i in range(self.SIGNUP_TREND_WEEKS)
+        ]
+
     def get(self, request):
         now = timezone.now()
         week_ago = now - timezone.timedelta(days=7)
@@ -335,6 +367,7 @@ class StatsView(APIView):
             {
                 "tenants": {"total": Tenant.objects.count(), "by_status": by_status},
                 "signups_this_week": Tenant.objects.filter(created_at__gte=week_ago).count(),
+                "signup_trend": self._signup_trend(now),
                 "active_trials": by_status.get(Tenant.Status.TRIAL, 0),
                 "trials_ending_7d": Tenant.objects.filter(
                     status=Tenant.Status.TRIAL,

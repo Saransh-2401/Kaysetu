@@ -95,10 +95,8 @@ def _callout(text, color=BRAND):
 
 PORTAL = "https://app.kaysetu.in"
 
-# ── The catalog ───────────────────────────────────────────────────────────
-# (channel, trigger_key, name, description, module_code, category,
-#  subject, body/content, dlt_id, variables)
-EMAIL_TEMPLATES = [
+# ── Core messages (hand-written: these are not notification events) ───────
+EMAIL_CORE = [
     {
         "trigger_key": "OTP_LOGIN",
         "name": "Sign-in code (OTP)",
@@ -111,8 +109,8 @@ EMAIL_TEMPLATES = [
             "Hello {full_name}, use the code below to sign in.",
             _callout('<span style="font-size:30px;font-weight:700;letter-spacing:7px;'
                      f'color:{BRAND};">{{otp}}</span>', ACCENT),
-            footnote="This code expires in 5 minutes. If you did not request it, "
-                     "you can safely ignore this email — nobody can sign in without it.",
+            footnote="This code expires in 5 minutes. If you did not request it you can ignore "
+                     "this email &mdash; nobody can sign in without it. Sent for {org_name}.",
         ),
     },
     {
@@ -132,147 +130,14 @@ EMAIL_TEMPLATES = [
             footnote="For your security, please change this password after your first sign-in.",
         ),
     },
-    # ── Field & Visits (TRACK / FIELD)
-    {
-        "trigger_key": "visit_assigned",
-        "name": "Visit assigned to you",
-        "description": "A manager assigns a visit to an agent.",
-        "module_code": "FIELD", "category": "Field & Visits",
-        "subject": "New visit assigned — {customer_name}",
-        "variables": ["full_name", "customer_name", "visit_date", "address", "org_name"],
-        "body": _email(
-            "A visit was assigned to you",
-            "Hello {full_name}, a new visit is on your beat plan.",
-            _rows([("Client", "{customer_name}"),
-                   ("Scheduled for", "{visit_date}"),
-                   ("Address", "{address}")]),
-            cta="Open my visits", cta_url=f"{PORTAL}/visits",
-        ),
-    },
-    {
-        "trigger_key": "agent_offline",
-        "name": "Agent went offline",
-        "description": "An agent's device stopped reporting location during duty hours.",
-        "module_code": "TRACK", "category": "Field & Visits",
-        "subject": "{agent_name} is offline",
-        "variables": ["agent_name", "last_seen", "org_name"],
-        "body": _email(
-            "An agent stopped reporting",
-            "{agent_name}'s device has not sent a location update recently.",
-            _rows([("Agent", "{agent_name}"), ("Last seen", "{last_seen}")]),
-            cta="Open tracking health", cta_url=f"{PORTAL}/admin/tracking-health",
-            footnote="This usually means the app was closed, the phone lost signal, "
-                     "or battery optimisation stopped background tracking.",
-        ),
-    },
-    # ── Sales & Orders (ORDERS)
-    {
-        "trigger_key": "order_placed",
-        "name": "Order placed",
-        "description": "A new sales order is booked.",
-        "module_code": "ORDERS", "category": "Sales & Orders",
-        "subject": "New order {order_number} — {customer_name}",
-        "variables": ["order_number", "customer_name", "order_total", "placed_by", "org_name"],
-        "body": _email(
-            "A new order was placed",
-            "Order <b>{order_number}</b> has been booked.",
-            _rows([("Customer", "{customer_name}"),
-                   ("Order value", "{order_total}"),
-                   ("Booked by", "{placed_by}")]),
-            cta="View order", cta_url=f"{PORTAL}/sales-orders",
-        ),
-    },
-    # ── Inventory (INV)
-    {
-        "trigger_key": "low_stock",
-        "name": "Low stock alert",
-        "description": "A product fell below its reorder threshold.",
-        "module_code": "INV", "category": "Inventory & Requests",
-        "subject": "Low stock — {product_name}",
-        "variables": ["product_name", "current_stock", "threshold", "org_name"],
-        "body": _email(
-            "Stock is running low",
-            "<b>{product_name}</b> has fallen below its reorder level.",
-            _rows([("Product", "{product_name}"),
-                   ("In stock", "{current_stock}"),
-                   ("Reorder level", "{threshold}")]),
-            cta="Open inventory", cta_url=f"{PORTAL}/stock-ledger",
-        ),
-    },
-    # ── Finance (BOOKS)
-    {
-        "trigger_key": "payment_received",
-        "name": "Payment received",
-        "description": "A customer payment was recorded.",
-        "module_code": "BOOKS", "category": "Finance",
-        "subject": "Payment received — {amount}",
-        "variables": ["customer_name", "amount", "reference", "org_name"],
-        "body": _email(
-            "Payment received",
-            "A payment has been recorded against {customer_name}.",
-            _rows([("Customer", "{customer_name}"),
-                   ("Amount", "{amount}"),
-                   ("Reference", "{reference}")]),
-            cta="Open ledgers", cta_url=f"{PORTAL}/customer-ledgers",
-        ),
-    },
-    # ── Purchase (PURCH)
-    {
-        "trigger_key": "material_request_status",
-        "name": "Material request status changed",
-        "description": "A material request was approved, rejected or fulfilled.",
-        "module_code": "PURCH", "category": "Purchase",
-        "subject": "Material request {request_number} — {status}",
-        "variables": ["request_number", "status", "actioned_by", "org_name"],
-        "body": _email(
-            "Material request updated",
-            "Request <b>{request_number}</b> is now <b>{status}</b>.",
-            _rows([("Request", "{request_number}"),
-                   ("Status", "{status}"),
-                   ("Actioned by", "{actioned_by}")]),
-            cta="Open material requests", cta_url=f"{PORTAL}/material-requests",
-        ),
-    },
-    # ── Leads & CRM (CRM)
-    {
-        "trigger_key": "lead_assigned",
-        "name": "Lead assigned to you",
-        "description": "A lead is assigned to a user.",
-        "module_code": "CRM", "category": "Leads & CRM",
-        "subject": "New lead assigned — {lead_name}",
-        "variables": ["full_name", "lead_name", "lead_phone", "org_name"],
-        "body": _email(
-            "A lead was assigned to you",
-            "Hello {full_name}, a new lead is waiting for your follow-up.",
-            _rows([("Lead", "{lead_name}"), ("Phone", "{lead_phone}")]),
-            cta="Open leads", cta_url=f"{PORTAL}/leads",
-        ),
-    },
-    # ── Travel Allowance (TA)
-    {
-        "trigger_key": "travel_allowance_status",
-        "name": "Travel allowance claim status",
-        "description": "A TA claim was approved, rejected or paid.",
-        "module_code": "TA", "category": "Travel Allowance",
-        "subject": "Travel claim {claim_number} — {status}",
-        "variables": ["full_name", "claim_number", "status", "amount", "org_name"],
-        "body": _email(
-            "Your travel claim was updated",
-            "Hello {full_name}, your claim <b>{claim_number}</b> is now <b>{status}</b>.",
-            _rows([("Claim", "{claim_number}"),
-                   ("Status", "{status}"),
-                   ("Amount", "{amount}")]),
-            cta="Open travel allowance", cta_url=f"{PORTAL}/travel-allowance",
-        ),
-    },
     {
         # The safety net. Notification handlers supply only a subject + message,
-        # so an event-specific template whose placeholders cannot all be filled
-        # would render literal {order_number} into a customer's inbox. Delivery
-        # falls back to this one instead — always well-formed, never wrong.
+        # so an event template whose placeholders cannot all be filled would put
+        # a literal {order_number} in an inbox. Delivery falls back to this
+        # instead: always well-formed, never wrong.
         "trigger_key": "NOTIFICATION",
         "name": "General notification",
-        "description": "Used for any alert that has no fully-fillable template of its own.",
+        "description": "Used for any alert with no fully-fillable template of its own.",
         "module_code": "", "category": "System",
         "subject": "{title}",
         "variables": ["title", "message", "org_name"],
@@ -280,74 +145,242 @@ EMAIL_TEMPLATES = [
             "{title}", "{message}", "",
             cta="Open KaySetu", cta_url=PORTAL,
             footnote="You are receiving this because of your notification settings. "
-                     "You can change them under Notifications in the portal.",
+                     "Sent for {org_name}.",
         ),
-    },
-    # ── Attendance (ATT)
-    {
-        "trigger_key": "announcement",
-        "name": "Announcement / broadcast",
-        "description": "A manual announcement sent from the portal.",
-        "module_code": "", "category": "System",
-        "subject": "{title}",
-        "variables": ["title", "message", "org_name"],
-        "body": _email("{title}", "{message}", "",
-                       cta="Open KaySetu", cta_url=PORTAL),
     },
 ]
 
-SMS_TEMPLATES = [
+SMS_CORE = [
     {"trigger_key": "OTP_LOGIN", "name": "Sign-in code (OTP)", "module_code": "",
      "category": "System", "variables": ["otp"],
      "description": "One-time code for phone/OTP sign-in.",
      "content": "{otp} is your KaySetu sign-in code. It expires in 5 minutes. Do not share it."},
-
     {"trigger_key": "USER_CREDENTIALS", "name": "New user sign-in details", "module_code": "",
      "category": "System", "variables": ["org_code", "email"],
      "description": "Sent when an admin creates a user.",
      "content": "Your KaySetu account is ready. Org code {org_code}, sign in as {email}. "
                 "Your password has been emailed to you."},
-
     {"trigger_key": "NOTIFICATION", "name": "General notification", "module_code": "",
      "category": "System", "variables": ["title"],
      "description": "Used for any alert with no fully-fillable template of its own.",
      "content": "KaySetu: {title}. Open the app for details."},
-
-    {"trigger_key": "visit_assigned", "name": "Visit assigned", "module_code": "FIELD",
-     "category": "Field & Visits", "variables": ["customer_name", "visit_date"],
-     "description": "A manager assigns a visit to an agent.",
-     "content": "New visit assigned: {customer_name} on {visit_date}. Open KaySetu for details."},
-
-    {"trigger_key": "agent_offline", "name": "Agent offline", "module_code": "TRACK",
-     "category": "Field & Visits", "variables": ["agent_name", "last_seen"],
-     "description": "An agent's device stopped reporting location.",
-     "content": "{agent_name} stopped reporting location. Last seen {last_seen}."},
-
-    {"trigger_key": "order_placed", "name": "Order placed", "module_code": "ORDERS",
-     "category": "Sales & Orders", "variables": ["order_number", "order_total"],
-     "description": "A new sales order is booked.",
-     "content": "Order {order_number} booked for {order_total}. Open KaySetu for details."},
-
-    {"trigger_key": "low_stock", "name": "Low stock alert", "module_code": "INV",
-     "category": "Inventory & Requests", "variables": ["product_name", "current_stock"],
-     "description": "A product fell below its reorder threshold.",
-     "content": "Low stock: {product_name} is down to {current_stock}. Please reorder."},
-
-    {"trigger_key": "payment_received", "name": "Payment received", "module_code": "BOOKS",
-     "category": "Finance", "variables": ["customer_name", "amount"],
-     "description": "A customer payment was recorded.",
-     "content": "Payment of {amount} received from {customer_name}."},
-
-    {"trigger_key": "lead_assigned", "name": "Lead assigned", "module_code": "CRM",
-     "category": "Leads & CRM", "variables": ["lead_name", "lead_phone"],
-     "description": "A lead is assigned to a user.",
-     "content": "New lead assigned: {lead_name} ({lead_phone}). Follow up in KaySetu."},
-
-    {"trigger_key": "travel_allowance_status", "name": "Travel claim status", "module_code": "TA",
-     "category": "Travel Allowance", "variables": ["claim_number", "status"],
-     "description": "A TA claim was approved, rejected or paid.",
-     "content": "Your travel claim {claim_number} is now {status}."},
 ]
+
+
+# ── One spec per notification event ───────────────────────────────────────
+# Email and SMS are generated from the SAME row, so the two channels can never
+# drift apart or end up covering different events. The variable list is the
+# contract with the sender: an event template is used only when every one of
+# them can be supplied, otherwise delivery falls back to the general template.
+#
+# (trigger, name, module, category, description,
+#  title, intro, rows, cta_label, cta_path, sms_text, variables)
+EVENTS = [
+    # ── Field & Visits — TRACK / FIELD ────────────────────────────────────
+    ("visit_scheduled", "Visit scheduled", "FIELD", "Field & Visits",
+     "A visit is planned for a client.",
+     "A visit was scheduled", "{agent_name} scheduled a visit.",
+     [("Client", "{customer_name}"), ("Scheduled for", "{visit_date}"), ("Agent", "{agent_name}")],
+     "Open visits", "/visits",
+     "Visit scheduled at {customer_name} on {visit_date}. Open KaySetu for details.",
+     ["agent_name", "customer_name", "visit_date", "org_name"]),
+
+    ("visit_assigned", "Visit assigned to you", "FIELD", "Field & Visits",
+     "A manager assigns a visit to an agent.",
+     "A visit was assigned to you", "Hello {full_name}, a new visit is on your beat plan.",
+     [("Client", "{customer_name}"), ("Scheduled for", "{visit_date}"), ("Address", "{address}")],
+     "Open my visits", "/visits",
+     "New visit assigned: {customer_name} on {visit_date}. Open KaySetu for details.",
+     ["full_name", "customer_name", "visit_date", "address", "org_name"]),
+
+    ("visit_checkin", "Agent checked in", "TRACK", "Field & Visits",
+     "An agent checked in at a client location.",
+     "Agent checked in", "{agent_name} has arrived at a client location.",
+     [("Agent", "{agent_name}"), ("Client", "{customer_name}"), ("Time", "{event_time}")],
+     "Open tracking", "/admin/tracking-health",
+     "{agent_name} checked in at {customer_name} at {event_time}.",
+     ["agent_name", "customer_name", "event_time", "org_name"]),
+
+    ("visit_checkout", "Visit completed", "TRACK", "Field & Visits",
+     "An agent checked out / completed a visit.",
+     "Visit completed", "{agent_name} has completed a visit.",
+     [("Agent", "{agent_name}"), ("Client", "{customer_name}"), ("Time", "{event_time}")],
+     "Open visits", "/visits",
+     "{agent_name} completed the visit at {customer_name} at {event_time}.",
+     ["agent_name", "customer_name", "event_time", "org_name"]),
+
+    ("agent_offline", "Agent went offline", "TRACK", "Field & Visits",
+     "A punched-in agent stopped sharing location.",
+     "An agent stopped reporting",
+     "{agent_name} has not sent a location update recently.",
+     [("Agent", "{agent_name}"), ("Last seen", "{last_seen}")],
+     "Open tracking health", "/admin/tracking-health",
+     "{agent_name} stopped sharing location. Last seen {last_seen}.",
+     ["agent_name", "last_seen", "org_name"]),
+
+    ("agent_online", "Agent back online", "TRACK", "Field & Visits",
+     "Location sharing resumed.",
+     "Agent is back online", "{agent_name} is sharing location again.",
+     [("Agent", "{agent_name}"), ("Resumed at", "{event_time}")],
+     "Open tracking health", "/admin/tracking-health",
+     "{agent_name} is back online at {event_time}.",
+     ["agent_name", "event_time", "org_name"]),
+
+    # ── Sales & Orders — ORDERS ───────────────────────────────────────────
+    ("order_placed", "Order placed", "ORDERS", "Sales & Orders",
+     "A new sales order is booked.",
+     "A new order was placed", "Order <b>{order_number}</b> has been booked.",
+     [("Customer", "{customer_name}"), ("Order value", "{order_total}"),
+      ("Booked by", "{placed_by}")],
+     "View order", "/sales-orders",
+     "Order {order_number} booked for {customer_name}, value {order_total}.",
+     ["order_number", "customer_name", "order_total", "placed_by", "org_name"]),
+
+    ("order_status", "Order status changed", "ORDERS", "Sales & Orders",
+     "An order was approved, dispatched, delivered or cancelled.",
+     "Order status updated", "Order <b>{order_number}</b> is now <b>{status}</b>.",
+     [("Order", "{order_number}"), ("Status", "{status}"), ("Updated by", "{actioned_by}")],
+     "View order", "/sales-orders",
+     "Order {order_number} is now {status}.",
+     ["order_number", "status", "actioned_by", "org_name"]),
+
+    # ── Inventory & Requests — INV / DIST ─────────────────────────────────
+    ("stock_request_raised", "Stock request raised", "DIST", "Inventory & Requests",
+     "A distributor raised a stock request.",
+     "New stock request", "{distributor_name} has raised a stock request.",
+     [("Request", "{request_number}"), ("Distributor", "{distributor_name}"),
+      ("Value", "{amount}")],
+     "Open stock requests", "/stock-requests",
+     "Stock request {request_number} raised by {distributor_name}, value {amount}.",
+     ["request_number", "distributor_name", "amount", "org_name"]),
+
+    ("stock_request_status", "Stock request status changed", "DIST", "Inventory & Requests",
+     "A stock request was approved, dispatched or rejected.",
+     "Stock request updated", "Request <b>{request_number}</b> is now <b>{status}</b>.",
+     [("Request", "{request_number}"), ("Status", "{status}"), ("Updated by", "{actioned_by}")],
+     "Open stock requests", "/stock-requests",
+     "Stock request {request_number} is now {status}.",
+     ["request_number", "status", "actioned_by", "org_name"]),
+
+    ("low_stock", "Low stock alert", "INV", "Inventory & Requests",
+     "A product fell below its reorder threshold.",
+     "Stock is running low", "<b>{product_name}</b> has fallen below its reorder level.",
+     [("Product", "{product_name}"), ("In stock", "{current_stock}"),
+      ("Reorder level", "{threshold}")],
+     "Open inventory", "/stock-ledger",
+     "Low stock: {product_name} is down to {current_stock}. Please reorder.",
+     ["product_name", "current_stock", "threshold", "org_name"]),
+
+    # ── Purchase — PURCH ──────────────────────────────────────────────────
+    ("material_request_raised", "Material request raised", "PURCH", "Purchase",
+     "Someone raised a material request.",
+     "New material request", "{raised_by} has raised a material request.",
+     [("Request", "{request_number}"), ("Raised by", "{raised_by}"),
+      ("Needed by", "{required_date}")],
+     "Open material requests", "/material-requests",
+     "Material request {request_number} raised by {raised_by}, needed by {required_date}.",
+     ["request_number", "raised_by", "required_date", "org_name"]),
+
+    ("material_request_status", "Material request status changed", "PURCH", "Purchase",
+     "A material request was approved, rejected or fulfilled.",
+     "Material request updated", "Request <b>{request_number}</b> is now <b>{status}</b>.",
+     [("Request", "{request_number}"), ("Status", "{status}"), ("Actioned by", "{actioned_by}")],
+     "Open material requests", "/material-requests",
+     "Material request {request_number} is now {status}.",
+     ["request_number", "status", "actioned_by", "org_name"]),
+
+    # ── Finance — BOOKS ───────────────────────────────────────────────────
+    ("payment_received", "Payment received", "BOOKS", "Finance",
+     "A customer payment was recorded.",
+     "Payment received", "A payment has been recorded against {customer_name}.",
+     [("Customer", "{customer_name}"), ("Amount", "{amount}"), ("Reference", "{reference}")],
+     "Open ledgers", "/customer-ledgers",
+     "Payment of {amount} received from {customer_name}. Ref {reference}.",
+     ["customer_name", "amount", "reference", "org_name"]),
+
+    # ── Leads & CRM — CRM ─────────────────────────────────────────────────
+    ("lead_added", "Lead added", "CRM", "Leads & CRM",
+     "A new lead was captured.",
+     "A new lead was added", "{added_by} captured a new lead.",
+     [("Lead", "{lead_name}"), ("Phone", "{lead_phone}"), ("Added by", "{added_by}")],
+     "Open leads", "/leads",
+     "New lead {lead_name} ({lead_phone}) added by {added_by}.",
+     ["lead_name", "lead_phone", "added_by", "org_name"]),
+
+    ("lead_assigned", "Lead assigned to you", "CRM", "Leads & CRM",
+     "A lead is assigned to a user.",
+     "A lead was assigned to you",
+     "Hello {full_name}, a new lead is waiting for your follow-up.",
+     [("Lead", "{lead_name}"), ("Phone", "{lead_phone}")],
+     "Open leads", "/leads",
+     "New lead assigned: {lead_name} ({lead_phone}). Follow up in KaySetu.",
+     ["full_name", "lead_name", "lead_phone", "org_name"]),
+
+    # ── Travel Allowance — TA ─────────────────────────────────────────────
+    ("travel_allowance_submitted", "Travel claim submitted", "TA", "Travel Allowance",
+     "An agent submitted a TA claim for approval.",
+     "A travel claim was submitted", "{full_name} submitted a travel allowance claim.",
+     [("Claim", "{claim_number}"), ("Submitted by", "{full_name}"), ("Amount", "{amount}")],
+     "Open travel allowance", "/travel-allowance",
+     "Travel claim {claim_number} submitted by {full_name} for {amount}.",
+     ["claim_number", "full_name", "amount", "org_name"]),
+
+    ("travel_allowance_status", "Travel claim status changed", "TA", "Travel Allowance",
+     "A TA claim was approved, rejected or paid.",
+     "Your travel claim was updated",
+     "Hello {full_name}, your claim <b>{claim_number}</b> is now <b>{status}</b>.",
+     [("Claim", "{claim_number}"), ("Status", "{status}"), ("Amount", "{amount}")],
+     "Open travel allowance", "/travel-allowance",
+     "Your travel claim {claim_number} is now {status}. Amount {amount}.",
+     ["full_name", "claim_number", "status", "amount", "org_name"]),
+
+    ("travel_allowance_deadline", "Travel claim deadline", "TA", "Travel Allowance",
+     "A reminder that the TA submission window is closing.",
+     "Travel claims close soon",
+     "Hello {full_name}, please submit your travel claims before {due_date}.",
+     [("Deadline", "{due_date}"), ("Pending claims", "{pending_count}")],
+     "Open travel allowance", "/travel-allowance",
+     "Reminder: submit your travel claims before {due_date}. {pending_count} pending.",
+     ["full_name", "due_date", "pending_count", "org_name"]),
+
+    # ── System ────────────────────────────────────────────────────────────
+    ("announcement", "Announcement / broadcast", "", "System",
+     "A manual announcement sent from the portal.",
+     "{title}", "{message}", [],
+     "Open KaySetu", "",
+     "KaySetu: {title}. Open the app for details.",
+     ["title", "message", "org_name"]),
+]
+
+
+def _build():
+    """Expand EVENTS into full email + SMS template dicts."""
+    emails, smses = list(EMAIL_CORE), list(SMS_CORE)
+    for (trigger, name, module, category, description,
+         title, intro, rows, cta, path, sms, variables) in EVENTS:
+        blob = " ".join([title, intro] + [f"{k}{v}" for k, v in rows])
+        emails.append({
+            "trigger_key": trigger, "name": name, "description": description,
+            "module_code": module, "category": category,
+            "subject": "{title}" if trigger == "announcement" else f"{name} — {{org_name}}",
+            # Only advertise what the rendered email actually references, so the
+            # variable chips in the console never promise something unused.
+            "variables": [v for v in variables
+                          if ("{%s}" % v) in blob or v == "org_name"],
+            "body": _email(title, intro, _rows(rows) if rows else "",
+                           cta=cta, cta_url=f"{PORTAL}{path}" if path else PORTAL),
+        })
+        smses.append({
+            "trigger_key": trigger, "name": name, "description": description,
+            "module_code": module, "category": category,
+            # SMS carries only what fits — org_name is dropped to keep segments low.
+            "variables": [v for v in variables if ("{%s}" % v) in sms],
+            "content": sms,
+        })
+    return emails, smses
+
+
+EMAIL_TEMPLATES, SMS_TEMPLATES = _build()
 
 
 def iter_catalog():
