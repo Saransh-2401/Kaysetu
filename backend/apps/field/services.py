@@ -12,6 +12,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.foundation.integration import capabilities, events
+from apps.foundation.models import Party
 from apps.tenancy.context import require_tenant
 from apps.tenancy.db import ensure_alias
 
@@ -80,7 +81,8 @@ def check_out_visit(visit: Visit, *, lat=None, lng=None, address="", notes="", o
 
 
 # ------------------------------------------------------------------- orders
-def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") -> FieldOrder:
+def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="",
+               distributor_id=None) -> FieldOrder:
     """Create a field order + items atomically, recompute totals server-side,
     emit the event only after commit. Validates each line (400 on bad input);
     idempotent + race-tolerant on client_uuid."""
@@ -112,12 +114,20 @@ def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") 
     if subtotal + tax_total > MAX_AMOUNT:
         raise ValidationError({"total": "order total exceeds the maximum allowed."})
 
+    # Whoever fulfils this secondary order: the caller's choice when given,
+    # otherwise the retailer's standing distributor. Resolved before the write
+    # so the value is snapshotted rather than followed at read time.
+    if distributor_id is None:
+        distributor_id = (Party.objects.filter(pk=party_id)
+                          .values_list("distributor_id", flat=True).first())
+
     try:
         with _tenant_atomic():
             order = FieldOrder.objects.create(
                 order_number=("FO-" + timezone.now().strftime("%y%m%d%H%M%S%f")
                               + "-" + secrets.token_hex(2)),
                 agent=agent, party_id=party_id, order_date=order_date,
+                distributor_id=distributor_id,
                 subtotal=subtotal, tax_amount=tax_total, total=subtotal + tax_total,
                 notes=notes, client_uuid=client_uuid,
             )
@@ -134,6 +144,7 @@ def book_order(agent, *, party_id, order_date, items, notes="", client_uuid="") 
                 "field.order_booked",
                 order_id=order.pk, order_number=order.order_number,
                 agent_id=agent.pk, party_id=party_id,
+                distributor_id=distributor_id,
                 subtotal=str(order.subtotal), tax_amount=str(order.tax_amount),
                 total=str(order.total),
                 items=[

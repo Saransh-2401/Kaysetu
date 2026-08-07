@@ -35,6 +35,32 @@ class IsPurchaser(BasePermission):
         return _is_purchaser(request.user)
 
 
+#: Who may SEE procurement. Wider than who may act on it: the accounts officer
+#: settles the bills, the warehouse receives the goods, production raises the
+#: requests. Deliberately excludes the field/sales roles — supplier identities
+#: and negotiated rates are the company's cost base, not sales-side data.
+READER_ROLES = MANAGER_ROLES | {"accounts_officer", "warehouse_manager", "production_manager"}
+
+
+def _may_read_procurement(user) -> bool:
+    return bool(user and (user.is_owner
+                          or (user.role is not None and user.role.slug in READER_ROLES)))
+
+
+class IsProcurementReader(BasePermission):
+    """Read access to suppliers, POs, receipts and bills.
+
+    Module entitlement is not authorisation: with only the PURCH gate, any user
+    in the tenant — a field agent included — could list every supplier, the rate
+    negotiated on every line and every unpaid bill.
+    """
+
+    message = "Purchase access required."
+
+    def has_permission(self, request, view):
+        return _may_read_procurement(request.user)
+
+
 class IsAdminOverride(BasePermission):
     """Bypassing the state machine is an ADMIN act, not a purchase-manager one —
     otherwise the approval trail is only as strong as the person approving."""
@@ -58,7 +84,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
     # The module gate MUST be the class default, not something get_permissions()
     # adds: super().get_permissions() reads this, and without it an unentitled
     # tenant would fall through to the project default (IsAuthenticated).
-    permission_classes = [PurchModule]
+    permission_classes = [PurchModule, IsProcurementReader]
     serializer_class = SupplierSerializer
     pagination_class = PurchPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -192,7 +218,7 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
     # The class default. Per-action gates are declared on each @action and are
     # preserved by get_permissions() below.
-    permission_classes = [PurchModule]
+    permission_classes = [PurchModule, IsProcurementReader]
     serializer_class = PurchaseOrderSerializer
     pagination_class = PurchPagination
     http_method_names = ["get", "post", "patch", "head", "options"]
@@ -361,7 +387,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
 
 class GoodsReceiptViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [PurchModule]
+    permission_classes = [PurchModule, IsProcurementReader]
     serializer_class = GoodsReceiptSerializer
     pagination_class = PurchPagination
 
@@ -374,7 +400,7 @@ class GoodsReceiptViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class PurchaseBillViewSet(viewsets.ModelViewSet):
-    permission_classes = [PurchModule]
+    permission_classes = [PurchModule, IsProcurementReader]
     serializer_class = PurchaseBillSerializer
     pagination_class = PurchPagination
     http_method_names = ["get", "post", "head", "options"]

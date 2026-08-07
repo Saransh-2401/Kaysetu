@@ -544,7 +544,7 @@ function CustomersContent() {
             <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Distributor</InputLabel>
-                <Select value={distributorFilter} onChange={(e) => setDistributorFilter(e.target.value)} label="Distributor" sx={{ borderRadius: '30px', bgcolor: alpha(theme.palette.background.default, 0.4) }}>
+                <Select data-testid="customers-distributor-filter-select" value={distributorFilter} onChange={(e) => setDistributorFilter(e.target.value)} label="Distributor" sx={{ borderRadius: '30px', bgcolor: alpha(theme.palette.background.default, 0.4) }}>
                   <MenuItem value="all">All Distributors</MenuItem>
                   {distributors
                     .filter(d => managerFilter === "all" || String(d.assigned_to) === String(managerFilter))
@@ -1237,6 +1237,7 @@ function CustomersContent() {
                 <FormControl fullWidth size="small">
                   <InputLabel>Distributor</InputLabel>
                   <Select
+                    data-testid="customer-edit-distributor-select"
                     name="distributor"
                     value={editFormData.distributor || ''}
                     label="Distributor"

@@ -777,10 +777,17 @@ class AssignedDistributorsView(APIView):
             else:
                 qs = qs.filter(assigned_agent_id=user.pk)
 
+        # `assigned_agent` / `assigned_to` are what the pickers narrow on: the
+        # customer form only offers distributors belonging to the chosen agent,
+        # and omitting them left every such list empty — which, with a
+        # distributor being required to save, blocked the form outright.
+        qs = qs.select_related("assigned_agent", "assigned_agent__reports_to")
         return Response([{
             "id": p.pk, "full_name": p.name, "name": p.name,
             "email": p.email, "phone": p.phone,
             "city": (p.address or {}).get("city", ""),
+            "assigned_agent": p.assigned_agent_id,
+            "assigned_to": getattr(p.assigned_agent, "reports_to_id", None),
         } for p in qs.order_by("name")])
 
 

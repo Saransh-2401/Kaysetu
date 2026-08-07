@@ -48,6 +48,35 @@ class TenantUserSerializer(serializers.ModelSerializer):
     def get_status(self, obj):
         return "Active" if obj.is_active else "Inactive"
 
+    #: Identity documents and home address. Regulated personal data (Aadhaar
+    #: especially) that only an admin — or the person themselves — may see.
+    KYC_FIELDS = (
+        "aadhaar_number", "aadhaar_card", "pan_number", "pan_card", "gst_number",
+        "home_latitude", "home_longitude",
+    )
+
+    def to_representation(self, instance):
+        """Redact colleagues' KYC for anyone who is not a tenant admin.
+
+        The user list is not admin-only — pickers all over the portal read it for
+        names and roles — so every field on it is visible to every user in the
+        tenant. Without this, one field agent could harvest the Aadhaar and PAN
+        of the entire company from a single GET.
+        """
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None:
+            return data
+        role = getattr(user, "role", None)
+        is_admin = bool(getattr(user, "is_owner", False) or (role is not None and role.slug == "admin"))
+        if is_admin or getattr(user, "pk", None) == instance.pk:
+            return data
+        for field in self.KYC_FIELDS:
+            if field in data:
+                data[field] = None
+        return data
+
     class Meta:
         model = TenantUser
         fields = [
@@ -111,6 +140,7 @@ class PartySerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="name", read_only=True)
     formatted_address = serializers.SerializerMethodField()
     assigned_agent_name = serializers.CharField(source="assigned_agent.full_name", read_only=True, default=None)
+    distributor_name = serializers.CharField(source="distributor.name", read_only=True, default=None)
     latitude = serializers.SerializerMethodField()
     longitude = serializers.SerializerMethodField()
 
@@ -119,8 +149,25 @@ class PartySerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "customer_name", "kind", "phone", "email", "gstin", "address",
             "formatted_address", "credit_limit", "assigned_agent", "assigned_agent_name",
+            "distributor", "distributor_name",
             "latitude", "longitude", "is_active", "extra", "created_at", "updated_at",
         ]
+
+    def validate_distributor(self, value):
+        """Only a distributor-flagged party may serve a retailer.
+
+        Without this any customer could be set as another's distributor, which
+        silently corrupts every primary-vs-secondary figure downstream — the
+        numbers would still add up, just against the wrong party.
+        """
+        if value is None:
+            return value
+        if self.instance is not None and value.pk == self.instance.pk:
+            raise serializers.ValidationError("A party cannot be its own distributor.")
+        if not (value.extra or {}).get("is_distributor"):
+            raise serializers.ValidationError(
+                f"'{value.name}' is not a distributor. Mark it as one first.")
+        return value
 
     def get_formatted_address(self, obj):
         a = obj.address or {}

@@ -34,7 +34,9 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
     serializer_class = SalesOrderSerializer
 
     def get_queryset(self):
-        qs = SalesOrder.objects.select_related("customer", "assigned_agent").prefetch_related("items", "status_logs")
+        qs = (SalesOrder.objects
+              .select_related("customer", "assigned_agent", "distributor")
+              .prefetch_related("items", "status_logs"))
         # Non-managers see only orders assigned to them (managers/admin see all).
         if not _is_manager(self.request.user):
             qs = qs.filter(assigned_agent_id=self.request.user.pk)
@@ -47,6 +49,9 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
             qs = qs.filter(customer_id=params["customer"])
         if params.get("payment_status"):
             qs = qs.filter(payment_status=params["payment_status"])
+        # Secondary sales for one distributor, back-office side.
+        if params.get("distributor"):
+            qs = qs.filter(distributor_id=params["distributor"])
         return qs
 
     def create(self, request, *args, **kwargs):

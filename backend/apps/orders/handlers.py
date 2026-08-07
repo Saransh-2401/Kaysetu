@@ -31,6 +31,9 @@ def _on_field_order_booked(**payload):
         order_date=timezone.localdate(),
         items=payload.get("items", []),
         assigned_agent=agent,
+        # Keep the distributor the agent booked for; the back-office copy is what
+        # the portal lists, so losing it here would lose the attribution entirely.
+        distributor_id=payload.get("distributor_id"),
         source=services.SalesOrder.Source.FIELD,
         field_order_id=payload.get("order_id"),
         notes=f"From field order {payload.get('order_number', '')}",

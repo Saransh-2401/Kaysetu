@@ -26,7 +26,15 @@ def _is_accountant(user) -> bool:
 
 
 class IsAccountant(BasePermission):
-    """Write access to the books requires the accountant/owner role."""
+    """Books access requires the accountant/owner role.
+
+    Gates READS as well as writes. Entitlement alone is not authorisation: with
+    only the module check, every user in a BOOKS tenant — a field agent
+    included — could read the general ledger, trial balance, P&L and balance
+    sheet. A customer's own statement is deliberately NOT affected: that is
+    served through the `books.party_ledger` capability behind the foundation
+    party URL, which is scoped to one party rather than the whole company.
+    """
 
     message = "Accounts access required."
 
@@ -40,10 +48,6 @@ class BooksPagination(PageNumberPagination):
 
     page_size_query_param = "page_size"
     max_page_size = 2000
-
-
-def _is_accountant(user) -> bool:
-    return user.is_owner or (user.role is not None and user.role.slug in MANAGER_ROLES)
 
 
 class AccountViewSet(viewsets.ModelViewSet):
@@ -61,12 +65,15 @@ class AccountViewSet(viewsets.ModelViewSet):
     ordering = ["code"]
 
     def get_permissions(self):
-        # anyone in a BOOKS tenant can READ the chart; only accountants may mutate
-        # it (renaming/deactivating a system account breaks auto-posting + reports).
+        # Anyone in a BOOKS tenant may READ the chart itself — it is a list of
+        # account names, and pickers elsewhere need it. Everything with money in
+        # it is accountants-only: mutating the chart (renaming/deactivating a
+        # system account breaks auto-posting + reports) and the per-account
+        # ledger, which is the actual transaction history.
         # Starts from super() so an @action's own permission_classes survive —
         # rebuilding the list here would silently discard them.
         perms = super().get_permissions()
-        if self.action in ("create", "update", "partial_update", "destroy"):
+        if self.action in ("create", "update", "partial_update", "destroy", "ledger"):
             perms.append(IsAccountant())
         return perms
 
@@ -93,7 +100,9 @@ class AccountViewSet(viewsets.ModelViewSet):
 
 
 class JournalEntryViewSet(viewsets.ModelViewSet):
-    permission_classes = [BooksModule]
+    # Reading the general ledger is as sensitive as writing it — every sale,
+    # purchase, payment and payroll line with amounts and counterparties.
+    permission_classes = [BooksModule, IsAccountant]
     pagination_class = BooksPagination
     http_method_names = ["get", "post", "head", "options"]
 
@@ -126,7 +135,9 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
 class ReportsView(APIView):
     """Financial statements computed from the posted general ledger."""
 
-    permission_classes = [BooksModule]
+    # Trial balance / P&L / balance sheet are the company's finances. Module
+    # entitlement is not authorisation — these are accountants-only.
+    permission_classes = [BooksModule, IsAccountant]
 
     def get(self, request, report):
         p = request.query_params

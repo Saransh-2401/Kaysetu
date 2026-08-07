@@ -18,6 +18,7 @@ class StatusLogSerializer(serializers.ModelSerializer):
 class SalesOrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True)
     assigned_agent_name = serializers.CharField(source="assigned_agent.full_name", read_only=True, default=None)
+    distributor_name = serializers.CharField(source="distributor.name", read_only=True, default=None)
     # Portal-compat: the ported sales-orders screen reads `fulfillment_status`.
     fulfillment_status = serializers.CharField(source="status", read_only=True)
     items = SalesOrderItemSerializer(many=True, read_only=True)
@@ -27,6 +28,7 @@ class SalesOrderSerializer(serializers.ModelSerializer):
         model = SalesOrder
         fields = [
             "id", "order_number", "customer", "customer_name", "assigned_agent", "assigned_agent_name",
+            "distributor", "distributor_name",
             "order_date", "source", "field_order_id", "currency", "subtotal", "tax_amount",
             "discount_amount", "round_off", "total", "advance_amount", "amount_paid",
             "billing_address", "shipping_address", "status", "fulfillment_status", "payment_status",

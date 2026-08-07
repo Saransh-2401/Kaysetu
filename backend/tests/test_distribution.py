@@ -374,3 +374,105 @@ def test_check_inventory_and_delete_invoice(api, make_tenant, tenant_token):
     inv2 = client.get("/api/t/dist/invoices/").data["results"][0]
     client.post(f"/api/t/dist/invoices/{inv2['id']}/mark_paid/", {"amount": "10"})
     assert client.post(f"/api/t/dist/stock-requests/{req['id']}/delete_invoice/", {}).status_code == 400
+
+
+# ── Sales agents run distribution for THEIR distributors ─────────────────
+# A distributor typically supplies several organisations, so it never signs in
+# here; the agent who owns the relationship drives the whole order lifecycle.
+
+def _agent(api, owner_token, email, name="Agent"):
+    """Create a sales_agent and return (id, its access token)."""
+    created = auth(api, owner_token).post("/api/t/users/", {
+        "email": email, "full_name": name, "role_slug": "sales_agent",
+        "password": "agent-pass-123",
+    })
+    assert created.status_code == 201, created.data
+    return created.data["id"]
+
+
+def _agent_token(api, tenant, email):
+    login = api.post("/api/auth/tenant/login", {
+        "org_code": tenant.org_code, "email": email, "password": "agent-pass-123"})
+    assert login.status_code == 200, login.data
+    return login.data["access"]
+
+
+def _assign(api, owner_token, party_id, agent_id):
+    resp = auth(api, owner_token).patch(f"/api/t/parties/{party_id}/",
+                                        {"assigned_agent": agent_id})
+    assert resp.status_code == 200, resp.data
+
+
+def test_sales_agent_runs_the_whole_lifecycle_for_their_distributor(
+        api, make_tenant, tenant_token):
+    """No step needs the distributor to log in."""
+    tenant, _ = make_tenant(package_code="P8")
+    owner = tenant_token(tenant)["access"]
+    item = _item(api, owner)
+    dist = _distributor(api, owner)
+    agent_id = _agent(api, owner, "agent-a@acme.test")
+    _assign(api, owner, dist, agent_id)
+
+    agent = auth(api, _agent_token(api, tenant, "agent-a@acme.test"))
+
+    # raise ON BEHALF OF the distributor
+    created = agent.post("/api/t/dist/stock-requests/", {
+        "distributor": dist, "items": [{"item": item, "requested_quantity": 5}]})
+    assert created.status_code == 201, created.data
+    req_id = created.data["id"]
+
+    # and drive it forward
+    assert agent.post(f"/api/t/dist/stock-requests/{req_id}/approve/").status_code == 200
+    listed = agent.get("/api/t/dist/stock-requests/").data
+    rows = listed.get("results", listed)
+    assert any(r["id"] == req_id for r in rows)
+
+
+def test_agent_cannot_touch_another_agents_distributor(api, make_tenant, tenant_token):
+    """Filtering the list is not a permission — the detail route is checked too."""
+    tenant, _ = make_tenant(package_code="P8")
+    owner = tenant_token(tenant)["access"]
+    item = _item(api, owner)
+
+    mine = _distributor(api, owner, "Mine")
+    theirs = _distributor(api, owner, "Theirs")
+    a_id = _agent(api, owner, "agent-a@acme.test", "A")
+    b_id = _agent(api, owner, "agent-b@acme.test", "B")
+    _assign(api, owner, mine, a_id)
+    _assign(api, owner, theirs, b_id)
+
+    # Owner raises one for B's distributor.
+    owner_client = auth(api, owner)
+    other_req = _request(owner_client, theirs, item)["id"]
+
+    agent_a = auth(api, _agent_token(api, tenant, "agent-a@acme.test"))
+
+    # Cannot RAISE for someone else's distributor.
+    blocked = agent_a.post("/api/t/dist/stock-requests/", {
+        "distributor": theirs, "items": [{"item": item, "requested_quantity": 1}]})
+    assert blocked.status_code == 403, blocked.data
+
+    # Cannot ACT on it by posting straight at the detail route.
+    assert agent_a.post(f"/api/t/dist/stock-requests/{other_req}/approve/").status_code in (403, 404)
+
+    # And cannot even SEE it.
+    listed = agent_a.get("/api/t/dist/stock-requests/").data
+    rows = listed.get("results", listed)
+    assert all(r["id"] != other_req for r in rows)
+
+
+def test_managers_still_see_every_distributor(api, make_tenant, tenant_token):
+    """Agent scoping must not narrow the owner/manager view."""
+    tenant, _ = make_tenant(package_code="P8")
+    owner = tenant_token(tenant)["access"]
+    item = _item(api, owner)
+    owner_client = auth(api, owner)
+
+    d1 = _distributor(api, owner, "D1")
+    d2 = _distributor(api, owner, "D2")
+    r1 = _request(owner_client, d1, item)["id"]
+    r2 = _request(owner_client, d2, item)["id"]
+
+    listed = owner_client.get("/api/t/dist/stock-requests/").data
+    ids = {r["id"] for r in listed.get("results", listed)}
+    assert {r1, r2} <= ids

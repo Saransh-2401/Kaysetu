@@ -572,6 +572,7 @@ export default function SalesOrdersPage() {
               {["admin", "sales_manager"].includes(user?.role || "") && (
                 <Grid size={{ xs: 12, sm: 6, md: 1.4 }}>
                   <TextField
+                    data-testid="sales-orders-distributor-filter-select"
                     select
                     fullWidth
                     size="small"

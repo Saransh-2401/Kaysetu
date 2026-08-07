@@ -715,13 +715,25 @@ class PartyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsTenantUser]
 
     def get_queryset(self):
-        qs = Party.objects.all()
+        qs = Party.objects.select_related("assigned_agent", "distributor")
         search = self.request.query_params.get("search")
         if search:
             qs = qs.filter(name__icontains=search)
         kind = self.request.query_params.get("kind")
         if kind:
             qs = qs.filter(kind__in=[kind, Party.Kind.BOTH])
+        # The retailers one distributor serves — the beat list an agent works
+        # and the base of every secondary-sales figure for that distributor.
+        distributor = self.request.query_params.get("distributor")
+        if distributor:
+            qs = qs.filter(distributor_id=distributor)
+        # Distributors are parties flagged in `extra`; `?is_distributor=true`
+        # is how a picker asks for just those without a second endpoint.
+        is_distributor = self.request.query_params.get("is_distributor")
+        if is_distributor is not None and is_distributor != "":
+            wants = str(is_distributor).lower() in ("1", "true", "yes")
+            qs = (qs.filter(extra__is_distributor=True) if wants
+                  else qs.exclude(extra__is_distributor=True))
         return qs
 
     @action(detail=True, methods=["get"])

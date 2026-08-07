@@ -76,12 +76,14 @@ class FieldOrderItemSerializer(serializers.ModelSerializer):
 class FieldOrderSerializer(serializers.ModelSerializer):
     agent_name = serializers.CharField(source="agent.full_name", read_only=True)
     party_name = serializers.CharField(source="party.name", read_only=True)
+    distributor_name = serializers.CharField(source="distributor.name", read_only=True, default=None)
     items = FieldOrderItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = FieldOrder
         fields = [
-            "id", "order_number", "agent", "agent_name", "party", "party_name", "order_date",
+            "id", "order_number", "agent", "agent_name", "party", "party_name",
+            "distributor", "distributor_name", "order_date",
             "status", "subtotal", "tax_amount", "total", "notes", "items", "created_at",
         ]
         read_only_fields = ["order_number", "subtotal", "tax_amount", "total", "created_at"]

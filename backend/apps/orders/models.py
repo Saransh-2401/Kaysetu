@@ -32,6 +32,13 @@ class SalesOrder(models.Model):
     assigned_agent = models.ForeignKey(
         "foundation.TenantUser", null=True, blank=True, on_delete=models.SET_NULL, related_name="sales_orders"
     )
+    # The distributor this order is fulfilled by, carried through from the field
+    # order that raised it. Without it the back-office copy loses the attribution
+    # the moment a secondary order crosses into ORDERS.
+    distributor = models.ForeignKey(
+        "foundation.Party", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="distributed_sales_orders",
+    )
     order_date = models.DateField()
     source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
     # Link back to the originating FIELD order (so FIELD can show fulfilment).

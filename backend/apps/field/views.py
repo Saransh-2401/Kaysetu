@@ -306,10 +306,16 @@ class FieldOrderViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        qs = FieldOrder.objects.select_related("agent", "party").prefetch_related("items")
+        qs = (FieldOrder.objects
+              .select_related("agent", "party", "distributor").prefetch_related("items"))
         visible = _visible_agent_ids(self.request.user)
         if visible is not None:
             qs = qs.filter(agent_id__in=visible)
+        # Secondary sales for one distributor — what the distributor-wise report
+        # and the distributor's own order history both read.
+        distributor = self.request.query_params.get("distributor")
+        if distributor:
+            qs = qs.filter(distributor_id=distributor)
         return qs
 
     def create(self, request, *args, **kwargs):
@@ -322,6 +328,7 @@ class FieldOrderViewSet(viewsets.ModelViewSet):
             request.user, party_id=party_id,
             order_date=data.get("order_date") or timezone.localdate(),
             items=items, notes=data.get("notes", ""), client_uuid=data.get("client_uuid", ""),
+            distributor_id=data.get("distributor") or None,
         )
         return Response(FieldOrderSerializer(order).data, status=201)
 

@@ -25,12 +25,30 @@ from .serializers import (
 )
 
 DistModule = HasModule("DIST")
+# Company-side roles that run distribution. `sales_agent` is included because a
+# distributor typically supplies several organisations and never signs in here,
+# so the agent who owns that relationship drives the whole order lifecycle —
+# raise, approve, dispatch, invoice — exactly as the previous platform worked.
+# An agent is NOT org-wide though: see _agent_scoped_qs below.
 MANAGER_ROLES = {"admin", "sales_manager", "distributor_manager"}
+AGENT_ROLES = {"sales_agent"}
 DISTRIBUTOR_ROLE = "distributor"
 
 
+def _role_slug(user):
+    return getattr(getattr(user, "role", None), "slug", None)
+
+
+def _is_agent(user) -> bool:
+    """A sales agent acts company-side, but only over their OWN distributors."""
+    return bool(user and not getattr(user, "is_owner", False) and _role_slug(user) in AGENT_ROLES)
+
+
 def _is_manager(user) -> bool:
-    return bool(user and (user.is_owner or (user.role is not None and user.role.slug in MANAGER_ROLES)))
+    """Anyone allowed to run distribution operations (org-wide or agent-scoped)."""
+    if user is None:
+        return False
+    return bool(user.is_owner or _role_slug(user) in MANAGER_ROLES or _is_agent(user))
 
 
 def _own_party_id(user):
@@ -43,8 +61,33 @@ def _own_party_id(user):
 
 
 def _scope_to_own_party(qs, user, field="distributor_id"):
+    """Narrow a queryset to what this login may see.
+
+    Three cases:
+      * org-wide manager      -> everything
+      * sales agent           -> only distributors assigned to them
+      * distributor / other   -> only their own Party
+    """
+    if _is_agent(user):
+        return qs.filter(**{f"{field.replace('_id', '')}__assigned_agent": user.pk})
     own = _own_party_id(user)
     return qs.filter(**{field: own}) if own else qs
+
+
+def _agent_may_act_on(user, distributor_id) -> bool:
+    """Can this login operate on that distributor? Managers: always.
+
+    Checked on WRITES as well as reads — a scoped list is not a permission, and
+    an agent could otherwise approve or invoice another agent's distributor by
+    posting its id directly.
+    """
+    if not _is_agent(user):
+        return True
+    if not distributor_id:
+        return False
+    from apps.foundation.models import Party
+
+    return Party.objects.filter(pk=distributor_id, assigned_agent_id=user.pk).exists()
 
 
 class IsDistManager(BasePermission):
@@ -54,6 +97,26 @@ class IsDistManager(BasePermission):
 
     def has_permission(self, request, view):
         return _is_manager(request.user)
+
+    def has_object_permission(self, request, view, obj):
+        """A sales agent may only act on distributors assigned to them.
+
+        Filtering the LIST is not enough: an agent knows other ids and could
+        approve or invoice someone else's distributor by posting straight at the
+        detail route. Every @action reaches the object through get_object(),
+        which runs this check.
+        """
+        if not _is_agent(request.user):
+            return True
+        distributor_id = (
+            getattr(obj, "distributor_id", None)
+            # Invoices hang off the request, not the distributor, directly.
+            or getattr(getattr(obj, "request", None), "distributor_id", None)
+        )
+        allowed = _agent_may_act_on(request.user, distributor_id)
+        if not allowed:
+            self.message = "That distributor is not assigned to you."
+        return allowed
 
 
 class DistPagination(PageNumberPagination):
@@ -99,6 +162,11 @@ class StockRequestViewSet(viewsets.ModelViewSet):
         own = _own_party_id(request.user)
         if own:
             distributor_id = own          # a party-linked user can only request for themselves
+        elif not _agent_may_act_on(request.user, distributor_id):
+            # A sales agent raises requests FOR their own distributors — this is
+            # the normal path now, since distributors supply several
+            # organisations and never sign in here.
+            return Response({"detail": "That distributor is not assigned to you."}, status=403)
         req = services.create_stock_request(
             distributor_id=distributor_id,
             items=request.data.get("items", []),

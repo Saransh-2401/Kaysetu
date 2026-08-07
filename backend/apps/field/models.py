@@ -174,6 +174,15 @@ class FieldOrder(models.Model):
     party = models.ForeignKey(
         "foundation.Party", on_delete=models.PROTECT, related_name="field_orders"
     )
+    # The distributor fulfilling this secondary order. Snapshotted from
+    # `party.distributor` at booking rather than read through the retailer, so
+    # re-assigning a retailer later never rewrites who was credited for orders
+    # already booked. Overridable per order — one shop can be served by more
+    # than one distributor.
+    distributor = models.ForeignKey(
+        "foundation.Party", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="secondary_orders",
+    )
     order_date = models.DateField()
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.NEW)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)

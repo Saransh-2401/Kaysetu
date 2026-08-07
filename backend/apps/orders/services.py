@@ -44,7 +44,7 @@ def _to_decimal(value, field):
 
 
 def create_order(*, customer_id, order_date, items, assigned_agent=None, source=SalesOrder.Source.MANUAL,
-                 field_order_id=None, notes="", advance_amount=0) -> SalesOrder:
+                 field_order_id=None, notes="", advance_amount=0, distributor_id=None) -> SalesOrder:
     """Create a sales order + items, recompute totals server-side. Idempotent on
     field_order_id (an event replay won't duplicate)."""
     if field_order_id is not None:
@@ -74,6 +74,7 @@ def create_order(*, customer_id, order_date, items, assigned_agent=None, source=
         order = SalesOrder.objects.create(
             order_number=_num("SO"), customer_id=customer_id,
             assigned_agent=assigned_agent, order_date=order_date, source=source,
+            distributor_id=distributor_id,
             field_order_id=field_order_id, subtotal=subtotal, tax_amount=tax_total,
             total=subtotal + tax_total, advance_amount=Decimal(str(advance_amount)),
             notes=notes,

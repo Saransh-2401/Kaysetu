@@ -215,6 +215,18 @@ class Party(models.Model):
     assigned_agent = models.ForeignKey(
         "TenantUser", null=True, blank=True, on_delete=models.SET_NULL, related_name="assigned_parties"
     )
+    # The distributor that serves this party. Set on a RETAILER so a secondary
+    # order an agent books there is attributed to whoever actually fulfils it;
+    # a distributor party leaves it null.
+    #
+    # A self-FK because distributors are Parties here (flagged
+    # `extra.is_distributor`) — the very record the Distribution module raises
+    # primary stock requests against. That is what makes primary and secondary
+    # sales reportable against one distributor without either module importing
+    # the other.
+    distributor = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="retailers"
+    )
     is_active = models.BooleanField(default=True)
     extra = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
