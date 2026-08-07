@@ -97,7 +97,21 @@ export const coreService = {
         return apiClient.delete(`/t/users/${id}/`);
     },
 
+    // --- Platform message templates (READ-ONLY for tenants) ---
+    // Authored and paid for by KaySetu, stored once in the control plane. A
+    // tenant can see exactly what its people receive but cannot edit the
+    // wording or point sending at its own account.
+    async getPlatformTemplates(channel?: 'email' | 'sms') {
+        return apiClient.get<PlatformTemplate[]>('/core/message-templates/',
+            channel ? { channel } : undefined);
+    },
+
     // --- Email Templates ---
+    // Templates are SEEDED by the platform, not created by admins: `trigger_key`
+    // is read-only on the API because it must match a key the code looks up
+    // (today only "OTP_LOGIN"). A hand-created template would carry an empty
+    // trigger and could never fire, so no create/delete helpers are exposed —
+    // admins edit the subject/body of the seeded rows instead.
     async getEmailTemplates() {
         return apiClient.get<EmailTemplate[]>('/core/email-templates/');
     },
@@ -150,6 +164,22 @@ export const coreService = {
     }
 };
 
+export interface PlatformTemplate {
+    id: number;
+    channel: 'email' | 'sms';
+    trigger_key: string;
+    name: string;
+    description: string;
+    module_code: string;
+    category: string;
+    subject: string;
+    body: string;      // email HTML
+    content: string;   // SMS text
+    available_variables: string[];
+    editable: boolean;   // always false — KaySetu owns these
+    managed_by: string;
+}
+
 export interface EmailTemplate {
     id: number;
     name: string;
@@ -160,13 +190,34 @@ export interface EmailTemplate {
     is_active: boolean;
 }
 
+/**
+ * Is a write-only secret already stored server-side?
+ *
+ * Secrets (SMTP password, SMS API key) are never returned by the API — only a
+ * boolean flag saying one exists. The API names those flags `has_password` /
+ * `has_api_key`; earlier portal code guessed `password_set` / `api_key_set`,
+ * which are always undefined, so a SAVED secret rendered as an empty box and
+ * looked like the save had silently failed. Accept either spelling here so the
+ * UI can never regress on a naming mismatch again.
+ */
+export function secretIsSet(
+    config: Record<string, any> | null | undefined,
+    ...flags: string[]
+): boolean {
+    if (!config) return false;
+    return flags.some((f) => config[f] === true);
+}
+
 export interface EmailConfiguration {
     id: number;
     host: string;
     port: number;
     username: string;
     password?: string;          // write-only; never returned by the API
-    password_set?: boolean;     // read-only flag: is a password stored?
+    /** Read-only flag: is a password stored? The API sends `has_password`;
+     *  `password_set` is kept only as a legacy alias. Read via secretIsSet(). */
+    has_password?: boolean;
+    password_set?: boolean;
     use_tls: boolean;
     use_ssl: boolean;
     default_from_email: string;
@@ -176,7 +227,10 @@ export interface EmailConfiguration {
 export interface SMSConfiguration {
     id?: number;
     api_key?: string;           // write-only; never returned by the API
-    api_key_set?: boolean;      // read-only flag: is an API key stored?
+    /** Read-only flag: is an API key stored? The API sends `has_api_key`;
+     *  `api_key_set` is kept only as a legacy alias. Read via secretIsSet(). */
+    has_api_key?: boolean;
+    api_key_set?: boolean;
     sender_id: string;
     entity_id: string;
 }

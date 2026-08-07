@@ -262,3 +262,91 @@ class AppVersion(models.Model):
 
     def __str__(self):
         return f"{self.version} ({self.version_code})"
+
+
+class MessageTemplate(models.Model):
+    """A platform-owned email/SMS message body.
+
+    PLATFORM-owned, exactly like AppVersion: KaySetu authors and pays for these,
+    so they live in the control DB as ONE row shared by every tenant. Ops edits
+    a template once and all tenants see the change immediately — no per-tenant
+    copies to drift apart or re-push.
+
+    Tenants can READ these (so they know what their people receive) but never
+    write them. What a tenant still controls is its own notification routing:
+    role defaults, per-user preferences and manual broadcasts.
+
+    `trigger_key` is the join to the code that sends: it is set by the seed and
+    is NOT editable, because a renamed key silently stops the matching send.
+    Ops may only edit the wording (subject/body/content) and is_active.
+    """
+
+    class Channel(models.TextChoices):
+        EMAIL = "email", "Email"
+        SMS = "sms", "SMS"
+
+    channel = models.CharField(max_length=8, choices=Channel.choices, db_index=True)
+    trigger_key = models.CharField(max_length=100, db_index=True)
+    name = models.CharField(max_length=200)
+    description = models.CharField(max_length=300, blank=True)
+    # Which sellable module this belongs to; blank = core (auth, account admin),
+    # shown to every tenant regardless of what they bought.
+    module_code = models.CharField(max_length=16, blank=True, db_index=True)
+    category = models.CharField(max_length=64, blank=True)
+
+    subject = models.CharField(max_length=300, blank=True)   # email only
+    body = models.TextField(blank=True)                      # email HTML
+    content = models.TextField(blank=True)                   # SMS text
+    # DLT-registered id. Indian carriers reject an SMS without one, so a
+    # template with no id is stored but never dispatched.
+    dlt_template_id = models.CharField(max_length=64, blank=True)
+
+    available_variables = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["channel", "category", "name"]
+        unique_together = [("channel", "trigger_key")]
+        indexes = [models.Index(fields=["channel", "module_code"])]
+
+    def __str__(self):
+        return f"[{self.channel}] {self.name}"
+
+
+class PlatformMessagingConfig(models.Model):
+    """Singleton (pk=1): the SMTP / SMS credentials KaySetu sends on.
+
+    Deliberately platform-level. Tenants do not configure or pay for delivery,
+    so there is no per-tenant SMTP to fall back to — one account sends for
+    everyone and Ops owns it. Secrets are write-only over the API.
+    """
+
+    # ── Email (SMTP)
+    smtp_host = models.CharField(max_length=200, blank=True)
+    smtp_port = models.PositiveIntegerField(default=587)
+    smtp_username = models.CharField(max_length=200, blank=True)
+    smtp_password = models.CharField(max_length=500, blank=True)
+    smtp_use_tls = models.BooleanField(default=True)
+    smtp_use_ssl = models.BooleanField(default=False)
+    from_email = models.CharField(max_length=200, blank=True)
+    from_name = models.CharField(max_length=120, blank=True)
+
+    # ── SMS
+    sms_api_key = models.CharField(max_length=500, blank=True)
+    sms_sender_id = models.CharField(max_length=20, blank=True)
+    sms_entity_id = models.CharField(max_length=64, blank=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Platform messaging configuration"
+
+    def email_ready(self):
+        return bool(self.smtp_host and self.smtp_username and self.smtp_password)
+
+    def sms_ready(self):
+        return bool(self.sms_api_key and self.sms_entity_id)
+
+    def __str__(self):
+        return "Platform messaging configuration"

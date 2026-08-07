@@ -166,6 +166,15 @@ class CompanyViewSet(viewsets.ViewSet):
         if "fiscal_month_start" in data and "fy_start_month" not in data:
             data["fy_start_month"] = data["fiscal_month_start"]
 
+        # Ditto the GSTIN: company_payload() publishes the `gstin` column under
+        # BOTH `gstin` and `tax_id`, and the company form edits `tax_id`. The
+        # portal PATCHes its whole state back, so an edited `tax_id` arrives
+        # beside the stale `gstin` — mirror it unconditionally (same reason as
+        # `name` above) or the field loop silently restores the old GSTIN and
+        # the save looks successful while changing nothing.
+        if "tax_id" in data:
+            data["gstin"] = data["tax_id"]
+
         # `logo` string URL passed from frontend
         if "logo" in data and "logo_url" not in data and isinstance(data["logo"], str):
             org.logo_url = data["logo"]

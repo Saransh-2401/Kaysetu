@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
-from .models import AppVersion, ModuleDef, Package, ProvisioningJob, Subscription, Tenant
+from .models import (
+    AppVersion, MessageTemplate, ModuleDef, Package, PlatformMessagingConfig,
+    ProvisioningJob, Subscription, Tenant,
+)
 
 
 class ModuleDefSerializer(serializers.ModelSerializer):
@@ -127,3 +130,65 @@ class AppVersionSerializer(serializers.ModelSerializer):
                   "release_notes", "force_update", "is_active",
                   "uploaded_by", "uploaded_by_name", "created_at", "updated_at"]
         read_only_fields = ["uploaded_by", "created_at", "updated_at"]
+
+
+class MessageTemplateSerializer(serializers.ModelSerializer):
+    """SuperAdmin message-template editor.
+
+    Ops may only reword a template. `channel`, `trigger_key`, `module_code` and
+    `available_variables` are read-only because they are the contract with the
+    sending code — a renamed trigger silently stops that message going out, and
+    a variable the body references but the sender never supplies would render as
+    a literal placeholder in a customer's inbox.
+    """
+
+    class Meta:
+        model = MessageTemplate
+        fields = ["id", "channel", "trigger_key", "name", "description",
+                  "module_code", "category", "subject", "body", "content",
+                  "dlt_template_id", "available_variables", "is_active", "updated_at"]
+        read_only_fields = ["channel", "trigger_key", "module_code",
+                            "available_variables", "updated_at"]
+
+
+class PlatformMessagingConfigSerializer(serializers.ModelSerializer):
+    """KaySetu's own SMTP / SMS credentials. Secrets are write-only and are
+    reported back only as `has_*` booleans, so a console session can never read
+    them back out."""
+
+    has_smtp_password = serializers.SerializerMethodField()
+    has_sms_api_key = serializers.SerializerMethodField()
+    email_ready = serializers.SerializerMethodField()
+    sms_ready = serializers.SerializerMethodField()
+
+    def get_has_smtp_password(self, obj):
+        return bool(obj.smtp_password)
+
+    def get_has_sms_api_key(self, obj):
+        return bool(obj.sms_api_key)
+
+    def get_email_ready(self, obj):
+        return obj.email_ready()
+
+    def get_sms_ready(self, obj):
+        return obj.sms_ready()
+
+    class Meta:
+        model = PlatformMessagingConfig
+        fields = ["id", "smtp_host", "smtp_port", "smtp_username", "smtp_password",
+                  "smtp_use_tls", "smtp_use_ssl", "from_email", "from_name",
+                  "sms_api_key", "sms_sender_id", "sms_entity_id",
+                  "has_smtp_password", "has_sms_api_key", "email_ready", "sms_ready",
+                  "updated_at"]
+        extra_kwargs = {
+            "smtp_password": {"write_only": True, "required": False, "allow_blank": True},
+            "sms_api_key": {"write_only": True, "required": False, "allow_blank": True},
+        }
+
+    def update(self, instance, validated_data):
+        # Blank means "leave it alone", not "clear it" — otherwise editing the
+        # from-name would silently break sending for every tenant.
+        for secret in ("smtp_password", "sms_api_key"):
+            if not validated_data.get(secret):
+                validated_data.pop(secret, None)
+        return super().update(instance, validated_data)

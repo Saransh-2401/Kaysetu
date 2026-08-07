@@ -20,14 +20,18 @@ from .models import (
     AdminUser,
     AppVersion,
     ControlAuditLog,
+    MessageTemplate,
     ModuleDef,
     Package,
+    PlatformMessagingConfig,
     ProvisioningJob,
     Subscription,
     Tenant,
 )
 from .serializers import (
     AppVersionSerializer,
+    MessageTemplateSerializer,
+    PlatformMessagingConfigSerializer,
     ModuleDefSerializer,
     PackageAdminSerializer,
     PackagePublicSerializer,
@@ -363,3 +367,53 @@ class ProvisioningJobViewSet(viewsets.ReadOnlyModelViewSet):
         if job_status:
             qs = qs.filter(status=job_status)
         return qs
+
+
+class MessageTemplateViewSet(viewsets.ModelViewSet):
+    """SuperAdmin message-template manager. Control-plane only.
+
+    EDIT ONLY. The catalog ships with the code and is seeded by migration, so
+    creating or deleting rows here is refused: a template whose trigger_key no
+    code path looks up can never fire, and deleting one silently stops a message
+    tenants depend on. Ops rewords; engineering adds.
+    """
+
+    permission_classes = [IsControlAdmin]
+    serializer_class = MessageTemplateSerializer
+    queryset = MessageTemplate.objects.all()
+    pagination_class = None
+    http_method_names = ["get", "patch", "put", "head", "options"]
+
+    def get_queryset(self):
+        qs = MessageTemplate.objects.all()
+        channel = self.request.query_params.get("channel")
+        if channel:
+            qs = qs.filter(channel=channel)
+        module = self.request.query_params.get("module_code")
+        if module:
+            qs = qs.filter(module_code=module)
+        return qs
+
+
+class PlatformMessagingConfigView(APIView):
+    """Singleton: the SMTP / SMS account KaySetu sends every tenant's mail on.
+
+    Platform-level on purpose — tenants neither configure nor pay for delivery,
+    so there is exactly one set of credentials and Ops owns it.
+    """
+
+    permission_classes = [IsControlAdmin]
+
+    def _config(self):
+        config, _ = PlatformMessagingConfig.objects.get_or_create(pk=1)
+        return config
+
+    def get(self, request):
+        return Response(PlatformMessagingConfigSerializer(self._config()).data)
+
+    def patch(self, request):
+        serializer = PlatformMessagingConfigSerializer(
+            self._config(), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

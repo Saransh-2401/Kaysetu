@@ -1,4 +1,3 @@
-import os
 from datetime import timedelta
 
 from django.db.models import Count
@@ -128,50 +127,39 @@ def _find_user_by_phone(phone: str):
 def _deliver_otp(user, code, tenant):
     """Send the code by SMS and/or email. Returns the channels that accepted it.
 
+    Delivery runs on the PLATFORM account (KaySetu pays for it) using the
+    platform's own template — a tenant configures neither, so nothing here reads
+    tenant settings.
+
     Best-effort by design: a provider outage must not break the login flow, and
     the caller never reveals which channel worked (that would leak whether a
     phone is registered).
     """
     from django.conf import settings
 
+    from apps.control import messaging
+
     channels = []
+    context = {
+        "full_name": user.full_name or user.email,
+        "otp": code,
+        "org_name": getattr(tenant, "name", "") or "",
+        "org_code": getattr(tenant, "org_code", "") or "",
+    }
 
-    # SMS — only if the org configured a provider AND an OTP_LOGIN template.
     try:
-        from .models import SMSConfiguration, SMSTemplate
-
-        sms_config = SMSConfiguration.objects.filter(pk=1).first()
-        template = SMSTemplate.objects.filter(trigger_key="OTP_LOGIN", is_active=True).first()
-        if sms_config and sms_config.api_key and template and template.dlt_template_id:
-            # No SMS gateway is wired into this platform yet; the config and DLT
-            # id are stored and ready, so this is where the send goes.
-            channels.append("sms_pending_provider")
+        if user.phone:
+            sent, _ = messaging.send_templated_sms("OTP_LOGIN", user.phone, context)
+            if sent:
+                channels.append("sms")
     except Exception:                                # noqa: BLE001 - never break login
         pass
 
-    # Email — reuses the tenant's own SMTP, same path as the credentials mail.
     try:
         if user.email:
-            from .config_views import _send_email
-            from .models import EmailConfiguration, EmailTemplate
-
-            config = EmailConfiguration.objects.filter(pk=1).first()
-            if config and config.host and config.username and config.password:
-                template = EmailTemplate.objects.filter(trigger_key="OTP_LOGIN", is_active=True).first()
-                if template:
-                    subject = template.subject
-                    body = (template.body or "")\
-                        .replace("{full_name}", user.full_name or user.email)\
-                        .replace("{otp}", code)
-                else:
-                    subject = "Your sign-in code"
-                    body = (f"<p>Hello {user.full_name or user.email},</p>"
-                            f"<p>Your one-time sign-in code is <b>{code}</b>. "
-                            f"It expires in {OTP_TTL_MINUTES} minutes.</p>"
-                            f"<p>If you didn't request it, you can ignore this email.</p>")
-                sent, _ = _send_email(config, user.email, subject, body)
-                if sent:
-                    channels.append("email")
+            sent, _ = messaging.send_templated_email("OTP_LOGIN", user.email, context)
+            if sent:
+                channels.append("email")
     except Exception:                                # noqa: BLE001 - never break login
         pass
 
@@ -545,35 +533,25 @@ def _send_credentials_email(user, password, tenant):
     """Email a newly created user their sign-in details.
 
     Admins set the password in the Add-User form; without this the account was
-    created and then nobody could tell the user what it was. Sending happens
-    through the tenant's own SMTP config (same path as the config screen's test
-    send). Returns (sent, error) and NEVER raises: a mail outage must not undo a
-    user that was already created — the caller surfaces the outcome instead.
-    """
-    from .config_views import _send_email
-    from .models import EmailConfiguration
+    created and then nobody could tell the user what it was.
 
-    config = EmailConfiguration.objects.filter(pk=1).first()
-    if config is None or not (config.host and config.username and config.password):
-        return False, "Email is not configured for this organization."
-
-    portal_url = os.environ.get("PORTAL_URL", "https://app.kaysetu.in")
-    org_name = getattr(tenant, "name", "") or ""
-    org_code = getattr(tenant, "org_code", "") or ""
-    body = f"""
-      <p>Hello {user.full_name or user.email},</p>
-      <p>An account has been created for you{f' at <b>{org_name}</b>' if org_name else ''}.
-         You can sign in with the details below.</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><td><b>Organization code</b></td><td>{org_code}</td></tr>
-        <tr><td><b>Email</b></td><td>{user.email}</td></tr>
-        <tr><td><b>Password</b></td><td>{password}</td></tr>
-      </table>
-      <p><a href="{portal_url}/login">Sign in to {portal_url}</a></p>
-      <p>For your security, please change this password after your first sign-in.</p>
+    Sends on the PLATFORM account using the platform's USER_CREDENTIALS
+    template — KaySetu owns the wording and pays for delivery, so a tenant has
+    nothing to configure. Returns (sent, error) and NEVER raises: a mail outage
+    must not undo a user that was already created; the caller surfaces the
+    outcome so the admin knows to hand the password over instead.
     """
+    from apps.control import messaging
+
+    context = {
+        "full_name": user.full_name or user.email,
+        "org_name": getattr(tenant, "name", "") or "",
+        "org_code": getattr(tenant, "org_code", "") or "",
+        "email": user.email,
+        "password": password,
+    }
     try:
-        return _send_email(config, user.email, f"Your sign-in details{f' for {org_name}' if org_name else ''}", body)
+        return messaging.send_templated_email("USER_CREDENTIALS", user.email, context)
     except Exception as exc:                        # noqa: BLE001 - reported to the admin
         return False, f"{type(exc).__name__}: {exc}"
 
@@ -875,3 +853,45 @@ class ModulePingView(APIView):
 
     def get(self, request):
         return Response({"ok": True, "module": self.module_code})
+
+
+class TenantMessageTemplatesView(APIView):
+    """READ-ONLY view of the platform message catalog for a tenant.
+
+    KaySetu authors these and pays for delivery, so a tenant can see exactly
+    what its people receive but cannot edit the wording, the credentials, or
+    which account they send from. What the tenant DOES still control lives
+    elsewhere: notification role-defaults, per-user preferences and broadcasts.
+
+    Reads the CONTROL database (one shared copy), so an Ops edit is visible to
+    every tenant immediately with no per-tenant sync.
+    """
+
+    permission_classes = [IsTenantUser]
+
+    def get(self, request):
+        from apps.control.models import MessageTemplate
+
+        qs = MessageTemplate.objects.filter(is_active=True)
+        channel = request.query_params.get("channel")
+        if channel in ("email", "sms"):
+            qs = qs.filter(channel=channel)
+
+        rows = [{
+            "id": t.pk,
+            "channel": t.channel,
+            "trigger_key": t.trigger_key,
+            "name": t.name,
+            "description": t.description,
+            "module_code": t.module_code,
+            "category": t.category,
+            "subject": t.subject,
+            "body": t.body,
+            "content": t.content,
+            "available_variables": t.available_variables,
+            # Surfaced so the UI can say WHY nothing is editable, instead of
+            # leaving an admin hunting for a save button that does not exist.
+            "editable": False,
+            "managed_by": "KaySetu",
+        } for t in qs]
+        return Response(rows)

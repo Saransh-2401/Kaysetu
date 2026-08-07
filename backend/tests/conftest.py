@@ -41,6 +41,19 @@ def tenant_db_sandbox(tmp_path, settings):
 
 
 @pytest.fixture(autouse=True)
+def no_geoip_lookups(settings):
+    """Never call the geolocation provider from a test.
+
+    Login-audit rows carry an IP that the scheduler resolves against a public
+    third-party service. A suite that reaches the network is slow, flaky, and
+    leaks whatever addresses the fixtures happen to contain, so it is off by
+    default — tests that exercise the lookup turn it back on with a stub in
+    place of `requests.post`.
+    """
+    settings.GEOIP_LOOKUP_ENABLED = False
+
+
+@pytest.fixture(autouse=True)
 def run_on_commit_hooks(monkeypatch):
     """Execute transaction.on_commit callbacks immediately during tests.
 

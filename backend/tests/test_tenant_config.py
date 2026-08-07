@@ -356,3 +356,119 @@ def test_a_re_entitled_module_recovers_its_skipped_backlog(api, make_tenant, ten
         assert reconcile_deliveries()["recovered"] == 1
         row.refresh_from_db()
         assert row.status == EventDelivery.Status.FAILED     # back in the retry queue
+
+
+def test_gstin_edit_survives_the_whole_payload_round_trip(api, make_tenant, tenant_token):
+    """`gstin` is published under BOTH `gstin` and `tax_id`, and the company form
+    edits `tax_id`.
+
+    Without mirroring tax_id -> gstin the save answered 200 while the field loop
+    quietly restored the stale `gstin` sent alongside it, so the GSTIN appeared
+    to save and then reverted on reload.
+    """
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    client.patch("/api/core/companies/1/", {"tax_id": "27AAAAA0000A1Z5"})
+    state = client.get("/api/core/companies/current/").data
+    assert state["tax_id"] == "27AAAAA0000A1Z5"
+    assert state["gstin"] == "27AAAAA0000A1Z5"
+
+    # Edit like the form does: change tax_id, PATCH the whole state back
+    # (which still carries the OLD gstin value beside it).
+    state["tax_id"] = "09BBBBB1111B2Z6"
+    saved = client.patch("/api/core/companies/1/", state, format="json")
+    assert saved.status_code == 200
+    assert saved.data["tax_id"] == "09BBBBB1111B2Z6"
+    assert saved.data["gstin"] == "09BBBBB1111B2Z6"
+
+    fresh = client.get("/api/core/companies/current/").data
+    assert fresh["tax_id"] == "09BBBBB1111B2Z6"
+
+
+def test_smtp_and_sms_report_whether_a_secret_is_stored(api, make_tenant, tenant_token):
+    """Secrets are never echoed back — only a boolean saying one exists.
+
+    The portal needs that flag to show "saved" instead of an empty box; when it
+    read the wrong key the field looked blank and users assumed the save failed.
+    Blank on a later save must also KEEP the stored secret, not clear it.
+    """
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    assert client.get("/api/core/email-config/").data.get("has_password") in (False, None)
+
+    saved = client.post("/api/core/email-config/", {
+        "host": "smtp.example.com", "port": 587, "username": "bot@example.com",
+        "password": "s3cret-value", "default_from_email": "bot@example.com",
+    }).data
+    assert saved["has_password"] is True
+    assert "password" not in saved            # never echoed back
+    assert saved["is_configured"] is True
+
+    # Saving again WITHOUT the password (the UI leaves it blank) must not wipe it.
+    again = client.post("/api/core/email-config/", {"from_name": "KaySetu Bot"}).data
+    assert again["has_password"] is True
+
+    sms = client.post("/api/core/sms-config/", {
+        "api_key": "sms-key-123", "sender_id": "KAYSTU", "entity_id": "1234567890",
+    }).data
+    assert sms["has_api_key"] is True
+    assert "api_key" not in sms
+    assert client.post("/api/core/sms-config/", {"sender_id": "KAYSTU"}).data["has_api_key"] is True
+
+
+def test_otp_message_templates_are_seeded_for_every_tenant(api, make_tenant, tenant_token):
+    """The Notification screen can only EDIT templates — nothing created any, and
+    `trigger_key` must match a key the code looks up, so it cannot be guessed.
+
+    OTP_LOGIN is the only key the platform actually reads, so exactly that pair
+    is seeded and must be present in a fresh tenant.
+    """
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    # pagination_class = None on the template viewsets -> a plain array
+    emails = client.get("/api/core/email-templates/").data
+    otp_email = next((t for t in emails if t["trigger_key"] == "OTP_LOGIN"), None)
+    assert otp_email is not None, "OTP_LOGIN email template was not seeded"
+    assert "{otp}" in otp_email["body"]
+    assert otp_email["is_active"] is True
+
+    sms = client.get("/api/core/sms-templates/").data
+    otp_sms = next((t for t in sms if t["trigger_key"] == "OTP_LOGIN"), None)
+    assert otp_sms is not None, "OTP_LOGIN SMS template was not seeded"
+    assert "${otp}" in otp_sms["content"]
+    # DLT id is intentionally blank — only the tenant can register one, and the
+    # send is skipped without it rather than being rejected by the carrier.
+    assert otp_sms["dlt_template_id"] == ""
+
+
+def test_template_trigger_key_is_read_only_so_templates_must_be_seeded(api, make_tenant, tenant_token):
+    """Why the portal offers no "add template" button.
+
+    `trigger_key` is read-only on the API and DELETE is not allowed, because the
+    key has to match one the code looks up. A hand-made template would carry an
+    empty trigger and could never fire — so the platform seeds the rows and
+    admins edit their wording instead.
+    """
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    created = client.post("/api/core/email-templates/", {
+        "name": "Welcome Mail", "trigger_key": "WELCOME",
+        "subject": "Welcome aboard", "body": "<p>Hi {full_name}</p>",
+    })
+    assert created.status_code == 201, created.data
+    # The requested trigger was ignored — the row can never fire.
+    assert created.data["trigger_key"] == ""
+    assert client.delete(f"/api/core/email-templates/{created.data['id']}/").status_code == 405
+
+    # Editing a SEEDED template is the supported path and does persist.
+    seeded = [t for t in client.get("/api/core/email-templates/").data
+              if t["trigger_key"] == "OTP_LOGIN"][0]
+    edited = client.patch(f"/api/core/email-templates/{seeded['id']}/",
+                          {"subject": "Your KaySetu code"})
+    assert edited.status_code == 200
+    assert edited.data["subject"] == "Your KaySetu code"
+    assert edited.data["trigger_key"] == "OTP_LOGIN"

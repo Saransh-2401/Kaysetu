@@ -56,6 +56,9 @@ urlpatterns = [
     path("t/org", views.OrgSettingsView.as_view()),
     # Portal-compat: invoice/PO headers read the company profile from here
     path("core/companies/current/", views.CurrentCompanyView.as_view()),
+    # Platform message catalog — read-only for tenants (Ops owns the wording).
+    path("core/message-templates/", views.TenantMessageTemplatesView.as_view()),
+
     path("core/role-permissions/", config_views.RolePermissionMatrixView.as_view()),
     path("core/role-permissions/bulk/", config_views.RolePermissionMatrixView.as_view()),
     path("core/email-config/", config_views.EmailConfigView.as_view()),

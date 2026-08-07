@@ -190,6 +190,16 @@ IMAGE_SERVICE_API_KEY = os.environ.get("IMAGE_SERVICE_API_KEY", "")
 # Fallback host for any FileField still stored locally (TA documents in dev).
 MEDIA_BASE_URL = os.environ.get("MEDIA_BASE_URL", "").rstrip("/")
 
+# Login-audit geolocation. The Login Activity log shows where a sign-in came
+# from; turning an IP into a city is a third-party call, so the scheduler does
+# it after the fact rather than the login path doing it inline. ip-api.com's
+# free tier needs no key but is plaintext HTTP (TLS is a paid feature), so this
+# does send end-user IPs to them in the clear — set GEOIP_LOOKUP_ENABLED=0 to
+# stop that. Rows are then left unresolved rather than stamped "unknown", so
+# turning it back on backfills the history instead of skipping it.
+GEOIP_LOOKUP_ENABLED = os.environ.get("GEOIP_LOOKUP_ENABLED", "1").lower() not in ("0", "false", "no")
+GEOIP_BATCH_URL = os.environ.get("GEOIP_BATCH_URL", "http://ip-api.com/batch")
+
 LANGUAGE_CODE = "en-us"
 # Operational wall-clock timezone (attendance day rollover, auto-punchout time).
 # Datetimes are still STORED in UTC (USE_TZ=True); this only sets the default

@@ -9,6 +9,9 @@ router.register("packages", views.PackageViewSet, basename="sa-packages")
 router.register("modules", views.ModuleDefViewSet, basename="sa-modules")
 router.register("provisioning-jobs", views.ProvisioningJobViewSet, basename="sa-jobs")
 router.register("app-versions", views.AppVersionViewSet, basename="sa-app-versions")
+# Platform-owned message catalog: Ops rewords, nobody creates/deletes.
+router.register("message-templates", views.MessageTemplateViewSet,
+                basename="sa-message-templates")
 
 urlpatterns = [
     path("health", views.HealthView.as_view()),
@@ -18,5 +21,6 @@ urlpatterns = [
     path("public/app-version/latest", views.PublicAppVersionLatestView.as_view()),
     path("auth/admin/login", views.AdminLoginView.as_view()),
     path("sa/stats", views.StatsView.as_view()),
+    path("sa/messaging-config", views.PlatformMessagingConfigView.as_view()),
     path("sa/", include(router.urls)),
 ]

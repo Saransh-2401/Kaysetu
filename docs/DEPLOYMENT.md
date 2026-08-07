@@ -50,6 +50,7 @@ rows sit as `failed` forever.
 | `deliver_events` | 2 min | Failed ledger/stock posts are never retried — books and stock silently drift |
 | `provision_pending` | 5 min | A signup whose provisioning died mid-migrate never finishes; the customer can never log in |
 | `reconcile_events` | 1 hour | Deliveries stuck because a worker died stay `pending` forever — no exception was ever raised, so nothing else finds them |
+| `resolve_login_locations` | 5 min | The Logs → Login Activity screen shows "Resolving…" in the Location column against every row, forever |
 | `track_maintenance` | 15 min | Agents never flagged offline; duty days never auto-close |
 | `attendance_maintenance` | daily | Forgotten punch-outs leave open rows, so working hours never compute |
 | `billing_maintenance` | daily | Lapsed trials and past-due subscriptions are never suspended |
@@ -109,6 +110,7 @@ failures):
 
 ```cron
 */2  * * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py deliver_events
+*/5  * * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py resolve_login_locations
 */15 * * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py track_maintenance
 15   0 * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py attendance_maintenance
 30   0 * * * cd /srv/kaysetu/backend && ./.venv/bin/python manage.py billing_maintenance

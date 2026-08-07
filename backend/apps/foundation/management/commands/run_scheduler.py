@@ -33,6 +33,9 @@ JOBS = {
     # Requeue deliveries stuck because a process died mid-handler, and prune
     # settled ones. Hourly: stuck rows are rare but invisible until swept.
     "reconcile_events": (3600, "reconcile_events", {}),
+    # Turn login-audit IPs into locations. Nothing breaks without it, but the
+    # Logs screen reads "Resolving…" against every row until it runs.
+    "resolve_login_locations": (300, "resolve_login_locations", {}),
     # GPS/offline detection and duty-day rollover.
     "track_maintenance": (900, "track_maintenance", {}),
     # Attendance days someone forgot to punch out of.
