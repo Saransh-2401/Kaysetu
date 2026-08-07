@@ -265,6 +265,24 @@ EMAIL_TEMPLATES = [
             cta="Open travel allowance", cta_url=f"{PORTAL}/travel-allowance",
         ),
     },
+    {
+        # The safety net. Notification handlers supply only a subject + message,
+        # so an event-specific template whose placeholders cannot all be filled
+        # would render literal {order_number} into a customer's inbox. Delivery
+        # falls back to this one instead — always well-formed, never wrong.
+        "trigger_key": "NOTIFICATION",
+        "name": "General notification",
+        "description": "Used for any alert that has no fully-fillable template of its own.",
+        "module_code": "", "category": "System",
+        "subject": "{title}",
+        "variables": ["title", "message", "org_name"],
+        "body": _email(
+            "{title}", "{message}", "",
+            cta="Open KaySetu", cta_url=PORTAL,
+            footnote="You are receiving this because of your notification settings. "
+                     "You can change them under Notifications in the portal.",
+        ),
+    },
     # ── Attendance (ATT)
     {
         "trigger_key": "announcement",
@@ -289,6 +307,11 @@ SMS_TEMPLATES = [
      "description": "Sent when an admin creates a user.",
      "content": "Your KaySetu account is ready. Org code {org_code}, sign in as {email}. "
                 "Your password has been emailed to you."},
+
+    {"trigger_key": "NOTIFICATION", "name": "General notification", "module_code": "",
+     "category": "System", "variables": ["title"],
+     "description": "Used for any alert with no fully-fillable template of its own.",
+     "content": "KaySetu: {title}. Open the app for details."},
 
     {"trigger_key": "visit_assigned", "name": "Visit assigned", "module_code": "FIELD",
      "category": "Field & Visits", "variables": ["customer_name", "visit_date"],

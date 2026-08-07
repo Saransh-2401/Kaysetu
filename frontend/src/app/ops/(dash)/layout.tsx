@@ -1,6 +1,7 @@
 "use client";
 import BusinessIcon from "@mui/icons-material/Business";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
@@ -18,6 +19,9 @@ const NAV: NavItem[] = [
   { label: "Provisioning", href: "/ops/provisioning", icon: <RocketLaunchIcon />, testId: "ops-nav-provisioning-link" },
   { label: "Packages", href: "/ops/packages", icon: <Inventory2Icon />, testId: "ops-nav-packages-link" },
   { label: "App Releases", href: "/ops/app-versions", icon: <SystemUpdateIcon />, testId: "ops-nav-app-versions-link" },
+  // Platform-owned email/SMS: KaySetu's sending credentials + the template
+  // wording every tenant receives (tenants can only view them).
+  { label: "Messaging", href: "/ops/messaging", icon: <MarkEmailReadIcon />, testId: "ops-nav-messaging-link" },
 ];
 
 export default function OpsLayout({ children }: { children: React.ReactNode }) {

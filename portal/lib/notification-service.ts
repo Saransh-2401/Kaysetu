@@ -147,14 +147,24 @@ export const notificationService = {
 
   // Per-user preferences (all roles).
   getMyPreferences: () => apiClient.get<MyPreferences>('/notifications/my-preferences/'),
+  // NOTE: these endpoints expose get/patch/post — NOT put. They also read the
+  // overrides under the key `overrides`. Both were wrong here before, so every
+  // save 405'd (or was silently discarded) while the UI reported success.
   updateMyPreferences: (data: MyPreferencesUpdate) =>
-    apiClient.put<MyPreferences>('/notifications/my-preferences/', data),
+    apiClient.patch<MyPreferences>('/notifications/my-preferences/', data),
 
   // Role defaults (admin).
   getRoleDefaults: (role?: string) =>
     apiClient.get<RoleDefaults>('/notifications/role-defaults/', role ? { role } : undefined),
-  updateRoleDefaults: (role: string, settings: OverrideMap) =>
-    apiClient.put<RoleDefaults>('/notifications/role-defaults/', { role, settings }),
+  updateRoleDefaults: (role: string, overrides: OverrideMap) =>
+    apiClient.patch<RoleDefaults>('/notifications/role-defaults/', { role, overrides }),
+
+  // Org-wide event switches — the portal's "System Alerts" screen. Widest layer
+  // in the chain (catalog -> org -> role -> user), so switching an event off
+  // here silences it for everyone.
+  getOrgAlerts: () => apiClient.get<RoleDefaults>('/notifications/org-alerts/'),
+  updateOrgAlerts: (overrides: OverrideMap) =>
+    apiClient.patch<RoleDefaults>('/notifications/org-alerts/', { overrides }),
 
   // Broadcast (admin).
   getBroadcasts: () => apiClient.get<BroadcastRecord[]>('/notifications/broadcast/'),

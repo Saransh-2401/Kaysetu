@@ -9,6 +9,7 @@ user that was already created, nor block a login. Callers get (sent, error) and
 decide what to tell the operator.
 """
 import logging
+import re
 
 logger = logging.getLogger("kaysetu.control")
 
@@ -91,6 +92,49 @@ def send_sms(to_phone: str, text: str, dlt_template_id: str = ""):
         # useful than a silent carrier-side drop.
         return False, "This template has no DLT template id, so the carrier would reject it."
     return False, "No SMS provider is wired up yet — credentials and DLT id are stored and ready."
+
+
+#: A {placeholder} the catalog might use. Restricted to lower_snake identifiers
+#: so inline CSS / JS braces in an HTML body are never mistaken for one.
+_PLACEHOLDER = re.compile(r"\{[a-z_][a-z0-9_]*\}")
+
+
+def unfilled(text: str) -> list:
+    """Placeholders still present after rendering, e.g. ['{order_number}'].
+
+    Notification handlers supply only a subject and message today, so an
+    event-specific template can easily reference data nobody passed. Sending it
+    anyway would put a literal {order_number} in a customer's inbox — callers
+    use this to fall back to the general template instead.
+    """
+    return _PLACEHOLDER.findall(text or "")
+
+
+def send_event_email(event_key: str, to_address: str, context: dict):
+    """Send the template for `event_key`, falling back to the general one.
+
+    The specific template is used ONLY if every placeholder it references can be
+    filled from `context`; otherwise the designed general notification goes out.
+    That way richer templates light up automatically as callers start passing
+    more context, and never leak raw placeholders in the meantime.
+    """
+    template = get_template("email", event_key)
+    if template is not None:
+        subject = render(template.subject, context)
+        body = render(template.body, context)
+        if not unfilled(subject) and not unfilled(body):
+            return send_email(to_address, subject, body)
+    return send_templated_email("NOTIFICATION", to_address, context)
+
+
+def send_event_sms(event_key: str, to_phone: str, context: dict):
+    """SMS twin of send_event_email — same fallback rule."""
+    template = get_template("sms", event_key)
+    if template is not None:
+        text = render(template.content, context)
+        if not unfilled(text):
+            return send_sms(to_phone, text, template.dlt_template_id)
+    return send_templated_sms("NOTIFICATION", to_phone, context)
 
 
 def send_templated_email(trigger_key: str, to_address: str, context: dict):

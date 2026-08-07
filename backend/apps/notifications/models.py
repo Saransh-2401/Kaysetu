@@ -53,6 +53,28 @@ class Notification(models.Model):
         return f"{self.event_key} -> {self.user_id}"
 
 
+class OrgNotificationSetting(models.Model):
+    """Whether an event is on AT ALL for this organisation — the widest layer.
+
+    Sits between the shipped catalog defaults and the per-role policy, so an
+    admin can switch a whole event off (or turn its email/SMS on) for everyone
+    at once without editing every role. This is what the portal's "System Alerts"
+    screen writes; before it existed that screen toggled message templates,
+    which did nothing.
+    """
+
+    event_key = models.CharField(max_length=64, unique=True, db_index=True)
+    # Sparse: only the channels this layer actually overrides.
+    channels = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["event_key"]
+
+    def __str__(self):
+        return f"org:{self.event_key}"
+
+
 class RoleNotificationDefault(models.Model):
     """What a ROLE hears by default — the tenant admin's policy layer."""
 

@@ -40,6 +40,7 @@ import { NotificationsActiveIcon, EmailIcon, SmsIcon, ExpandMoreIcon, SaveIcon, 
 import { coreService, EmailTemplate, EmailConfiguration, SMSConfiguration, SMSTemplate } from "@/lib/core-service";
 import RoleDefaultsManager from "@/components/notifications/RoleDefaultsManager";
 import BroadcastComposer from "@/components/notifications/BroadcastComposer";
+import OrgAlertsManager from "@/components/notifications/OrgAlertsManager";
 import PlatformTemplateList from "@/components/config/PlatformTemplateList";
 
 // Toast Interface
@@ -388,57 +389,12 @@ export default function NotificationsPage() {
             {/* TAB 1 — SMS TEMPLATES (read-only), same reasoning. */}
             {tab === 1 && <PlatformTemplateList channel="sms" />}
 
-            {tab === 2 && (
-              <Box maxWidth="lg">
-                <Typography variant="h6" fontWeight={700} gutterBottom>System Alerts & Notifications</Typography>
-                <Typography variant="body2" color="text.secondary" mb={3}>
-                  Enable or disable notifications for specific system events.
-                </Typography>
+            {/* TAB 2 — SYSTEM ALERTS.
+                Org-wide on/off per event. Previously this toggled message
+                templates, which are platform-owned and drive nothing here, so
+                the switches changed nothing. */}
+            {tab === 2 && <OrgAlertsManager showToast={showToast} />}
 
-                {loading ? <CircularProgress /> : (
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                          <TableCell><strong>Trigger Event</strong></TableCell>
-                          <TableCell align="center"><strong>Email Notification</strong></TableCell>
-                          <TableCell align="center"><strong>SMS Notification</strong></TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {unifiedAlerts.map(alert => (
-                          <TableRow key={alert.key}>
-                            <TableCell>
-                              <Typography fontWeight={600}>{alert.label}</Typography>
-                              <Typography variant="caption" color="text.secondary">{alert.key}</Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Switch
-                                checked={alert.emailTpl?.is_active || false}
-                                disabled={!alert.emailTpl}
-                                onChange={(e) => handleToggleAlert('email', alert, e.target.checked)}
-                              />
-                              {!alert.emailTpl && <Typography variant="caption" display="block" color="text.disabled">N/A</Typography>}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Switch
-                                checked={alert.smsTpl?.is_active || false}
-                                disabled={!alert.smsTpl}
-                                onChange={(e) => handleToggleAlert('sms', alert, e.target.checked)}
-                              />
-                              {!alert.smsTpl && <Typography variant="caption" display="block" color="text.disabled">N/A</Typography>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {unifiedAlerts.length === 0 && (
-                          <TableRow><TableCell colSpan={3} align="center">No alerts found</TableCell></TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Box>
-            )}
 
             {/* TAB 3: ROLE DEFAULTS (admin) */}
             {tab === 3 && <RoleDefaultsManager />}

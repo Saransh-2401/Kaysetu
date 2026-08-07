@@ -284,3 +284,59 @@ class BroadcastViewSet(viewsets.ModelViewSet):
             "id": u.pk, "full_name": u.full_name, "username": u.email,
             "role": getattr(u.role, "slug", "") or "",
         } for u in qs.order_by("full_name")[:2000]])
+
+
+class OrgAlertsView(APIView):
+    """The org-wide switch behind the portal's "System Alerts" screen.
+
+    Widest layer in the chain (catalog -> ORG -> role -> user), so an admin can
+    turn an event off for everyone at once. Before this existed the screen
+    toggled message templates, which are platform-owned and drive nothing on the
+    tenant side — the switches looked like they worked and changed nothing.
+    """
+
+    permission_classes = [IsTenantUser, IsNotificationAdmin]
+
+    def _payload(self):
+        from .models import OrgNotificationSetting
+
+        overrides = {
+            row.event_key: row.channels or {}
+            for row in OrgNotificationSetting.objects.all()
+        }
+        events = [
+            _event_payload(
+                entry,
+                effective=services.effective_channels(
+                    entry["key"], org_overrides=overrides.get(entry["key"], {})),
+                override=overrides.get(entry["key"], {}),
+                relevant=True,
+            )
+            for entry in catalog.EVENTS
+        ]
+        return {
+            "channels": catalog.CHANNELS,
+            "channel_labels": catalog.CHANNEL_LABELS,
+            "categories": catalog.categories(),
+            "events": events,
+        }
+
+    def get(self, request):
+        return Response(self._payload())
+
+    def patch(self, request):
+        from .models import OrgNotificationSetting
+
+        for event_key, channels in (request.data.get("overrides") or {}).items():
+            if event_key not in catalog.EVENT_KEYS:
+                return Response({"detail": f"unknown event '{event_key}'."}, status=400)
+            clean = {c: bool(v) for c, v in (channels or {}).items() if c in catalog.CHANNELS}
+            if clean:
+                OrgNotificationSetting.objects.update_or_create(
+                    event_key=event_key, defaults={"channels": clean})
+            else:   # empty = fall back to the shipped catalog default
+                OrgNotificationSetting.objects.filter(event_key=event_key).delete()
+        return Response(self._payload())
+
+    def post(self, request):
+        return self.patch(request)

@@ -13,5 +13,8 @@ urlpatterns = [
     path("notifications/events/", views.EventCatalogView.as_view()),
     path("notifications/my-preferences/", views.MyPreferencesView.as_view()),
     path("notifications/role-defaults/", views.RoleDefaultsView.as_view()),
+    # Org-wide event switches ("System Alerts" in the portal).
+    path("notifications/org-alerts/", views.OrgAlertsView.as_view()),
+
     path("notifications/", include(router.urls)),
 ]

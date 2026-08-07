@@ -117,3 +117,148 @@ def test_rendering_leaves_html_braces_alone(api):
     assert out == "<div style=\"color:#fff\">Hi Asha, code 123456</div>"
     # An unsupplied placeholder stays visible instead of silently blanking.
     assert "{missing}" in messaging.render("x {missing}", {"other": 1})
+
+
+# ── Notification delivery now uses the platform templates ────────────────
+
+def test_event_template_is_used_only_when_every_placeholder_can_be_filled():
+    """The guard that keeps '{order_number}' out of a customer's inbox."""
+    from apps.control import messaging
+
+    assert messaging.unfilled("Order {order_number} for {customer_name}") == [
+        "{order_number}", "{customer_name}"]
+    assert messaging.unfilled("Order SO-1024 booked") == []
+    # Real CSS/HTML braces must never be mistaken for a placeholder: the pattern
+    # only matches lower_snake identifiers, so selectors, spaces and capitals
+    # are all ignored.
+    assert messaging.unfilled("@media screen { .card { color: red } }") == []
+    assert messaging.unfilled("<div style='color:#fff'>{Name} {} {a-b}</div>") == []
+    # A bare {a} is genuinely placeholder-shaped and IS reported — the catalog
+    # keeps to descriptive names, so that is the safe way round.
+    assert messaging.unfilled("{a}") == ["{a}"]
+
+
+def test_notify_event_sends_email_via_the_platform_account(api, make_tenant, tenant_token, monkeypatch):
+    from apps.control import messaging
+    from apps.notifications.services import notify_event
+    from apps.tenancy.context import use_tenant
+
+    tenant, _ = make_tenant(package_code="P1")
+    sent = []
+    monkeypatch.setattr(messaging, "send_email",
+                        lambda to, subject, body: (sent.append((to, subject, body)), (True, ""))[1])
+
+    with use_tenant(tenant):
+        from apps.foundation.models import TenantUser
+        from apps.notifications.models import UserNotificationSetting
+
+        owner = TenantUser.objects.filter(is_active=True).first()
+        # Opt this user into email for the event.
+        UserNotificationSetting.objects.update_or_create(
+            user=owner, event_key="announcement",
+            defaults={"channels": {"in_app": True, "email": True}},
+        )
+        result = notify_event("announcement", subject="Diwali holiday",
+                              message="Office closed Monday.", users=[owner])
+
+    assert result["delivered_email"] == 1
+    to, subject, body = sent[0]
+    assert to == owner.email
+    assert "Diwali holiday" in subject or "Diwali holiday" in body
+    # Rendered through a designed template, not raw text.
+    assert "<table" in body
+    # And nothing unfilled leaked through.
+    assert messaging.unfilled(body) == []
+
+
+def test_delivery_failures_never_break_the_notification(api, make_tenant, tenant_token, monkeypatch):
+    """A mail outage must not stop the in-app feed item being created."""
+    from apps.control import messaging
+    from apps.notifications.services import notify_event
+    from apps.tenancy.context import use_tenant
+
+    tenant, _ = make_tenant(package_code="P1")
+
+    def boom(*a, **k):
+        raise RuntimeError("smtp is down")
+
+    monkeypatch.setattr(messaging, "send_email", boom)
+
+    with use_tenant(tenant):
+        from apps.foundation.models import TenantUser
+        from apps.notifications.models import Notification, UserNotificationSetting
+
+        owner = TenantUser.objects.filter(is_active=True).first()
+        UserNotificationSetting.objects.update_or_create(
+            user=owner, event_key="announcement",
+            defaults={"channels": {"in_app": True, "email": True}},
+        )
+        result = notify_event("announcement", subject="Still works",
+                              message="body", users=[owner])
+        assert Notification.objects.filter(subject="Still works").exists()
+
+    assert result["delivered_in_app"] == 1
+    assert result["delivered_email"] == 0     # reported honestly, not pretended
+
+
+def test_org_setting_switches_an_event_off_for_everyone(api, make_tenant, tenant_token):
+    """System Alerts is the widest layer: catalog -> ORG -> role -> user.
+
+    Before this existed the screen toggled message templates, which are
+    platform-owned and drive nothing tenant-side — the switches changed nothing.
+    """
+    from apps.notifications.services import effective_channels, notify_event
+    from apps.tenancy.context import use_tenant
+
+    tenant, _ = make_tenant(package_code="P1")
+
+    with use_tenant(tenant):
+        from apps.foundation.models import TenantUser
+        from apps.notifications.models import Notification, OrgNotificationSetting
+
+        owner = TenantUser.objects.filter(is_active=True).first()
+
+        # On by default (announcement is mandatory -> in_app always lands).
+        assert effective_channels("announcement")["in_app"] is True
+
+        # Switch the noisy channels off org-wide.
+        OrgNotificationSetting.objects.update_or_create(
+            event_key="visit_assigned",
+            defaults={"channels": {"in_app": False, "email": False, "sms": False}},
+        )
+        resolved = effective_channels(
+            "visit_assigned",
+            org_overrides={"in_app": False, "email": False, "sms": False},
+        )
+        assert resolved["in_app"] is False and resolved["email"] is False
+
+        before = Notification.objects.filter(event_key="visit_assigned").count()
+        result = notify_event("visit_assigned", subject="Visit", message="x", users=[owner])
+        after = Notification.objects.filter(event_key="visit_assigned").count()
+
+    # Nothing delivered on any channel once the org switched it off.
+    assert result["delivered_in_app"] == 0
+    assert result["delivered_email"] == 0
+    assert after == before
+
+
+def test_org_alerts_endpoint_is_admin_only_and_persists(api, make_tenant, tenant_token):
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    payload = client.get("/api/notifications/org-alerts/")
+    assert payload.status_code == 200, payload.data
+    assert payload.data["events"] and payload.data["channels"]
+
+    saved = client.patch("/api/notifications/org-alerts/",
+                         {"overrides": {"visit_assigned": {"email": False, "in_app": False}}},
+                         format="json")
+    assert saved.status_code == 200
+    row = next(e for e in saved.data["events"] if e["key"] == "visit_assigned")
+    assert row["effective"]["email"] is False
+    assert row["effective"]["in_app"] is False
+
+    # And it survives a reload — this is what "the switch does nothing" looked like.
+    again = next(e for e in client.get("/api/notifications/org-alerts/").data["events"]
+                 if e["key"] == "visit_assigned")
+    assert again["effective"]["in_app"] is False

@@ -21,6 +21,7 @@ from . import events as catalog
 from .models import (
     Notification,
     NotificationBroadcast,
+    OrgNotificationSetting,
     RoleNotificationDefault,
     UserNotificationProfile,
     UserNotificationSetting,
@@ -28,8 +29,10 @@ from .models import (
 
 logger = logging.getLogger("kaysetu.notifications")
 
-# Only in_app is actually delivered right now; the rest are resolved + reported.
-DELIVERABLE_CHANNELS = {"in_app"}
+# Channels we actually dispatch. Email and SMS go out on the PLATFORM account
+# (apps.control.messaging) using the platform templates. `push` is still only
+# resolved and reported — no push provider is wired yet.
+DELIVERABLE_CHANNELS = {"in_app", "email", "sms"}
 
 
 def _tenant_atomic():
@@ -37,13 +40,19 @@ def _tenant_atomic():
 
 
 # ------------------------------------------------------------------ resolution
-def effective_channels(event_key, *, role_slug=None, user_overrides=None, role_overrides=None):
-    """catalog default -> role default -> user override. Each layer is sparse."""
+def effective_channels(event_key, *, role_slug=None, user_overrides=None, role_overrides=None,
+                       org_overrides=None):
+    """catalog default -> ORG setting -> role default -> user override.
+
+    Each layer is sparse and only overrides the channels it names, so an admin
+    can switch an event off org-wide without having to edit every role, while a
+    role or an individual can still tune it further.
+    """
     entry = catalog.event(event_key)
     if entry is None:
         return dict.fromkeys(catalog.CHANNELS, False)
     resolved = dict(entry["defaults"])
-    for layer in (role_overrides or {}, user_overrides or {}):
+    for layer in (org_overrides or {}, role_overrides or {}, user_overrides or {}):
         for channel, on in (layer or {}).items():
             if channel in resolved:
                 resolved[channel] = bool(on)
@@ -108,11 +117,18 @@ def audience_users(event_key, *, extra_user_ids=None):
 
 
 def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
-                 reference_doctype="", reference_name="", is_urgent=None, exclude_user_id=None):
+                 reference_doctype="", reference_name="", is_urgent=None, exclude_user_id=None,
+                 context=None):
     """Tell whoever cares that `event_key` happened. Returns a delivery summary.
 
     Unknown keys are refused loudly: a typo'd event would otherwise notify
     nobody, forever, silently.
+
+    `context` is optional extra data for the message templates (e.g.
+    {"order_number": "SO-1024"}). An event template is only used when EVERY
+    placeholder it references can be filled from this; otherwise the designed
+    general template goes out, so a caller that passes nothing still produces a
+    correct email rather than one full of raw {placeholders}.
     """
     entry = catalog.event(event_key)
     if entry is None:
@@ -127,6 +143,8 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
     urgent = entry["critical"] if is_urgent is None else bool(is_urgent)
     role_cache, created, channel_tally = {}, [], dict.fromkeys(catalog.CHANNELS, 0)
     skipped_muted = 0
+    # (user, channels) for everyone resolved onto email/SMS — sent after commit.
+    outbound = []
 
     with _tenant_atomic():
         profiles = {
@@ -138,6 +156,9 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
             for row in UserNotificationSetting.objects.filter(
                 user_id__in=[u.pk for u in recipients], event_key=event_key)
         }
+        # Org-wide switch for this event — one row, applies to everyone.
+        org_row = OrgNotificationSetting.objects.filter(event_key=event_key).first()
+        org_overrides = (org_row.channels or {}) if org_row else {}
         for user in recipients:
             role_slug = getattr(getattr(user, "role", None), "slug", None)
             if role_slug not in role_cache:
@@ -145,6 +166,7 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
             channels = effective_channels(
                 event_key,
                 role_slug=role_slug,
+                org_overrides=org_overrides,
                 role_overrides=role_cache[role_slug].get(event_key, {}),
                 user_overrides=user_overrides.get(user.pk, {}),
             )
@@ -164,8 +186,15 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
                     reference_doctype=reference_doctype, reference_name=reference_name,
                     is_urgent=urgent,
                 ))
+            if channels.get("email") or channels.get("sms"):
+                outbound.append((user, channels))
         if created:
             Notification.objects.bulk_create(created)
+
+    # Dispatch AFTER the transaction: an SMTP round-trip inside it would hold a
+    # tenant DB connection open for the length of the send, and a provider
+    # timeout would roll back feed items that were perfectly fine.
+    sent = _dispatch_external(event_key, outbound, subject, message, context)
 
     pending = {c: n for c, n in channel_tally.items()
                if n and c not in DELIVERABLE_CHANNELS}
@@ -175,10 +204,53 @@ def notify_event(event_key, *, subject, message="", user_ids=None, users=None,
         "event": event_key,
         "recipients": len(recipients),
         "delivered_in_app": len(created),
+        "delivered_email": sent["email"],
+        "delivered_sms": sent["sms"],
         "skipped_muted": skipped_muted,
         "channels": channel_tally,
         "not_dispatched": pending,   # resolved on, but no provider wired yet
     }
+
+
+def _dispatch_external(event_key, outbound, subject, message, context):
+    """Send the email/SMS half of a notification on the PLATFORM account.
+
+    Entirely best-effort: notifications must never break the business operation
+    that triggered them, and one bad address must not stop the rest of the batch.
+    """
+    result = {"email": 0, "sms": 0}
+    if not outbound:
+        return result
+
+    from apps.control import messaging
+    from apps.tenancy.context import get_tenant
+
+    tenant = get_tenant()
+    base = {
+        "title": subject,
+        "message": message,
+        "org_name": getattr(tenant, "name", "") or "",
+        "org_code": getattr(tenant, "org_code", "") or "",
+        **(context or {}),
+    }
+
+    for user, channels in outbound:
+        payload = {**base, "full_name": user.full_name or user.email}
+        if channels.get("email") and user.email:
+            try:
+                ok, _ = messaging.send_event_email(event_key, user.email, payload)
+                if ok:
+                    result["email"] += 1
+            except Exception:                     # noqa: BLE001
+                logger.exception("email for %s -> %s failed", event_key, user.pk)
+        if channels.get("sms") and user.phone:
+            try:
+                ok, _ = messaging.send_event_sms(event_key, user.phone, payload)
+                if ok:
+                    result["sms"] += 1
+            except Exception:                     # noqa: BLE001
+                logger.exception("sms for %s -> %s failed", event_key, user.pk)
+    return result
 
 
 def broadcast(*, title, body="", audience_type="all", roles=None, user_ids=None,
