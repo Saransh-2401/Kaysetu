@@ -332,7 +332,7 @@ export default function CommandCenterPage() {
           value={`₹${Number(stats.mrr).toLocaleString("en-IN")}`}
           icon={<CurrencyRupeeIcon />}
           color={theme.palette.secondary.main}
-          hint="from active subscriptions"
+          hint="active subs"
           testId="ops-stat-mrr"
         />
         <StatCard
