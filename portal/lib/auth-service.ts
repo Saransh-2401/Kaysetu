@@ -216,31 +216,51 @@ export const authService = {
     },
 
     /**
-     * Send OTP to phone number (Sales Agents only)
+     * Request a one-time sign-in code for a phone number.
+     *
+     * Org-scoped like the password login: this platform is DB-per-tenant, so a
+     * phone number alone cannot identify which organisation to look in. The API
+     * answers identically whether or not the number is registered, so nothing
+     * here should be treated as proof the phone exists.
      */
-    async sendOTP(phoneNumber: string): Promise<{ message: string }> {
-        return apiClient.post<{ message: string }>('/auth/send-otp/', { phoneNumber });
+    async sendOTP(orgCode: string, phone: string): Promise<{ detail: string; expires_in?: number }> {
+        return apiClient.post<{ detail: string; expires_in?: number }>('/auth/tenant/send-otp', {
+            org_code: orgCode,
+            phone,
+        });
     },
 
     /**
-     * Verify OTP and return JWT tokens.
-     * Backend returns { token, refreshToken } (mobile format) — normalized here to LoginResponse.
+     * Verify a sign-in code and start the session.
+     * Returns the same payload shape as login(), including org context.
      */
-    async verifyOTP(phoneNumber: string, otp: string): Promise<LoginResponse> {
-        const raw = await apiClient.post<any>('/auth/verify-otp/', { phoneNumber, otp });
+    async verifyOTP(orgCode: string, phone: string, otp: string): Promise<LoginResponse> {
+        const raw = await apiClient.post<any>('/auth/tenant/verify-otp', {
+            org_code: orgCode,
+            phone,
+            otp,
+        });
         const response: LoginResponse = {
-            access: raw.access ?? raw.token,
-            refresh: raw.refresh ?? raw.refreshToken,
+            access: raw.access,
+            refresh: raw.refresh,
             user: {
                 id: raw.user?.id,
                 email: raw.user?.email ?? '',
-                username: raw.user?.username ?? raw.user?.name ?? '',
-                full_name: raw.user?.full_name ?? raw.user?.name ?? '',
-                role: raw.user?.role,
+                username: raw.user?.username ?? raw.user?.email ?? '',
+                full_name: raw.user?.full_name ?? '',
+                role: raw.user?.role ?? '',
             },
+            org: raw.org,
         };
+
+        // Persist exactly what login() does — without the org context the module
+        // entitlement checks and org labels would be missing for OTP sessions.
         tokenManager.setAccessToken(response.access);
         tokenManager.setRefreshToken(response.refresh);
+        if (orgCode) tokenManager.setOrgCode(orgCode);
+        if (response.org && typeof window !== 'undefined') {
+            localStorage.setItem('kaysetu_org_context', JSON.stringify(response.org));
+        }
         return response;
     },
 };

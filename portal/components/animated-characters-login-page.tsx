@@ -10,9 +10,11 @@ import { Eye, EyeOff, Sparkles, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-// Phone/OTP login is not yet implemented on the SaaS backend — hide the tab
-// until /auth/send-otp/ + /auth/verify-otp/ exist. Password login is org-scoped.
-const OTP_LOGIN_ENABLED = false;
+// Phone/OTP login is org-scoped like the password login: /auth/tenant/send-otp
+// + /auth/tenant/verify-otp both take the org code, because this platform is
+// DB-per-tenant and a phone number alone cannot identify an organisation.
+const OTP_LOGIN_ENABLED = true;
+const OTP_LENGTH = 6;
 
 
 interface PupilProps {
@@ -208,10 +210,10 @@ function LoginPage() {
   const [loginMode, setLoginMode] = useState<"password" | "otp">("password");
   const [phone, setPhone] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [resendTimer, setResendTimer] = useState(0);
   const [otpLoading, setOtpLoading] = useState(false);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null]);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>(Array(OTP_LENGTH).fill(null));
   const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Show session expired message if redirected from another device login
@@ -420,12 +422,18 @@ function LoginPage() {
 
   const handleSendOTP = async () => {
     if (phone.length !== 10) return;
+    // Org-scoped endpoint: without the org code the API cannot tell which
+    // tenant database to look the phone number up in.
+    if (!orgCode.trim()) {
+      toast.error("Enter your organization code first");
+      return;
+    }
     setOtpLoading(true);
     try {
       const { authService } = await import("@/lib");
-      await authService.sendOTP(`+91${phone}`);
+      await authService.sendOTP(orgCode.trim().toUpperCase(), phone);
       setOtpSent(true);
-      setOtp(["", "", "", ""]);
+      setOtp(Array(OTP_LENGTH).fill(""));
       startResendTimer();
       toast.success("OTP sent to +91 " + phone);
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
@@ -442,7 +450,7 @@ function LoginPage() {
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-    if (digit && index < 3) {
+    if (digit && index < OTP_LENGTH - 1) {
       otpInputRefs.current[index + 1]?.focus();
     }
   };
@@ -455,11 +463,11 @@ function LoginPage() {
 
   const handleVerifyOTP = async () => {
     const otpCode = otp.join("");
-    if (otpCode.length !== 4) return;
+    if (otpCode.length !== OTP_LENGTH) return;
     setOtpLoading(true);
     try {
       const { authService } = await import("@/lib");
-      const response = await authService.verifyOTP(`+91${phone}`, otpCode);
+      const response = await authService.verifyOTP(orgCode.trim().toUpperCase(), phone, otpCode);
       const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const roleRedirects: Record<string, string> = {
         admin: "/admin",
@@ -477,7 +485,7 @@ function LoginPage() {
     } catch (err: any) {
       const msg = err?.response?.data?.error || err?.message || "Invalid OTP. Please try again.";
       toast.error(msg);
-      setOtp(["", "", "", ""]);
+      setOtp(Array(OTP_LENGTH).fill(""));
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
     } finally {
       setOtpLoading(false);
@@ -487,7 +495,7 @@ function LoginPage() {
   const switchMode = (mode: "password" | "otp") => {
     setLoginMode(mode);
     setOtpSent(false);
-    setOtp(["", "", "", ""]);
+    setOtp(Array(OTP_LENGTH).fill(""));
     setPhone("");
     if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
     setResendTimer(0);
@@ -812,8 +820,24 @@ function LoginPage() {
           {loginMode === "otp" && (
             <div className="space-y-5">
               {!otpSent ? (
-                /* Phase 1 — phone number entry */
+                /* Phase 1 — org code + phone number entry */
                 <>
+                  {/* Org-scoped: the API needs the org code to know which tenant
+                      database to resolve the phone number in. */}
+                  <div className="space-y-2">
+                    <Label htmlFor="otpOrgCode" className="text-sm font-medium">Organization code</Label>
+                    <Input
+                      id="otpOrgCode"
+                      type="text"
+                      placeholder="KST-XXXXXX"
+                      value={orgCode}
+                      autoComplete="off"
+                      data-testid="portal-otp-orgcode-input"
+                      onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
+                      className="h-12 bg-background border-border/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-border transition-colors shadow-none"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Phone Number</Label>
                     <div className="flex gap-2">
@@ -828,7 +852,7 @@ function LoginPage() {
                         onFocus={() => setIsTyping(true)}
                         onBlur={() => setIsTyping(false)}
                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        onKeyDown={(e) => { if (e.key === "Enter" && phone.length === 10) handleSendOTP(); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" && phone.length === 10 && orgCode.trim()) handleSendOTP(); }}
                         className="flex-1 h-12 bg-background border-border/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-border transition-colors shadow-none"
                       />
                     </div>
@@ -842,7 +866,7 @@ function LoginPage() {
                   <Button
                     type="button"
                     onClick={handleSendOTP}
-                    disabled={phone.length !== 10 || otpLoading}
+                    disabled={phone.length !== 10 || !orgCode.trim() || otpLoading}
                     className="w-full h-12 text-base font-medium"
                     size="lg"
                   >
@@ -853,19 +877,20 @@ function LoginPage() {
                 /* Phase 2 — OTP entry */
                 <>
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium">Enter 4-digit OTP</Label>
-                    <div className="flex gap-3 justify-between">
-                      {[0, 1, 2, 3].map((i) => (
+                    <Label className="text-sm font-medium">Enter {OTP_LENGTH}-digit OTP</Label>
+                    <div className="flex gap-2 justify-between">
+                      {Array.from({ length: OTP_LENGTH }, (_, i) => i).map((i) => (
                         <input
                           key={i}
                           ref={(el) => { otpInputRefs.current[i] = el; }}
+                          data-testid={`portal-otp-digit-${i}`}
                           type="text"
                           inputMode="numeric"
                           maxLength={1}
                           value={otp[i]}
                           onChange={(e) => handleOtpChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-full aspect-square max-w-[72px] text-center text-2xl font-bold bg-background border border-border/60 rounded-lg focus:border-primary focus:outline-none transition-colors"
+                          className="w-full aspect-square max-w-[52px] text-center text-xl font-bold bg-background border border-border/60 rounded-lg focus:border-primary focus:outline-none transition-colors"
                         />
                       ))}
                     </div>
@@ -889,7 +914,7 @@ function LoginPage() {
                   <Button
                     type="button"
                     onClick={handleVerifyOTP}
-                    disabled={otp.join("").length !== 4 || otpLoading}
+                    disabled={otp.join("").length !== OTP_LENGTH || otpLoading}
                     className="w-full h-12 text-base font-medium"
                     size="lg"
                   >
@@ -898,7 +923,7 @@ function LoginPage() {
 
                   <button
                     type="button"
-                    onClick={() => { setOtpSent(false); setOtp(["", "", "", ""]); if (resendIntervalRef.current) clearInterval(resendIntervalRef.current); setResendTimer(0); }}
+                    onClick={() => { setOtpSent(false); setOtp(Array(OTP_LENGTH).fill("")); if (resendIntervalRef.current) clearInterval(resendIntervalRef.current); setResendTimer(0); }}
                     className="w-full text-sm text-muted-foreground hover:text-foreground text-center transition-colors"
                   >
                     ← Change number

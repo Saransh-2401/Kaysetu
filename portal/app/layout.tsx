@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import ClientThemeWrapper from "@/components/ClientThemeWrapper";
 import AuthGuard from "@/components/auth/AuthGuard";
+import ModuleGuard from "@/components/auth/ModuleGuard";
 import AppShell from "@/components/layout/AppShell";
 import {
   SCHEME_COOKIE,
@@ -130,7 +131,11 @@ export default async function RootLayout({
           <ClientThemeWrapper initialScheme={scheme.key} initialCustom={customInput} initialFont={font.key}>
             <AuthGuard>
               <AppShell>
-                {children}
+                {/* Blocks pages whose sellable module this tenant hasn't bought.
+                    Inside AppShell so the locked screen keeps nav/header. */}
+                <ModuleGuard>
+                  {children}
+                </ModuleGuard>
               </AppShell>
             </AuthGuard>
             <Toaster position="top-right" richColors />

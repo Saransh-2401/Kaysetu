@@ -1,3 +1,6 @@
+import os
+from datetime import timedelta
+
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -81,6 +84,235 @@ class TenantLoginView(APIView):
             user.last_login = timezone.now()
             user.save(update_fields=["last_login", "updated_at"])
             record_login(request, user=user, username_attempted=email, success=True)
+
+            org = OrgSettings.objects.filter(pk=1).first()
+            modules = EntitlementSnapshot.current_modules()
+            role = user.role
+
+        return Response(
+            {
+                **make_token_pair(sub=user.pk, scope=SCOPE_TENANT, tid=tenant.pk),
+                "user": {
+                    "id": user.pk,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "is_owner": user.is_owner,
+                    "role": role.slug if role else None,
+                },
+                "org": _org_payload(tenant, org, modules),
+            }
+        )
+
+
+def normalize_phone(raw: str) -> str:
+    """Last 10 digits — so +91 98765 43210, 09876543210 and 9876543210 match.
+
+    Users are entered by admins in whatever format they like; a login must not
+    fail because someone typed a country code.
+    """
+    digits = "".join(ch for ch in (raw or "") if ch.isdigit())
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
+def _find_user_by_phone(phone: str):
+    """Resolve a TenantUser by phone inside the CURRENT tenant context."""
+    target = normalize_phone(phone)
+    if not target:
+        return None
+    for user in TenantUser.objects.filter(is_active=True).exclude(phone=""):
+        if normalize_phone(user.phone) == target:
+            return user
+    return None
+
+
+def _deliver_otp(user, code, tenant):
+    """Send the code by SMS and/or email. Returns the channels that accepted it.
+
+    Best-effort by design: a provider outage must not break the login flow, and
+    the caller never reveals which channel worked (that would leak whether a
+    phone is registered).
+    """
+    from django.conf import settings
+
+    channels = []
+
+    # SMS — only if the org configured a provider AND an OTP_LOGIN template.
+    try:
+        from .models import SMSConfiguration, SMSTemplate
+
+        sms_config = SMSConfiguration.objects.filter(pk=1).first()
+        template = SMSTemplate.objects.filter(trigger_key="OTP_LOGIN", is_active=True).first()
+        if sms_config and sms_config.api_key and template and template.dlt_template_id:
+            # No SMS gateway is wired into this platform yet; the config and DLT
+            # id are stored and ready, so this is where the send goes.
+            channels.append("sms_pending_provider")
+    except Exception:                                # noqa: BLE001 - never break login
+        pass
+
+    # Email — reuses the tenant's own SMTP, same path as the credentials mail.
+    try:
+        if user.email:
+            from .config_views import _send_email
+            from .models import EmailConfiguration, EmailTemplate
+
+            config = EmailConfiguration.objects.filter(pk=1).first()
+            if config and config.host and config.username and config.password:
+                template = EmailTemplate.objects.filter(trigger_key="OTP_LOGIN", is_active=True).first()
+                if template:
+                    subject = template.subject
+                    body = (template.body or "")\
+                        .replace("{full_name}", user.full_name or user.email)\
+                        .replace("{otp}", code)
+                else:
+                    subject = "Your sign-in code"
+                    body = (f"<p>Hello {user.full_name or user.email},</p>"
+                            f"<p>Your one-time sign-in code is <b>{code}</b>. "
+                            f"It expires in {OTP_TTL_MINUTES} minutes.</p>"
+                            f"<p>If you didn't request it, you can ignore this email.</p>")
+                sent, _ = _send_email(config, user.email, subject, body)
+                if sent:
+                    channels.append("email")
+    except Exception:                                # noqa: BLE001 - never break login
+        pass
+
+    if settings.DEBUG:
+        channels.append("debug")
+    return channels
+
+
+OTP_TTL_MINUTES = 5
+
+
+class SendOTPView(APIView):
+    """POST {org_code, phone} -> issues a one-time sign-in code.
+
+    Always answers 200 with the same message, whether or not the phone belongs
+    to anyone: a differing reply would turn this into a phone-enumeration oracle
+    for any known org code.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        import secrets
+
+        from django.conf import settings
+        from django.contrib.auth.hashers import make_password
+
+        from .models import LoginOTP
+
+        org_code = (request.data.get("org_code") or "").strip()
+        phone = (request.data.get("phone") or request.data.get("phoneNumber") or "").strip()
+        if not org_code or not phone:
+            return Response({"detail": "org_code and phone are required."}, status=400)
+
+        generic = Response(
+            {"detail": "If that phone number is registered, a sign-in code has been sent.",
+             "expires_in": OTP_TTL_MINUTES * 60},
+            status=200,
+        )
+
+        tenant = Tenant.objects.filter(org_code__iexact=org_code).first()
+        if tenant is None:
+            return Response({"detail": "Invalid organization code."}, status=401)
+        if not tenant.can_login():
+            return Response(
+                {"detail": f"This organization is {tenant.status}.", "code": f"tenant_{tenant.status}"},
+                status=403,
+            )
+
+        with use_tenant(tenant):
+            user = _find_user_by_phone(phone)
+            if user is None:
+                return generic
+
+            code = f"{secrets.randbelow(1000000):06d}"
+            LoginOTP.objects.filter(phone=normalize_phone(phone), consumed_at__isnull=True).update(
+                consumed_at=timezone.now()          # supersede any earlier code
+            )
+            LoginOTP.objects.create(
+                phone=normalize_phone(phone),
+                code_hash=make_password(code),
+                expires_at=timezone.now() + timedelta(minutes=OTP_TTL_MINUTES),
+            )
+            channels = _deliver_otp(user, code, tenant)
+
+        payload = dict(generic.data)
+        # The plaintext code is exposed ONLY with DEBUG on (never in production),
+        # so a local/dev login works without a live SMS provider.
+        if settings.DEBUG:
+            payload["debug_otp"] = code
+            payload["channels"] = channels
+        return Response(payload, status=200)
+
+
+class VerifyOTPView(APIView):
+    """POST {org_code, phone, otp} -> the same token payload as password login."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        from django.contrib.auth.hashers import check_password
+
+        from .login_audit import record_login
+        from .models import LoginOTP
+
+        org_code = (request.data.get("org_code") or "").strip()
+        phone = (request.data.get("phone") or request.data.get("phoneNumber") or "").strip()
+        code = str(request.data.get("otp") or "").strip()
+        if not org_code or not phone or not code:
+            return Response({"detail": "org_code, phone and otp are required."}, status=400)
+
+        tenant = Tenant.objects.filter(org_code__iexact=org_code).first()
+        if tenant is None:
+            return Response({"detail": "Invalid organization code."}, status=401)
+        if not tenant.can_login():
+            return Response(
+                {"detail": f"This organization is {tenant.status}.", "code": f"tenant_{tenant.status}"},
+                status=403,
+            )
+
+        invalid = Response({"detail": "Invalid or expired code."}, status=401)
+
+        with use_tenant(tenant):
+            normalized = normalize_phone(phone)
+            otp = (
+                LoginOTP.objects.filter(phone=normalized, consumed_at__isnull=True)
+                .order_by("-created_at")
+                .first()
+            )
+            if otp is None or not otp.is_usable():
+                record_login(request, username_attempted=phone, success=False,
+                             method="otp", detail="otp_missing_or_expired")
+                return invalid
+
+            if not check_password(code, otp.code_hash):
+                # Count the miss so a 6-digit code can't be brute-forced.
+                otp.attempts += 1
+                if otp.attempts >= LoginOTP.MAX_ATTEMPTS:
+                    otp.consumed_at = timezone.now()
+                otp.save(update_fields=["attempts", "consumed_at"])
+                record_login(request, username_attempted=phone, success=False,
+                             method="otp", detail="otp_invalid")
+                return invalid
+
+            user = _find_user_by_phone(phone)
+            if user is None:
+                record_login(request, username_attempted=phone, success=False,
+                             method="otp", detail="user_not_found")
+                return invalid
+
+            # Burn the code before issuing a session — one use only.
+            otp.consumed_at = timezone.now()
+            otp.save(update_fields=["consumed_at"])
+
+            user.last_login = timezone.now()
+            user.save(update_fields=["last_login", "updated_at"])
+            record_login(request, user=user, username_attempted=phone, success=True, method="otp")
 
             org = OrgSettings.objects.filter(pk=1).first()
             modules = EntitlementSnapshot.current_modules()
@@ -309,6 +541,43 @@ def _seat_limit_response(request):
     )
 
 
+def _send_credentials_email(user, password, tenant):
+    """Email a newly created user their sign-in details.
+
+    Admins set the password in the Add-User form; without this the account was
+    created and then nobody could tell the user what it was. Sending happens
+    through the tenant's own SMTP config (same path as the config screen's test
+    send). Returns (sent, error) and NEVER raises: a mail outage must not undo a
+    user that was already created — the caller surfaces the outcome instead.
+    """
+    from .config_views import _send_email
+    from .models import EmailConfiguration
+
+    config = EmailConfiguration.objects.filter(pk=1).first()
+    if config is None or not (config.host and config.username and config.password):
+        return False, "Email is not configured for this organization."
+
+    portal_url = os.environ.get("PORTAL_URL", "https://app.kaysetu.in")
+    org_name = getattr(tenant, "name", "") or ""
+    org_code = getattr(tenant, "org_code", "") or ""
+    body = f"""
+      <p>Hello {user.full_name or user.email},</p>
+      <p>An account has been created for you{f' at <b>{org_name}</b>' if org_name else ''}.
+         You can sign in with the details below.</p>
+      <table cellpadding="6" style="border-collapse:collapse">
+        <tr><td><b>Organization code</b></td><td>{org_code}</td></tr>
+        <tr><td><b>Email</b></td><td>{user.email}</td></tr>
+        <tr><td><b>Password</b></td><td>{password}</td></tr>
+      </table>
+      <p><a href="{portal_url}/login">Sign in to {portal_url}</a></p>
+      <p>For your security, please change this password after your first sign-in.</p>
+    """
+    try:
+        return _send_email(config, user.email, f"Your sign-in details{f' for {org_name}' if org_name else ''}", body)
+    except Exception as exc:                        # noqa: BLE001 - reported to the admin
+        return False, f"{type(exc).__name__}: {exc}"
+
+
 class TenantUserViewSet(viewsets.ModelViewSet):
     serializer_class = TenantUserSerializer
     permission_classes = [IsOwnerOrReadOnly]
@@ -374,7 +643,28 @@ class TenantUserViewSet(viewsets.ModelViewSet):
         failed = self._absorb_uploads(request)
         if failed is not None:
             return failed
-        return super().create(request, *args, **kwargs)
+
+        # Keep the plaintext password before the serializer consumes it, so the
+        # new user can be told what it is. Without this the account was created
+        # with a password only the admin knew — and if none was supplied at all,
+        # set_unusable_password() left an account nobody could ever sign in to.
+        password = (request.data.get("password") or "").strip()
+
+        response = super().create(request, *args, **kwargs)
+
+        if response.status_code == 201 and password:
+            email = (response.data or {}).get("email")
+            user = TenantUser.objects.filter(email=email).first() if email else None
+            if user is not None:
+                tenant = Tenant.objects.filter(pk=request.auth["tid"]).first()
+                sent, error = _send_credentials_email(user, password, tenant)
+                # Report delivery without failing the (already committed) create,
+                # so the admin knows whether to pass the password on by hand.
+                response.data = dict(response.data or {})
+                response.data["credentials_email_sent"] = sent
+                if not sent:
+                    response.data["credentials_email_error"] = error
+        return response
 
     def update(self, request, *args, **kwargs):
         # Re-activating a deactivated user also consumes a seat.

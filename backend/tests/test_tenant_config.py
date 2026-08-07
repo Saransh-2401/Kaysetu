@@ -46,6 +46,48 @@ def test_company_profile_round_trips(api, make_tenant, tenant_token):
     assert client.get("/api/core/companies/current/").data["name"] == "Acme Foods Pvt Ltd"
 
 
+def test_company_edits_survive_a_whole_payload_round_trip(api, make_tenant, tenant_token):
+    """The portal keeps the GET response in state and PATCHes all of it back.
+
+    The payload publishes some columns under two names (`name`/`company_name`,
+    `full_address`/`address`, `fiscal_month_start`/`fy_start_month`), so every save
+    carries the user's edit beside the server's stale value for the same column.
+    The edit has to win, or the field silently reverts.
+    """
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+
+    client.patch("/api/core/companies/1/", {
+        "name": "Old Name Ltd", "full_address": "12 Mill Road, Pune, MH",
+        "fiscal_month_start": 4,
+    })
+    state = client.get("/api/core/companies/current/").data
+    assert state["name"] == "Old Name Ltd" and state["fiscal_month_start"] == 4
+
+    # edit exactly like the form does: change one key, send everything back
+    state["name"] = "New Name Ltd"
+    state["full_address"] = "99 Ring Road, Jaipur, RJ"
+    state["fiscal_month_start"] = 7
+    saved = client.patch("/api/core/companies/1/", state, format="json")
+
+    assert saved.status_code == 200
+    assert saved.data["name"] == "New Name Ltd"
+    assert saved.data["company_name"] == "New Name Ltd"
+    assert saved.data["full_address"] == "99 Ring Road, Jaipur, RJ"
+    assert saved.data["address"]["line1"] == "99 Ring Road, Jaipur, RJ"
+    assert saved.data["fiscal_month_start"] == 7
+
+    fresh = client.get("/api/core/companies/current/").data
+    assert fresh["name"] == "New Name Ltd"
+    assert fresh["full_address"] == "99 Ring Road, Jaipur, RJ"
+    assert fresh["fiscal_month_start"] == 7
+
+    # and clearing the address clears it, rather than restoring the old one
+    fresh["full_address"] = ""
+    cleared = client.patch("/api/core/companies/1/", fresh, format="json")
+    assert cleared.status_code == 200 and cleared.data["full_address"] == ""
+
+
 def test_company_writes_are_admin_only(api, make_tenant, tenant_token):
     tenant, _ = make_tenant(package_code="P2")
     agent = _staff(api, tenant, tenant_token, "sales_agent", "agent@cfg.test")

@@ -154,20 +154,34 @@ class CompanyViewSet(viewsets.ViewSet):
             data["is_active"] = data["is_active"].lower() in ("true", "1")
 
         # `name` is what the portal's form field is called; the column is company_name.
-        if "name" in data and "company_name" not in data:
-            org.company_name = data["name"]
+        # company_payload() echoes BOTH keys and the portal PATCHes its whole state
+        # back, so a rename arrives as an edited `name` beside the stale
+        # `company_name` — mirror it here or the field loop below silently restores
+        # the old name.
+        if "name" in data:
+            data["company_name"] = data["name"]
+
+        # Ditto the fiscal-year month: company_payload() publishes the column
+        # `fy_start_month` under the portal's name for it, so accept it back.
+        if "fiscal_month_start" in data and "fy_start_month" not in data:
+            data["fy_start_month"] = data["fiscal_month_start"]
 
         # `logo` string URL passed from frontend
         if "logo" in data and "logo_url" not in data and isinstance(data["logo"], str):
             org.logo_url = data["logo"]
 
-        # `full_address` passed from frontend autocomplete
-        if "full_address" in data and data["full_address"]:
-            full_addr = str(data["full_address"])
-            curr_addr = data.get("address") if isinstance(data.get("address"), dict) else {}
-            curr_addr["full_address"] = full_addr
-            if not curr_addr.get("line1"):
+        # `full_address` passed from frontend autocomplete. Same aliasing problem as
+        # `name`: the portal round-trips the stale `address` dict alongside the edited
+        # string, so the edit must be merged in unconditionally — including when it is
+        # cleared, otherwise the old address is restored. `line1` mirrors it because
+        # nothing else maintains the structured address for the company profile.
+        if "full_address" in data:
+            full_addr = str(data["full_address"] or "")
+            curr_addr = dict(data["address"]) if isinstance(data.get("address"), dict) else {}
+            prev_addr = org.address if isinstance(org.address, dict) else {}
+            if curr_addr.get("line1") in (None, "", prev_addr.get("full_address")):
                 curr_addr["line1"] = full_addr
+            curr_addr["full_address"] = full_addr
             data["address"] = curr_addr
 
         errors = {}

@@ -37,6 +37,9 @@ warehouse_router.register("products", catalog_compat.WarehouseItemViewSet,
 
 urlpatterns = [
     path("auth/tenant/login", views.TenantLoginView.as_view()),
+    # Phone/OTP sign-in — same org-scoped contract as the password login.
+    path("auth/tenant/send-otp", views.SendOTPView.as_view()),
+    path("auth/tenant/verify-otp", views.VerifyOTPView.as_view()),
     path("auth/refresh", views.RefreshView.as_view()),
     path("me", views.MeView.as_view()),
     # Portal (Old Project) compatibility endpoints

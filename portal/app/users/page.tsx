@@ -432,6 +432,11 @@ export default function UserManagementPage() {
   const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
   const [panFile, setPanFile] = useState<File | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  /** Mandatory KYC docs still missing after a submit attempt — highlights their upload tiles. */
+  const [missingDocs, setMissingDocs] = useState<string[]>([]);
+  /** Sign-in password the admin sets for the user; emailed to them on create. */
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
 
   // NEW: Routes dialog
   const [routesDialogOpen, setRoutesDialogOpen] = useState(false);
@@ -642,6 +647,9 @@ export default function UserManagementPage() {
     setAadhaarFile(null);
     setPanFile(null);
     setProfileImageFile(null);
+    setMissingDocs([]);
+    setPassword("");
+    setPasswordConfirm("");
     setOpenDialog(true);
   };
 
@@ -654,6 +662,9 @@ export default function UserManagementPage() {
     setAadhaarFile(null);
     setPanFile(null);
     setProfileImageFile(null);
+    setMissingDocs([]);
+    setPassword("");
+    setPasswordConfirm("");
     setOpenDialog(true);
   };
 
@@ -818,81 +829,81 @@ export default function UserManagementPage() {
   const handleSaveUser = async () => {
     if (isSubmitting) return;
 
-    // Basic Form Validation
+    // ── Validation ──────────────────────────────────────────────────────
+    // Collect EVERY problem before returning so the user sees the complete
+    // list at once, instead of fixing one field and hitting the next error.
+    // KYC documents stay mandatory (deliberate compliance requirement) — the
+    // missing ones are also highlighted on their upload tiles.
+    const errors: string[] = [];
+    const missingDocs: string[] = [];
+
     if (!currentUser.name || currentUser.name.trim() === "") {
-      showToast("Full Name is mandatory.", "warning");
-      return;
-    }
-    if (currentUser.name.length > 50) {
-      showToast("Full Name cannot exceed 50 characters.", "warning");
-      return;
+      errors.push("Full Name is required");
+    } else if (currentUser.name.length > 50) {
+      errors.push("Full Name cannot exceed 50 characters");
     }
     if (!currentUser.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentUser.email)) {
-      showToast("Please provide a valid email address.", "warning");
-      return;
+      errors.push("a valid Email Address is required");
     }
     if (!currentUser.phone || currentUser.phone.length !== 10 || !/^\d+$/.test(currentUser.phone)) {
-      showToast("Phone number must be exactly 10 digits.", "warning");
-      return;
+      errors.push("Phone Number must be exactly 10 digits");
     }
     if (!currentUser.role) {
-      showToast("Please assign a role.", "warning");
-      return;
+      errors.push("a Role must be assigned");
     }
 
-    // NEW: Sales Manager Pincode Validation (Mandatory and Unique)
+    // Password: required when creating (the account is unusable without one),
+    // optional when editing where blank means "keep the current password".
+    if (dialogMode === "ADD" && !password) {
+      errors.push("a Password is required so the user can sign in");
+    } else if (password) {
+      if (password.length < 8) errors.push("Password must be at least 8 characters");
+      if (password !== passwordConfirm) errors.push("Password and Confirm Password do not match");
+    }
+
+    // Sales Manager Pincode Validation (mandatory and unique)
     if (currentUser.role === "Sales Manager") {
       const pins = (currentUser.operating_pincodes || []).filter(p => String(p).trim() !== "");
       if (pins.length === 0) {
-        showToast("At least one Operating Pincode is mandatory for Sales Manager.", "warning");
-        return;
-      }
-
-      // Check if any of these pincodes are already assigned to another Sales Manager
-      const otherManagers = users.filter((u) => u.role === "Sales Manager" && u.id !== currentUser.id);
-
-      for (const pin of pins) {
-        const conflict = otherManagers.find((m) =>
-          m.operating_pincodes?.some(p => String(p).trim() === String(pin).trim())
-        );
-        if (conflict) {
-          showToast(`Pincode ${pin} is already assigned to ${conflict.name}. Each pincode must be unique for Sales Managers.`, "error");
-          return;
+        errors.push("at least one Operating Pincode is required for Sales Manager");
+      } else {
+        const otherManagers = users.filter((u) => u.role === "Sales Manager" && u.id !== currentUser.id);
+        for (const pin of pins) {
+          const conflict = otherManagers.find((m) =>
+            m.operating_pincodes?.some(p => String(p).trim() === String(pin).trim())
+          );
+          if (conflict) {
+            errors.push(`Pincode ${pin} is already assigned to ${conflict.name} (must be unique per Sales Manager)`);
+            break;
+          }
         }
       }
     }
 
-    // Aadhaar Validation
     if (currentUser.aadhaar_number && currentUser.aadhaar_number.length !== 12) {
-      showToast("Aadhaar Number must be 12 digits.", "warning");
-      return;
+      errors.push("Aadhaar Number must be 12 digits");
     }
-
-    // PAN Validation
     if (currentUser.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(currentUser.pan_number)) {
-      showToast("Invalid PAN Card format. (e.g. ABCDE1234F)", "warning");
-      return;
+      errors.push("PAN Card Number format is invalid (e.g. ABCDE1234F)");
     }
-
     if (currentUser.role === "Distributor" && (!currentUser.latitude || !currentUser.longitude)) {
-      showToast("Location is mandatory for Distributor.", "warning");
-      return;
+      errors.push("Location is required for Distributor");
     }
 
-    // Validation for Mandatory Files
+    // Mandatory KYC documents (new users only)
     if (dialogMode === "ADD") {
-      if (!profileImageFile) {
-        showToast("Profile Photo is mandatory.", "warning");
-        return;
-      }
-      if (!aadhaarFile) {
-        showToast("Aadhaar Card is mandatory.", "warning");
-        return;
-      }
-      if (!panFile) {
-        showToast("PAN Card is mandatory.", "warning");
-        return;
-      }
+      if (!profileImageFile) missingDocs.push("Profile Photo");
+      if (!aadhaarFile) missingDocs.push("Aadhaar Card");
+      if (!panFile) missingDocs.push("PAN Card");
+    }
+    setMissingDocs(missingDocs);
+
+    if (errors.length > 0 || missingDocs.length > 0) {
+      const parts: string[] = [];
+      if (errors.length) parts.push(`Please fix: ${errors.join(", ")}.`);
+      if (missingDocs.length) parts.push(`Required document${missingDocs.length > 1 ? "s" : ""} missing: ${missingDocs.join(", ")}.`);
+      showToast(parts.join(" "), "warning");
+      return;
     }
 
     setIsSubmitting(true);
@@ -917,6 +928,13 @@ export default function UserManagementPage() {
       formData.append("is_active", currentUser.status === "Active" ? "true" : "false");
       if (currentUser.tags && Array.isArray(currentUser.tags)) {
         formData.append("tags", JSON.stringify(currentUser.tags));
+      }
+
+      // Sign-in password. Sent only when set — on edit, omitting it leaves the
+      // existing password untouched. The API emails it to the user on create.
+      if (password) {
+        formData.append("password", password);
+        formData.append("password_confirm", passwordConfirm);
       }
 
       // Sales Specific
@@ -959,8 +977,20 @@ export default function UserManagementPage() {
       if (panFile) formData.append("pan_card", panFile);
 
       if (dialogMode === "ADD") {
-        await coreService.createUser(formData);
-        showToast("User created successfully!", "success");
+        const created: any = await coreService.createUser(formData);
+        // The API reports whether the sign-in details actually reached the user.
+        // If mail is not configured the account still exists, so the admin has to
+        // know to pass the password on by hand rather than assume it was sent.
+        if (created?.credentials_email_sent) {
+          showToast("User created — sign-in details emailed to them.", "success");
+        } else if (created?.credentials_email_error) {
+          showToast(
+            `User created, but the email could not be sent (${created.credentials_email_error}). Share the password with them directly.`,
+            "warning"
+          );
+        } else {
+          showToast("User created successfully!", "success");
+        }
       } else {
         if (currentUser.id) {
           await coreService.updateUser(currentUser.id, formData);
@@ -1082,7 +1112,11 @@ export default function UserManagementPage() {
   const confirmDelete = async () => {
     if (userToDelete) {
       try {
-        await coreService.updateUser(userToDelete.id, { status: "Archived" } as any);
+        // Deactivate via `is_active` — NOT `status`. On the API `status` is a
+        // read-only SerializerMethodField derived from is_active, so sending
+        // {status:"Archived"} was silently discarded: the request returned 200
+        // while the user stayed active and kept consuming a paid seat.
+        await coreService.updateUser(userToDelete.id, { is_active: false } as any);
 
         // Refresh
         const response = await coreService.getUsers({ page_size: "1000" });
@@ -1499,13 +1533,18 @@ export default function UserManagementPage() {
                       alignItems: "center",
                       justifyContent: "center",
                       border: "2px dashed",
-                      borderColor: alpha(theme.palette.divider, 0.2),
+                      // Highlight in red when a submit flagged this document as missing.
+                      borderColor: missingDocs.includes("Profile Photo")
+                        ? theme.palette.error.main
+                        : alpha(theme.palette.divider, 0.2),
                       borderRadius: 1,
                       p: 3,
                       height: 280,
                       cursor: "pointer",
                       transition: "all 0.2s",
-                      bgcolor: alpha(theme.palette.background.default, 0.5),
+                      bgcolor: missingDocs.includes("Profile Photo")
+                        ? alpha(theme.palette.error.main, 0.04)
+                        : alpha(theme.palette.background.default, 0.5),
                       "&:hover": {
                         borderColor: theme.palette.primary.main,
                         bgcolor: alpha(theme.palette.primary.main, 0.05),
@@ -1523,6 +1562,7 @@ export default function UserManagementPage() {
                           e.target.value = "";
                         } else if (file) {
                           setProfileImageFile(file);
+                          setMissingDocs(prev => prev.filter(d => d !== "Profile Photo"));
                         }
                       }}
                     />
@@ -1927,6 +1967,43 @@ export default function UserManagementPage() {
                     />
                   </Stack>
 
+                  {/* Sign-in password. Required when creating (an account with no
+                      password can never be signed in to); optional on edit, where
+                      blank simply means "leave the existing password alone". */}
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      id="form-user-password"
+                      name="user_password"
+                      label={dialogMode === "ADD" ? "Password *" : "New Password"}
+                      fullWidth
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      inputProps={{ "data-testid": "user-password-input", minLength: 8 }}
+                      helperText={
+                        dialogMode === "ADD"
+                          ? "Min 8 characters — emailed to the user"
+                          : "Leave blank to keep the current password"
+                      }
+                    />
+                    <TextField
+                      id="form-user-password-confirm"
+                      name="user_password_confirm"
+                      label={dialogMode === "ADD" ? "Confirm Password *" : "Confirm New Password"}
+                      fullWidth
+                      type="password"
+                      value={passwordConfirm}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                      autoComplete="new-password"
+                      inputProps={{ "data-testid": "user-password-confirm-input", minLength: 8 }}
+                      error={!!passwordConfirm && password !== passwordConfirm}
+                      helperText={
+                        !!passwordConfirm && password !== passwordConfirm ? "Passwords do not match" : " "
+                      }
+                    />
+                  </Stack>
+
                   <Stack direction="row" spacing={2}>
                     <TextField
                       label="Aadhaar Number"
@@ -2021,7 +2098,9 @@ export default function UserManagementPage() {
                     border: "2px dashed",
                     borderColor: aadhaarFile
                       ? theme.palette.success.main
-                      : alpha(theme.palette.divider, 0.2),
+                      : missingDocs.includes("Aadhaar Card")
+                        ? theme.palette.error.main
+                        : alpha(theme.palette.divider, 0.2),
                     borderRadius: 2,
                     p: 2,
                     textAlign: "center",
@@ -2029,7 +2108,9 @@ export default function UserManagementPage() {
                     transition: "all 0.2s",
                     bgcolor: aadhaarFile
                       ? alpha(theme.palette.success.main, 0.05)
-                      : "transparent",
+                      : missingDocs.includes("Aadhaar Card")
+                        ? alpha(theme.palette.error.main, 0.04)
+                        : "transparent",
                     "&:hover": {
                       bgcolor: alpha(theme.palette.primary.main, 0.05),
                       borderColor: theme.palette.primary.main,
@@ -2048,6 +2129,7 @@ export default function UserManagementPage() {
                           e.target.value = "";
                         } else {
                           setAadhaarFile(f);
+                          setMissingDocs(prev => prev.filter(d => d !== "Aadhaar Card"));
                         }
                       }
                     }}
@@ -2073,7 +2155,9 @@ export default function UserManagementPage() {
                     border: "2px dashed",
                     borderColor: panFile
                       ? theme.palette.success.main
-                      : alpha(theme.palette.divider, 0.2),
+                      : missingDocs.includes("PAN Card")
+                        ? theme.palette.error.main
+                        : alpha(theme.palette.divider, 0.2),
                     borderRadius: 2,
                     p: 2,
                     textAlign: "center",
@@ -2081,7 +2165,9 @@ export default function UserManagementPage() {
                     transition: "all 0.2s",
                     bgcolor: panFile
                       ? alpha(theme.palette.success.main, 0.05)
-                      : "transparent",
+                      : missingDocs.includes("PAN Card")
+                        ? alpha(theme.palette.error.main, 0.04)
+                        : "transparent",
                     "&:hover": {
                       bgcolor: alpha(theme.palette.primary.main, 0.05),
                       borderColor: theme.palette.primary.main,
@@ -2100,6 +2186,7 @@ export default function UserManagementPage() {
                           e.target.value = "";
                         } else {
                           setPanFile(f);
+                          setMissingDocs(prev => prev.filter(d => d !== "PAN Card"));
                         }
                       }
                     }}

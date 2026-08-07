@@ -471,3 +471,40 @@ class LoginActivity(models.Model):
         ordering = ["-created_at", "-id"]
         indexes = [models.Index(fields=["event", "-created_at"])]
         verbose_name_plural = "Login activity"
+
+
+class LoginOTP(models.Model):
+    """A one-time code for phone-based sign-in, stored in the tenant's own DB.
+
+    Deliberately NOT Django's cache: no CACHES backend is configured, so the
+    default LocMemCache is per-process — a code issued by one worker would be
+    invisible to the next, making OTP login fail intermittently behind gunicorn
+    or across containers. A row survives that, and gives us attempt-limiting and
+    an audit trail for free.
+
+    The code itself is stored hashed, so a leaked DB snapshot cannot be replayed.
+    """
+
+    MAX_ATTEMPTS = 5
+
+    phone = models.CharField(max_length=20, db_index=True)
+    code_hash = models.CharField(max_length=128)
+    expires_at = models.DateTimeField(db_index=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["phone", "-created_at"])]
+
+    def __str__(self):
+        return f"OTP for {self.phone} (expires {self.expires_at:%H:%M})"
+
+    def is_usable(self):
+        from django.utils import timezone as _tz
+        return (
+            self.consumed_at is None
+            and self.attempts < self.MAX_ATTEMPTS
+            and self.expires_at > _tz.now()
+        )
