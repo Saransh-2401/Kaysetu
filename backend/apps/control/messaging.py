@@ -33,16 +33,23 @@ def get_template(channel: str, trigger_key: str):
 
 
 def render(text: str, context: dict) -> str:
-    """Substitute {placeholders}.
+    """Substitute {placeholders} — and the ${placeholder} form too.
 
     Plain replacement rather than str.format(): template bodies are HTML full of
     literal braces in CSS, and a stray one would make format() raise mid-send.
     Unknown placeholders are left as-is so a missing value is visible in testing
     rather than silently blanking a line.
+
+    `${var}` is handled FIRST and as a whole. DLT-registered SMS templates are
+    written that way (it is what the previous platform used), and replacing the
+    inner `{var}` on its own would leave a stray `$` in front of the value —
+    which no longer matches the approved template, so the carrier rejects it.
     """
     out = text or ""
     for key, value in (context or {}).items():
-        out = out.replace("{%s}" % key, "" if value is None else str(value))
+        replacement = "" if value is None else str(value)
+        out = out.replace("${%s}" % key, replacement)     # DLT style, first
+        out = out.replace("{%s}" % key, replacement)
     return out
 
 

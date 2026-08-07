@@ -578,3 +578,24 @@ def test_smsgatewayhub_matches_the_old_platforms_contract(api, admin_token, monk
                                               "ErrorMessage": "Invalid Template"}))
     ok, err = messaging.send_sms("9876500011", "hi", "170199")
     assert not ok and "005" in err and "Invalid Template" in err
+
+
+def test_broadcast_reports_per_channel_delivery_counts(api, make_tenant, tenant_token, monkeypatch):
+    """An admin who ticks Email must be told whether it actually sent.
+
+    The endpoint used to report only the in-app count, so a failed email looked
+    exactly like a successful send.
+    """
+    from apps.control import messaging
+
+    tenant, _ = make_tenant(package_code="P1")
+    client = auth(api, tenant_token(tenant)["access"])
+    monkeypatch.setattr(messaging, "send_email", lambda *a, **k: (True, ""))
+
+    resp = client.post("/api/notifications/broadcast/", {
+        "title": "Counts", "body": "b", "audience_type": "all", "channels": ["email"],
+    }, format="json")
+    assert resp.status_code == 201, resp.data
+    for key in ("delivered_in_app", "delivered_email", "delivered_sms", "delivered_push"):
+        assert key in resp.data, f"{key} missing from the broadcast response"
+    assert resp.data["delivered_email"] >= 1

@@ -269,6 +269,13 @@ class BroadcastViewSet(viewsets.ModelViewSet):
             "recipient_count": record.recipient_count,
             "warnings": warnings,
             "delivered": result.get("delivered_in_app", 0),
+            # Per-channel counts, so an admin who ticked "Email" can see whether
+            # it actually went out. Reporting only the in-app number made a
+            # failed email look like a successful send.
+            "delivered_in_app": result.get("delivered_in_app", 0),
+            "delivered_email": result.get("delivered_email", 0),
+            "delivered_sms": result.get("delivered_sms", 0),
+            "delivered_push": result.get("delivered_push", 0),
             "broadcast": BroadcastSerializer(record).data,
         }, status=201)
 
