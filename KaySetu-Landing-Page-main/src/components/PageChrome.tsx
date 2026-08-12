@@ -1,15 +1,25 @@
 import AnnounceBar from "@/components/AnnounceBar";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import ClosingCta from "@/components/ClosingCta";
 
 /* Shared shell for every sub-page — keeps the nav / footer / spacing
-   identical to the home page so routes feel like one site. */
-export function PageShell({ children }: { children: React.ReactNode }) {
+   identical to the home page so routes feel like one site.
+   `cta` opts a page out of the closing band — the contact page is
+   already one long "book a demo", so repeating it there is noise. */
+export function PageShell({
+  children,
+  cta = true,
+}: {
+  children: React.ReactNode;
+  cta?: boolean;
+}) {
   return (
     <>
       <AnnounceBar />
       <Nav />
       <main>{children}</main>
+      {cta && <ClosingCta />}
       <Footer />
     </>
   );

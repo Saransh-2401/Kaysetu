@@ -23,7 +23,6 @@ export type ModulePage = {
       title: string;
       body: string;
       points: string[];
-      ctaLabel?: string;
       screen: string;
     }[];
   };
@@ -34,9 +33,9 @@ export const modulePages: ModulePage[] = [
     slug: "agent-live-tracking",
     icon: "MapPin",
     seo: {
-      title: "GPS Employee Tracking App | Field Force — KaySetu",
+      title: "GPS Employee Tracking App | Field Force | KaySetu",
       description:
-        "Track your field team live — GPS-verified attendance, real-time territory map and full route replay. Fake visits become impossible. Web + mobile.",
+        "Track your field team live: GPS-verified attendance, real-time territory map and full route replay. Fake visits become impossible. Web + mobile.",
       keywords: [
         "GPS employee tracking app",
         "field force tracking software",
@@ -62,7 +61,6 @@ export const modulePages: ModulePage[] = [
           title: "GPS-Verified Check-ins",
           body: "Agents check in with their live location and a selfie. Fake check-ins are instantly flagged and blocked.",
           points: ["Geo-fenced attendance", "Selfie verification", "Time-stamped logs", "Leave tracking"],
-          ctaLabel: "Explore Attendance",
           screen: "field",
         },
         {
@@ -72,7 +70,6 @@ export const modulePages: ModulePage[] = [
           title: "Real-time territory visibility",
           body: "Managers can see exactly where every agent is right now on a live interactive map.",
           points: ["Live agent dots", "Status filters (Active/Idle)", "Territory boundaries", "Battery & network health"],
-          ctaLabel: "View Live Map",
           screen: "dashboard",
         },
         {
@@ -91,9 +88,9 @@ export const modulePages: ModulePage[] = [
     slug: "field-sales-operations",
     icon: "Navigation",
     seo: {
-      title: "Field Sales Automation Software | Beat Plan — KaySetu",
+      title: "Field Sales Automation Software | Beat Plan | KaySetu",
       description:
-        "Run field sales end to end — beat planning, visit logging with photo proof, on-the-spot orders, collections and expense claims. Web + mobile.",
+        "Run field sales end to end: beat planning, visit logging with photo proof, on-the-spot orders, collections and expense claims. Web + mobile.",
       keywords: [
         "field sales automation software",
         "beat plan software",
@@ -137,9 +134,9 @@ export const modulePages: ModulePage[] = [
     slug: "leads-pipeline",
     icon: "Contact",
     seo: {
-      title: "Sales Pipeline CRM India | Lead Management — KaySetu",
+      title: "Sales Pipeline CRM India | Lead Management | KaySetu",
       description:
-        "Capture every lead, move deals through a visual funnel and automate follow-ups — a CRM that shares live data with your ERP, not a separate silo.",
+        "Capture every lead, move deals through a visual funnel and automate follow-ups with a CRM that shares live data with your ERP, not a separate silo.",
       keywords: [
         "sales pipeline CRM India",
         "lead management software",
@@ -183,9 +180,9 @@ export const modulePages: ModulePage[] = [
     slug: "sales-orders-dispatch",
     icon: "ReceiptText",
     seo: {
-      title: "Order Management Software | Order to Dispatch — KaySetu",
+      title: "Order Management Software | Order to Dispatch | KaySetu",
       description:
-        "From field order to dispatch with zero re-entry — approval chains, warehouse pick lists, delivery notes and GST invoices in one connected flow.",
+        "From field order to dispatch with zero re-entry: approval chains, warehouse pick lists, delivery notes and GST invoices in one connected flow.",
       keywords: [
         "order management software",
         "order to dispatch software",
@@ -229,9 +226,9 @@ export const modulePages: ModulePage[] = [
     slug: "inventory-warehouse",
     icon: "Boxes",
     seo: {
-      title: "Multi-Warehouse Inventory Software | Stock — KaySetu",
+      title: "Multi-Warehouse Inventory Software | Stock | KaySetu",
       description:
-        "Real-time stock across every location — live inventory ledger, adjustments and inter-warehouse transfers. Never oversell or run out again.",
+        "Real-time stock across every location: live inventory ledger, adjustments and inter-warehouse transfers. Never oversell or run out again.",
       keywords: [
         "multi warehouse inventory software",
         "real-time stock ledger",
@@ -275,9 +272,9 @@ export const modulePages: ModulePage[] = [
     slug: "production",
     icon: "Factory",
     seo: {
-      title: "BOM Software India | Work Orders & Job Cards — KaySetu",
+      title: "BOM Software India | Work Orders & Job Cards | KaySetu",
       description:
-        "Run the factory floor off real sales demand — bills of material, work orders, job cards and production planning tied to live stock levels.",
+        "Run the factory floor off real sales demand: bills of material, work orders, job cards and production planning tied to live stock levels.",
       keywords: [
         "BOM software India",
         "work order management software",
@@ -312,9 +309,9 @@ export const modulePages: ModulePage[] = [
     slug: "procurement",
     icon: "ShoppingCart",
     seo: {
-      title: "Purchase Order Software | Procurement ERP — KaySetu",
+      title: "Purchase Order Software | Procurement ERP | KaySetu",
       description:
-        "Purchasing that triggers itself from low-stock alerts and production demand — supplier masters, purchase orders and GRN matching in one place.",
+        "Purchasing that triggers itself from low-stock alerts and production demand, with supplier masters, purchase orders and GRN matching in one place.",
       keywords: [
         "purchase order software",
         "procurement management software",
@@ -349,9 +346,9 @@ export const modulePages: ModulePage[] = [
     slug: "accounts-finance",
     icon: "Landmark",
     seo: {
-      title: "GST Billing Software | Ledgers & Invoicing — KaySetu",
+      title: "GST Billing Software | Ledgers & Invoicing | KaySetu",
       description:
-        "Every transaction flows straight into the ledger — GST-ready invoices, vendor bills, payments and reconciliation with zero double-entry.",
+        "Every transaction flows straight into the ledger: GST-ready invoices, vendor bills, payments and reconciliation with zero double-entry.",
       keywords: [
         "GST billing software",
         "GST invoicing software India",
@@ -386,9 +383,9 @@ export const modulePages: ModulePage[] = [
     slug: "distribution-network",
     icon: "Share2",
     seo: {
-      title: "Distributor Management System | DMS — KaySetu",
+      title: "Distributor Management System | DMS | KaySetu",
       description:
-        "Run your whole distributor network on one platform — partner portal, product allocation, stock requests and invoicing with live visibility.",
+        "Run your whole distributor network on one platform: partner portal, product allocation, stock requests and invoicing with live visibility.",
       keywords: [
         "distributor management system",
         "DMS software India",
@@ -423,9 +420,9 @@ export const modulePages: ModulePage[] = [
     slug: "attendance-leave",
     icon: "CalendarCheck",
     seo: {
-      title: "Attendance Management Software | Leave & HR — KaySetu",
+      title: "Attendance Management Software | Leave & HR | KaySetu",
       description:
-        "Attendance for office and field teams in one system — geo-verified check-ins, leave request workflows and a shared company holiday calendar.",
+        "Attendance for office and field teams in one system: geo-verified check-ins, leave request workflows and a shared company holiday calendar.",
       keywords: [
         "attendance management software",
         "leave management system",
@@ -460,9 +457,9 @@ export const modulePages: ModulePage[] = [
     slug: "travel-allowance",
     icon: "Plane",
     seo: {
-      title: "Travel Expense Management Software | TA/DA — KaySetu",
+      title: "Travel Expense Management Software | TA/DA | KaySetu",
       description:
-        "GPS measures the distance, so TA/DA settles itself — automated travel expense claims with approval chains and a full audit trail. No odometer arguments.",
+        "GPS measures the distance, so TA/DA settles itself, with automated travel expense claims with approval chains and a full audit trail. No odometer arguments.",
       keywords: [
         "travel expense management software",
         "TA DA software",
@@ -497,9 +494,9 @@ export const modulePages: ModulePage[] = [
     slug: "insights-reports",
     icon: "BarChart3",
     seo: {
-      title: "Sales Analytics Dashboard | Business Reports — KaySetu",
+      title: "Sales Analytics Dashboard | Business Reports | KaySetu",
       description:
-        "Custom dashboards built on live data from every module — drag-and-drop report builder, scheduled emails, Excel export and role-based access.",
+        "Custom dashboards built on live data from every module: drag-and-drop report builder, scheduled emails, Excel export and role-based access.",
       keywords: [
         "sales analytics dashboard",
         "business reporting software",

@@ -1,9 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Minus } from "lucide-react";
+import { Check, Minus, X } from "lucide-react";
 import { Reveal } from "@/components/Motion";
+import BrandMark from "@/components/BrandMark";
 import { comparison } from "@/lib/content";
+
+/* The three states content.ts can put in a cell. They used to be drawn as
+   check / bare dash / the word "ABSENT", which encoded "limited" and "not at
+   all" as two things a reader can't tell apart and can't decode — a dash reads
+   as "nothing" just as much as the word does. Each state now has its own
+   glyph, its own weight, and a name in the legend under the table. */
+const STATES = {
+  yes: { label: "Included" },
+  partial: { label: "Limited" },
+  no: { label: "Not available" },
+} as const;
+
+type StateKey = keyof typeof STATES;
+const stateOf = (v: string): StateKey => (v in STATES ? (v as StateKey) : "no");
 
 function Mark({
   value,
@@ -16,7 +31,12 @@ function Mark({
   inView?: boolean;
   delay?: number;
 }) {
-  if (value === "yes") {
+  const state = stateOf(value);
+  /* Every cell is an icon, so the value has to be spoken for screen readers —
+     before this the whole table was checks and dashes with no text at all. */
+  const label = <span className="sr-only">{STATES[state].label}</span>;
+
+  if (state === "yes") {
     return highlight ? (
       <span
         className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white shadow-[0_10px_22px_-8px_rgba(0,150,136,0.8)]"
@@ -27,18 +47,54 @@ function Mark({
         }}
       >
         <Check className="h-4 w-4" strokeWidth={3} />
+        {label}
       </span>
     ) : (
-      <Check className="mx-auto h-5 w-5 text-teal-300/85" strokeWidth={2.4} />
+      <span className="mx-auto flex items-center justify-center">
+        <Check className="h-5 w-5 text-teal-300/85" strokeWidth={2.4} />
+        {label}
+      </span>
     );
   }
-  if (value === "partial") {
-    return <Minus className="mx-auto h-5 w-5 text-white/25" strokeWidth={2.6} />;
+
+  if (state === "partial") {
+    return (
+      <span className="mx-auto flex h-6 w-6 items-center justify-center rounded-full border border-white/25 text-white/55">
+        <Minus className="h-3 w-3" strokeWidth={3} />
+        {label}
+      </span>
+    );
   }
+
   return (
-    <span className="text-[0.6rem] font-medium uppercase tracking-[0.15em] text-white/25">
-      Absent
+    <span className="mx-auto flex items-center justify-center text-white/30">
+      <X className="h-[1.05rem] w-[1.05rem]" strokeWidth={2.6} />
+      {label}
     </span>
+  );
+}
+
+/* Same three marks at legend size — the table is unreadable without it. */
+function Legend() {
+  return (
+    /* mt-14, not mt-8: the winner card overhangs the grid by `-inset-y-6`, so
+       a smaller gap puts the legend right against its bottom edge. */
+    <ul className="mt-14 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-[0.78rem] text-white/55">
+      <li className="flex items-center gap-2">
+        <Check className="h-4 w-4 text-teal-300/85" strokeWidth={2.6} />
+        {STATES.yes.label}
+      </li>
+      <li className="flex items-center gap-2">
+        <span className="flex h-[1.15rem] w-[1.15rem] items-center justify-center rounded-full border border-white/25">
+          <Minus className="h-2.5 w-2.5" strokeWidth={3} />
+        </span>
+        {STATES.partial.label}
+      </li>
+      <li className="flex items-center gap-2">
+        <X className="h-4 w-4 text-white/35" strokeWidth={2.6} />
+        {STATES.no.label}
+      </li>
+    </ul>
   );
 }
 
@@ -166,10 +222,11 @@ export default function Comparison() {
                   <span className="rounded-full bg-accent px-2.5 py-[3px] text-[0.5rem] font-bold uppercase tracking-[0.16em] text-white shadow-[0_6px_14px_-4px_rgba(0,150,136,0.8)]">
                     Recommended
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="flex h-4 w-4 items-center justify-center rounded-[5px] bg-accent">
-                      <span className="h-2 w-2 rounded-[2px] bg-white" />
-                    </span>
+                  {/* The mark here was a teal square with a white dot in it,
+                      which reads as a broken-image placeholder next to the
+                      name. This is the actual brand mark. */}
+                  <span className="flex items-center gap-2">
+                    <BrandMark className="h-[0.95rem] w-auto text-ink" />
                     <span className="text-[0.85rem] font-bold text-ink">{c.name}</span>
                   </span>
                 </div>
@@ -236,6 +293,8 @@ export default function Comparison() {
               </div>
             ))}
           </div>
+
+          <Legend />
         </div>
       </div>
     </section>

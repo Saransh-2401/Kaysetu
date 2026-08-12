@@ -35,31 +35,34 @@ export function Frame({
 }) {
   return (
     <div
-      className={`shadow-[0_20px_50px_-12px_rgba(0,0,0,0.12)] overflow-hidden rounded-[20px] border border-line bg-card w-full ${className}`}
+      /* @container: these screens sit in columns of very different widths
+         (narrow walkthrough track vs full-bleed showcase), so every size below
+         keys off the frame's own width, not the viewport's. */
+      className={`@container shadow-[0_20px_50px_-12px_rgba(0,0,0,0.12)] overflow-hidden rounded-[20px] border border-line bg-card w-full ${className}`}
     >
       {/* Laptop browser chrome */}
-      <div className="flex items-center gap-3 border-b border-line bg-paper/80 px-4 py-2.5">
+      <div className="flex items-center gap-3 border-b border-line bg-paper/80 px-4 py-3 @md:px-5 @md:py-3.5">
         <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+          <span className="h-3 w-3 rounded-full bg-[#ff5f57] @md:h-3.5 @md:w-3.5" />
+          <span className="h-3 w-3 rounded-full bg-[#febc2e] @md:h-3.5 @md:w-3.5" />
+          <span className="h-3 w-3 rounded-full bg-[#28c840] @md:h-3.5 @md:w-3.5" />
         </div>
-        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-card px-3 py-1.5 shadow-inner">
-          <Lock className="h-3 w-3 shrink-0 text-faint" />
-          <span className="truncate font-mono text-[0.7rem] font-medium text-muted">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-card px-3 py-2 shadow-inner">
+          <Lock className="h-3.5 w-3.5 shrink-0 text-faint" />
+          <span className="truncate font-mono text-[0.72rem] font-medium text-muted @md:text-[0.78rem]">
             app.kaysetu.in{path}
           </span>
         </div>
-        <span className="hidden items-center gap-2 font-mono text-[0.65rem] uppercase tracking-wider text-accent sm:flex font-semibold">
+        <span className="hidden items-center gap-2 font-mono text-[0.7rem] uppercase tracking-wider text-accent @sm:flex font-semibold">
           <Circle className="live-dot h-2 w-2 fill-current" /> Live
         </span>
       </div>
       {/* App bar with screen title */}
-      <div className="flex items-center justify-between border-b border-line/60 bg-paper/30 px-5 py-2.5">
-        <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-ink/80">{title}</span>
-        <span className="font-mono text-[0.65rem] text-faint">v2.4 · today</span>
+      <div className="flex items-center justify-between border-b border-line/60 bg-paper/30 px-4 py-3 @md:px-6 @md:py-3.5">
+        <span className="font-mono text-[0.72rem] font-bold uppercase tracking-wider text-ink/80 @md:text-[0.78rem]">{title}</span>
+        <span className="font-mono text-[0.68rem] text-faint @md:text-[0.72rem]">v2.4 · today</span>
       </div>
-      <div className="p-3.5 sm:p-5 md:p-6 min-h-[260px] sm:min-h-[300px] md:min-h-[340px] flex flex-col justify-center">{children}</div>
+      <div className="p-3 @xs:p-4 @md:p-6 @3xl:p-8 min-h-[300px] @md:min-h-[460px] @3xl:min-h-[540px] flex flex-col justify-center">{children}</div>
     </div>
   );
 }
@@ -74,24 +77,25 @@ export function LeadsBoard() {
   ];
   return (
     <Frame title="Lead & CRM · Pipeline" path="/crm/pipeline">
-      {/* Four kanban columns are ~60px each on a phone — pair them up instead. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4 py-2">
+      {/* Four kanban columns are ~60px each in a narrow frame — pair them up
+          until the frame itself is wide enough to read all four. */}
+      <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-2.5 @xs:gap-3 @md:gap-4 @3xl:gap-5">
         {cols.map((c) => (
-          <div key={c.name} className="rounded-xl bg-paper/80 p-2.5 sm:p-3 flex flex-col min-w-0 min-h-[110px] sm:min-h-[220px]">
-            <div className="mb-2.5 sm:mb-3 flex items-center justify-between gap-1">
-              <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${c.tint}`} />
-                <span className="truncate text-[0.72rem] sm:text-[0.75rem] font-bold text-ink">{c.name}</span>
+          <div key={c.name} className="rounded-2xl bg-paper/80 p-2.5 @xs:p-3 @md:p-4 flex flex-col min-w-0 min-h-[190px] @md:min-h-[240px] @2xl:min-h-[350px] @3xl:min-h-[410px]">
+            <div className="mb-3 @md:mb-4 flex items-center justify-between gap-1">
+              <div className="flex min-w-0 items-center gap-1.5 @xs:gap-2">
+                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.tint}`} />
+                <span className="truncate text-[0.72rem] @xs:text-[0.8rem] @3xl:text-[0.88rem] font-bold text-ink">{c.name}</span>
               </div>
-              <span className="shrink-0 text-[0.65rem] font-mono text-muted">{c.cards.length}</span>
+              <span className="shrink-0 text-[0.7rem] @xs:text-[0.72rem] font-mono text-muted">{c.cards.length}</span>
             </div>
-            <div className="space-y-2.5 flex-1">
+            <div className="space-y-2.5 @xs:space-y-3 flex-1">
               {c.cards.map(([n, v]) => (
-                <div key={n} className="rounded-lg border border-line bg-card p-2.5 shadow-sm hover:border-accent/40 transition-colors">
-                  <div className="truncate text-[0.72rem] font-semibold text-ink">{n}</div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-[0.68rem] font-bold text-accent">{v}</span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/60" />
+                <div key={n} className="rounded-xl border border-line bg-card p-2.5 @xs:p-3 @3xl:p-3.5 shadow-sm hover:border-accent/40 transition-colors">
+                  <div className="truncate text-[0.72rem] @xs:text-[0.8rem] @3xl:text-[0.85rem] font-semibold text-ink">{n}</div>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <span className="text-[0.7rem] @xs:text-[0.76rem] @3xl:text-[0.8rem] font-bold text-accent">{v}</span>
+                    <span className="h-2 w-2 rounded-full bg-emerald-500/60" />
                   </div>
                 </div>
               ))}
@@ -120,7 +124,7 @@ const MAP_STOPS = [
 export function FieldMap() {
   return (
     <Frame title="Field Sales · Live Map" path="/field/live">
-      <div className="relative h-56 md:h-64 overflow-hidden rounded-xl border border-line bg-[radial-gradient(circle_at_30%_30%,#e6f5f3,#eef2f5)] shadow-inner">
+      <div className="relative h-64 @xs:h-72 @md:h-96 @3xl:h-[28rem] overflow-hidden rounded-2xl border border-line bg-[radial-gradient(circle_at_30%_30%,#e6f5f3,#eef2f5)] shadow-inner">
         {/* SVG streets */}
         <svg
           className="absolute inset-0 h-full w-full"
@@ -165,8 +169,8 @@ export function FieldMap() {
             title={s.label}
             className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-md ${
               s.current
-                ? "h-7 w-7 bg-accent text-card ring-4 ring-card"
-                : "h-5 w-5 bg-card text-accent ring-2 ring-accent/40"
+                ? "h-9 w-9 bg-accent text-card ring-4 ring-card"
+                : "h-7 w-7 bg-card text-accent ring-2 ring-accent/40"
             }`}
             style={{ left: `${(s.x / MAP_W) * 100}%`, top: `${(s.y / MAP_H) * 100}%` }}
           >
@@ -175,21 +179,21 @@ export function FieldMap() {
               <span className="absolute inset-0 rounded-full bg-accent/40 animate-ping" aria-hidden />
             )}
             {s.current ? (
-              <MapPin className="relative h-4 w-4" strokeWidth={2} />
+              <MapPin className="relative h-5 w-5" strokeWidth={2} />
             ) : (
-              <Check className="relative h-3 w-3" strokeWidth={3} />
+              <Check className="relative h-4 w-4" strokeWidth={3} />
             )}
           </span>
         ))}
-        <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 flex items-center gap-2.5 sm:gap-3 rounded-xl border border-line bg-card/95 p-2.5 sm:p-3 shadow-lg backdrop-blur">
-          <span className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-accent/15 text-accent shrink-0">
-            <Icon name="BadgeCheck" className="h-5 w-5" />
+        <div className="absolute bottom-3 left-3 right-3 @md:bottom-4 @md:left-4 @md:right-4 flex items-center gap-3 @md:gap-4 rounded-2xl border border-line bg-card/95 p-3 @md:p-4 shadow-lg backdrop-blur">
+          <span className="flex h-10 w-10 @3xl:h-11 @3xl:w-11 items-center justify-center rounded-xl bg-accent/15 text-accent shrink-0">
+            <Icon name="BadgeCheck" className="h-6 w-6" />
           </span>
           <div className="min-w-0 leading-tight">
-            <div className="text-[0.72rem] sm:text-[0.75rem] font-bold text-ink">Check-in verified</div>
-            <div className="text-[0.65rem] sm:text-[0.68rem] text-muted font-medium">GPS + selfie + shop photo · 10:24 AM</div>
+            <div className="text-[0.8rem] @3xl:text-[0.88rem] font-bold text-ink">Check-in verified</div>
+            <div className="truncate text-[0.7rem] @3xl:text-[0.76rem] text-muted font-medium">GPS + selfie + shop photo · 10:24 AM</div>
           </div>
-          <span className="ml-auto hidden shrink-0 rounded-full bg-emerald-500/15 px-3 py-1 text-[0.65rem] font-bold text-emerald-600 xs:inline-block">
+          <span className="ml-auto hidden shrink-0 rounded-full bg-emerald-500/15 px-3.5 py-1.5 text-[0.72rem] font-bold text-emerald-600 @md:inline-block">
             On route
           </span>
         </div>
@@ -204,29 +208,29 @@ export function QuoteToCash() {
   const lines = [["HDPE Pipe 40mm", "120", "₹42,000"], ["Coupler set", "60", "₹9,600"], ["Fittings kit", "24", "₹7,200"]];
   return (
     <Frame title="Quote-to-Cash" path="/sales/quote">
-      <div className="mb-4 flex items-center gap-1.5 sm:gap-2">
+      <div className="mb-5 @md:mb-6 flex items-center gap-1.5 @xs:gap-2 @md:gap-3">
         {steps.map((s, i) => (
-          <div key={s} className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
+          <div key={s} className="flex min-w-0 flex-1 items-center gap-1.5 @xs:gap-2 @md:gap-3">
             <span
-              className={`flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold ${
+              className={`flex h-6 w-6 @xs:h-7 @xs:w-7 @3xl:h-8 @3xl:w-8 shrink-0 items-center justify-center rounded-full text-[0.68rem] @xs:text-[0.72rem] @3xl:text-[0.78rem] font-bold ${
                 i < 2 ? "bg-accent text-card shadow-sm" : "border border-accent text-accent"
               }`}
             >
               {i + 1}
             </span>
-            <span className="truncate text-[0.65rem] sm:text-[0.72rem] font-bold text-ink">{s}</span>
+            <span className="truncate text-[0.7rem] @xs:text-[0.78rem] @3xl:text-[0.85rem] font-bold text-ink">{s}</span>
             {/* The connector is the first thing to go when space is tight */}
-            {i < steps.length - 1 && <span className="hidden h-0.5 flex-1 bg-line sm:block" />}
+            {i < steps.length - 1 && <span className="hidden h-0.5 flex-1 bg-line @2xl:block" />}
           </div>
         ))}
       </div>
-      <div className="overflow-hidden rounded-xl border border-line shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-line shadow-sm">
         {/* Fixed qty/amount tracks — justify-between would let the middle
             column drift with each product name's width. */}
         {lines.map(([n, q, amt], i) => (
           <div
             key={n}
-            className={`grid grid-cols-[minmax(0,1fr)_2.75rem_4.5rem] items-center gap-2 px-3 sm:px-4 py-2.5 text-[0.68rem] sm:text-[0.72rem] ${
+            className={`grid grid-cols-[minmax(0,1fr)_3rem_5.25rem] items-center gap-2 px-3 @xs:px-4 @md:px-5 py-3.5 @xs:py-4 @md:py-5 text-[0.72rem] @xs:text-[0.78rem] @3xl:text-[0.85rem] ${
               i % 2 ? "bg-paper/60" : "bg-card"
             }`}
           >
@@ -235,9 +239,9 @@ export function QuoteToCash() {
             <span className="text-right font-bold tabular-nums text-ink">{amt}</span>
           </div>
         ))}
-        <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_4.5rem] items-center gap-2 border-t border-line bg-accent/10 px-3 sm:px-4 py-3">
-          <span className="col-span-2 text-[0.7rem] font-bold text-ink">Total incl. GST (18%)</span>
-          <span className="text-right text-[0.8rem] font-bold tabular-nums text-accent">₹69,384</span>
+        <div className="grid grid-cols-[minmax(0,1fr)_3rem_5.25rem] items-center gap-2 border-t border-line bg-accent/10 px-3 @xs:px-4 @md:px-5 py-3.5 @xs:py-4">
+          <span className="col-span-2 text-[0.72rem] @xs:text-[0.8rem] @3xl:text-[0.85rem] font-bold text-ink">Total incl. GST (18%)</span>
+          <span className="text-right text-[0.82rem] @xs:text-[0.92rem] @3xl:text-[1rem] font-bold tabular-nums text-accent">₹69,384</span>
         </div>
       </div>
     </Frame>
@@ -254,29 +258,29 @@ export function InventoryGrid() {
   ];
   return (
     <Frame title="Inventory · Warehouse" path="/inventory">
-      <div className="space-y-2.5">
+      <div className="space-y-3.5 @md:space-y-5">
         {rows.map(([name, bin, pct, status]) => {
           const low = status !== "In stock";
           return (
-            <div key={name as string} className="rounded-xl border border-line bg-card px-4 py-3 shadow-sm hover:border-accent/30 transition-colors">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[0.75rem] font-bold text-ink">{name}</span>
+            <div key={name as string} className="rounded-2xl border border-line bg-card px-4 py-4 @md:px-5 @md:py-5 shadow-sm hover:border-accent/30 transition-colors">
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="min-w-0 truncate text-[0.85rem] @3xl:text-[0.92rem] font-bold text-ink">{name}</span>
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-[0.62rem] font-bold ${
+                  className={`shrink-0 rounded-full px-3 py-1 text-[0.7rem] font-bold ${
                     low ? "bg-accent/15 text-accent" : "bg-emerald-500/15 text-emerald-600"
                   }`}
                 >
                   {status}
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-paper">
+              <div className="flex items-center gap-3.5">
+                <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-paper">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${low ? "bg-accent" : "bg-emerald-500"}`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="text-[0.65rem] font-mono text-muted">{bin}</span>
+                <span className="text-[0.72rem] font-mono text-muted">{bin}</span>
               </div>
             </div>
           );
@@ -296,33 +300,33 @@ export function Dashboard() {
   ];
   const bars = [40, 62, 48, 78, 56, 88, 70, 96, 64, 82];
   const feed = [
-    ["Lead won — Krishna Agencies", "₹4.6L"],
-    ["Visit verified — R. Kumar", "Ward 12"],
-    ["Invoice raised — Nova Foods", "₹3.1L"],
+    ["Lead won: Krishna Agencies", "₹4.6L"],
+    ["Visit verified: R. Kumar", "Ward 12"],
+    ["Invoice raised: Nova Foods", "₹3.1L"],
   ];
   return (
     <Frame title="KaySetu · Command Center" path="/dashboard" className="w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-3 @md:gap-4">
         {kpis.map(([label, val, icon]) => (
-          <div key={label} className="rounded-xl border border-line bg-paper/70 p-2.5 sm:p-3 shadow-sm min-w-0">
-            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-accent/15 text-accent mb-1.5 sm:mb-2">
-              <Icon name={icon as string} className="h-4 w-4" />
+          <div key={label} className="rounded-2xl border border-line bg-paper/70 p-3.5 @md:p-4 shadow-sm min-w-0">
+            <span className="flex h-9 w-9 @3xl:h-10 @3xl:w-10 items-center justify-center rounded-xl bg-accent/15 text-accent mb-2 @md:mb-3">
+              <Icon name={icon as string} className="h-5 w-5" />
             </span>
             {/* Sans + tabular: these are product-UI KPI values, not editorial
                 headings — the serif's old-style figures read as misaligned. */}
-            <div className="text-lg sm:text-xl font-bold tabular-nums tracking-tight text-ink">{val}</div>
-            <div className="text-[0.65rem] font-medium text-muted truncate">{label}</div>
+            <div className="text-xl @3xl:text-2xl font-bold tabular-nums tracking-tight text-ink">{val}</div>
+            <div className="text-[0.72rem] @3xl:text-[0.78rem] font-medium text-muted truncate">{label}</div>
           </div>
         ))}
       </div>
       {/* Chart + feed sit side by side only once there's room for both. */}
-      <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-[1.4fr_1fr] gap-3 sm:gap-4">
-        <div className="rounded-xl border border-line p-3 sm:p-4 bg-card shadow-sm min-w-0">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[0.7rem] font-bold text-ink">Revenue · this month</span>
-            <span className="text-[0.65rem] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">+18%</span>
+      <div className="mt-4 @md:mt-5 grid grid-cols-1 @2xl:grid-cols-[1.4fr_1fr] gap-4 @md:gap-5">
+        <div className="rounded-2xl border border-line p-4 @md:p-5 bg-card shadow-sm min-w-0">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <span className="text-[0.8rem] @3xl:text-[0.88rem] font-bold text-ink">Revenue · this month</span>
+            <span className="shrink-0 text-[0.72rem] font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full">+18%</span>
           </div>
-          <div className="flex h-20 sm:h-28 items-end gap-1.5 sm:gap-2">
+          <div className="flex h-36 @3xl:h-48 items-end gap-2 @md:gap-2.5">
             {bars.map((h, i) => (
               <div
                 key={i}
@@ -335,15 +339,15 @@ export function Dashboard() {
             ))}
           </div>
         </div>
-        <div className="rounded-xl border border-line p-3 sm:p-4 bg-card shadow-sm min-w-0">
-          <span className="text-[0.7rem] font-bold text-ink">Live activity</span>
-          <div className="mt-3 space-y-2.5">
+        <div className="rounded-2xl border border-line p-4 @md:p-5 bg-card shadow-sm min-w-0">
+          <span className="text-[0.8rem] @3xl:text-[0.88rem] font-bold text-ink">Live activity</span>
+          <div className="mt-4 space-y-3.5">
             {feed.map(([t, v]) => (
-              <div key={t} className="flex items-start gap-2">
-                <Circle className="live-dot mt-1 h-2 w-2 shrink-0 fill-accent text-accent" />
+              <div key={t} className="flex items-start gap-2.5">
+                <Circle className="live-dot mt-1.5 h-2 w-2 shrink-0 fill-accent text-accent" />
                 <div className="leading-tight">
-                  <div className="text-[0.68rem] font-semibold text-ink">{t}</div>
-                  <div className="text-[0.62rem] text-muted">{v}</div>
+                  <div className="text-[0.78rem] @3xl:text-[0.82rem] font-semibold text-ink">{t}</div>
+                  <div className="text-[0.7rem] text-muted mt-0.5">{v}</div>
                 </div>
               </div>
             ))}
@@ -391,7 +395,7 @@ const TABS = [
 
 export function MobileApp() {
   return (
-    <div className="relative mx-auto w-[252px] xs:w-[280px] sm:w-[310px] max-w-full">
+    <div className="relative mx-auto my-2 w-[268px] xs:w-[300px] sm:w-[340px] md:w-[360px] max-w-full">
       {/* Side buttons — small realism cue on the bezel */}
       <span className="absolute -left-[4px] top-[104px] h-7 w-[6px] rounded-l-md bg-slate-700" />
       <span className="absolute -left-[4px] top-[140px] h-12 w-[6px] rounded-l-md bg-slate-700" />

@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import Icon from "@/components/Icon";
+import NavSearch from "@/components/NavSearch";
+import AuthModal, { type AuthMode } from "@/components/AuthModal";
 import { nav, brand, platformMenu, industriesMenu, industries } from "@/lib/content";
 import { cn } from "@/lib/utils";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 function Logo() {
   return (
@@ -87,11 +90,34 @@ function MenuTile({ icon, label, href, onClick }: { icon: string; label: string;
   );
 }
 
+function MobileSubLink({ icon, label, href, onClick }: { icon: string; label: string; href: string; onClick?: () => void }) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-[0.88rem] font-medium text-ink/85 transition-colors active:bg-paper"
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-paper text-accent">
+        <Icon name={icon} className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1 leading-tight">{label}</span>
+    </a>
+  );
+}
+
 export default function Nav() {
   const [open, setOpen] = useState(false);
+  const [section, setSection] = useState<null | "platform" | "industries">(null);
   const [menu, setMenu] = useState<null | "platform" | "industries">(null);
   const [scrolled, setScrolled] = useState(false);
+  const [auth, setAuth] = useState<AuthMode | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const openAuth = (mode: AuthMode) => {
+    setOpen(false);
+    setMenu(null);
+    setAuth(mode);
+  };
 
   const handleMouseEnter = (menuItem?: "platform" | "industries" | null) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -104,74 +130,124 @@ export default function Nav() {
     }, 150);
   };
 
+  // Anything that isn't a dropdown trigger (logo, CTAs, the empty space
+  // between them) closes the flyout the moment the cursor reaches it.
+  const closeMenu = () => handleMouseEnter(null);
+
+  // Entering the bar itself closes the flyout — unless the cursor landed
+  // straight on a Services/Industries trigger, which owns the open state.
+  const handleBarEnter = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest?.("[data-nav-trigger]")) return;
+    closeMenu();
+  };
+
+  // While a menu is down, the page underneath stays put. The bar itself can't
+  // reflow either — `scrollbar-gutter: stable` keeps the gutter reserved, so
+  // the triggers don't slide under a stationary cursor and re-fire the hover.
+  useScrollLock(menu !== null || open);
+
+  // Collapsing the sheet also collapses whichever accordion was open, so it
+  // reopens in the same state the desktop bar starts in.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    if (!open) setSection(null);
+  }, [open]);
+
+  // Hysteresis: condense past 28px, expand again only below 6px. A single
+  // threshold meant a few pixels of trackpad wobble flipped the whole bar back
+  // and forth mid-transition, which reads as jitter rather than motion.
+  useEffect(() => {
+    const onScroll = () => setScrolled((s) => window.scrollY > (s ? 6 : 28));
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
+    <>
     <header
-      className="sticky top-0 z-50 w-full px-2"
+      className={cn(
+        "sticky top-0 z-50 w-full",
+        // Named properties, not `transition-all` — the shorthand also tried to
+        // tween backdrop-filter, which can't interpolate from `none` and so
+        // snapped in a frame ahead of everything else.
+        "transition-[padding] duration-500 ease-nav motion-reduce:transition-none",
+        scrolled ? "px-2 pt-2" : "px-0 pt-0"
+      )}
+      onMouseLeave={handleMouseLeave}
     >
       <div
+        onMouseEnter={handleBarEnter}
         className={cn(
-          "mx-auto flex items-center justify-between px-5 py-3 transition-all duration-300",
-          scrolled || menu
-            ? "max-w-5xl rounded-full border border-line bg-card/90 shadow-md backdrop-blur-xl"
-            : "max-w-6xl bg-transparent"
+          // Three tracks so the centre nav stays centred on the viewport
+          // regardless of how wide the logo or the CTAs happen to be.
+          "relative mx-auto grid grid-cols-[auto_1fr_auto] items-center gap-4",
+          "transition-[max-width,padding,border-radius] duration-500 ease-nav motion-reduce:transition-none",
+          // Width tracks scroll only. If the open menu also resized the bar,
+          // the logo/nav would slide under a stationary cursor and re-trigger
+          // the hover — an open/close oscillation.
+          scrolled ? "max-w-5xl rounded-full px-5 py-2.5" : "max-w-full rounded-none px-5 py-3.5 lg:px-10"
         )}
       >
-        <div className="flex items-center gap-8">
+        {/* The chrome is its own layer so it can cross-fade. Toggling the blur
+            and shadow on the bar itself made them appear instantly, before the
+            bar had finished narrowing. `-z-10` keeps it behind the contents;
+            the header's own z-50 stacking context stops it falling further. */}
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-0 -z-10 rounded-[inherit] bg-card/90 shadow-md backdrop-blur-xl",
+            "transition-opacity duration-500 ease-nav motion-reduce:transition-none",
+            scrolled || menu ? "opacity-100" : "opacity-0"
+          )}
+        />
+        <span onMouseEnter={closeMenu} className="flex items-center">
           <Logo />
+        </span>
 
-          {/* desktop nav */}
-          <nav className="hidden items-center gap-1 lg:flex" onMouseLeave={handleMouseLeave}>
-            {nav.primary.map((item) =>
-              "menu" in item && item.menu ? (
-                <button
-                  key={item.label}
-                  onMouseEnter={() => handleMouseEnter(item.menu!)}
-                  onClick={() => setMenu((m) => (m === item.menu ? null : item.menu!))}
-                  className={`flex items-center gap-1 rounded-md px-3 py-2 text-[0.9rem] font-medium transition-colors ${
-                    menu === item.menu ? "text-accent" : "text-ink/75 hover:text-ink"
-                  }`}
-                >
-                  {item.label}
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 transition-transform duration-300 ${menu === item.menu ? "rotate-180" : ""}`}
-                  />
-                </button>
-              ) : (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  onMouseEnter={() => handleMouseEnter(null)}
-                  className="rounded-md px-3 py-2 text-[0.9rem] font-medium text-ink/75 transition-colors hover:text-ink"
-                >
-                  {item.label}
-                </a>
-              )
-            )}
-          </nav>
-        </div>
+        {/* desktop nav — centred, search sits at its tail */}
+        <nav className="hidden items-center justify-center gap-1 lg:flex" onMouseLeave={handleMouseLeave}>
+          {nav.primary.map((item) =>
+            "menu" in item && item.menu ? (
+              <button
+                key={item.label}
+                data-nav-trigger
+                onMouseEnter={() => handleMouseEnter(item.menu!)}
+                onClick={() => setMenu((m) => (m === item.menu ? null : item.menu!))}
+                className={`flex items-center gap-1 rounded-md px-3 py-2 text-[0.9rem] font-medium transition-colors ${
+                  menu === item.menu ? "text-accent" : "text-ink/75 hover:text-ink"
+                }`}
+              >
+                {item.label}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform duration-300 ${menu === item.menu ? "rotate-180" : ""}`}
+                />
+              </button>
+            ) : (
+              <a
+                key={item.label}
+                href={item.href}
+                onMouseEnter={() => handleMouseEnter(null)}
+                className="rounded-md px-3 py-2 text-[0.9rem] font-medium text-ink/75 transition-colors hover:text-ink"
+              >
+                {item.label}
+              </a>
+            )
+          )}
+
+          <span onMouseEnter={closeMenu} className="ml-2 flex items-center">
+            <NavSearch variant="icon" />
+          </span>
+        </nav>
 
         {/* right side */}
-        <div className="flex items-center gap-2.5">
-
-          <a
-            href={nav.demo.href}
-            className="hidden rounded-full border border-line bg-paper px-4 py-2 text-[0.9rem] font-semibold text-ink transition-colors hover:border-accent/40 hover:bg-paper-2 sm:inline-block"
+        <div className="flex min-w-0 items-center justify-end gap-2.5" onMouseEnter={closeMenu}>
+          <button
+            type="button"
+            onClick={() => openAuth("login")}
+            className="hidden rounded-full bg-accent px-5 py-2 text-[0.9rem] font-semibold text-white shadow-sm transition-all hover:brightness-110 active:scale-95 sm:inline-block"
           >
-            {nav.demo.label}
-          </a>
-          <a
-            href={nav.cta.href}
-            className="hidden rounded-full bg-accent px-5 py-2 text-[0.9rem] font-semibold text-white transition-colors hover:bg-accent/90 sm:inline-flex sm:items-center sm:gap-1.5"
-          >
-            {nav.cta.label}
-          </a>
+            {nav.login.label}
+          </button>
           <button
             aria-label="Toggle menu"
             onClick={() => setOpen((v) => !v)}
@@ -185,14 +261,20 @@ export default function Nav() {
       {/* desktop floating flyout */}
       {menu && (
         <div className="absolute inset-x-0 top-full hidden px-2 lg:block pointer-events-none">
+          {/* pt-2 is the visual gap under the bar, but it lives *inside* the
+              hover region — an invisible bridge so crossing it doesn't count
+              as leaving the flyout. */}
           <div
             className={cn(
-              "animate-dropdown mx-auto mt-2 overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl transition-all duration-300 pointer-events-auto",
+              // Same curve and duration as the bar, so an open flyout narrows
+              // in step with it instead of snapping to the new width.
+              "pointer-events-auto mx-auto pt-2 transition-[max-width] duration-500 ease-nav motion-reduce:transition-none",
               scrolled ? "max-w-5xl" : "max-w-6xl"
             )}
             onMouseEnter={() => handleMouseEnter()}
             onMouseLeave={handleMouseLeave}
           >
+            <div className="animate-dropdown overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl transition-all duration-300">
             {/* thin accent hairline across the top */}
             <span className="block h-0.5 w-full bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
             <div className="p-7">
@@ -242,6 +324,7 @@ export default function Nav() {
               )}
             </div>
           </div>
+          </div>
         </div>
       )}
 
@@ -249,33 +332,100 @@ export default function Nav() {
       {open && (
         <div className="absolute left-2 right-2 top-full mt-2 lg:hidden">
           <div className="overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl">
-            <div className="flex flex-col divide-y divide-line-2 px-5 py-2">
-              <Link href="/#walkthrough" onClick={() => setOpen(false)} className="py-3 text-[0.95rem] font-medium text-ink">Walkthrough</Link>
-            <Link href="/industries" onClick={() => setOpen(false)} className="py-3 text-[0.95rem] font-medium text-ink">Industries</Link>
-            <Link href="/#workspace" onClick={() => setOpen(false)} className="py-3 text-[0.95rem] font-medium text-ink">Workspace</Link>
-            <Link href="/#built-for" onClick={() => setOpen(false)} className="py-3 text-[0.95rem] font-medium text-ink">Built for</Link>
-            <Link href="/#proof" onClick={() => setOpen(false)} className="py-3 text-[0.95rem] font-medium text-ink">Customers</Link>
-
-            <div className="flex gap-2.5 pb-3 pt-3">
-              <a
-                href={nav.demo.href}
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-full border border-line bg-paper px-5 py-3 text-center text-sm font-semibold text-ink"
-              >
-                {nav.demo.label}
-              </a>
-              <a
-                href={nav.cta.href}
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-full bg-espresso px-5 py-3 text-center text-sm font-semibold text-card"
-              >
-                {nav.cta.label}
-              </a>
+            <div className="border-b border-line-2 px-5 py-3">
+              <NavSearch onNavigate={() => setOpen(false)} />
             </div>
+            {/* Same source as the desktop bar — the two must never drift apart.
+                Dropdown triggers become accordions instead of flyouts. */}
+            <div className="max-h-[70vh] overflow-y-auto overscroll-contain px-5 py-2">
+              <div className="flex flex-col divide-y divide-line-2">
+                {nav.primary.map((item) =>
+                  "menu" in item && item.menu ? (
+                    <div key={item.label}>
+                      <button
+                        type="button"
+                        aria-expanded={section === item.menu}
+                        onClick={() => setSection((s) => (s === item.menu ? null : item.menu!))}
+                        className={cn(
+                          "flex w-full items-center justify-between py-3 text-[0.95rem] font-medium transition-colors",
+                          section === item.menu ? "text-accent" : "text-ink"
+                        )}
+                      >
+                        {item.label}
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 shrink-0 transition-transform duration-300",
+                            section === item.menu && "rotate-180"
+                          )}
+                        />
+                      </button>
+
+                      {section === item.menu && (
+                        <div className="pb-3">
+                          {item.menu === "platform"
+                            ? platformMenu.groups.map((g) => (
+                                <div key={g.title} className="mb-3 last:mb-0">
+                                  <p className="mb-1 flex items-center gap-2 px-2 font-mono text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-faint">
+                                    <span className="h-1 w-1 rounded-full bg-accent" />
+                                    {g.title}
+                                  </p>
+                                  <div className="grid gap-0.5">
+                                    {g.links.map((l) => (
+                                      <MobileSubLink key={l.label} {...l} onClick={() => setOpen(false)} />
+                                    ))}
+                                  </div>
+                                </div>
+                              ))
+                            : (
+                              <div className="grid gap-0.5">
+                                {industries.items.map((it) => (
+                                  <MobileSubLink
+                                    key={it.name}
+                                    icon={it.icon}
+                                    label={it.name}
+                                    href={`/industries/${it.slug}`}
+                                    onClick={() => setOpen(false)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className="py-3 text-[0.95rem] font-medium text-ink"
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                )}
+
+                <div className="flex gap-2.5 pb-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => openAuth("login")}
+                    className="flex-1 rounded-full border border-line bg-paper px-5 py-3 text-center text-sm font-semibold text-ink"
+                  >
+                    {nav.login.label}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
     </header>
+
+    <AuthModal
+      open={auth !== null}
+      mode={auth ?? "login"}
+      onModeChange={setAuth}
+      onClose={() => setAuth(null)}
+    />
+    </>
   );
 }

@@ -1,148 +1,164 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import CardSwap, { Card } from '@/components/ui/CardSwap';
 import { Quote } from 'lucide-react';
-
-/** The swap deck is absolutely positioned and fans out sideways, so it can't be
- *  sized in CSS — the card box and the fan offset both have to shrink together
- *  or the stack hangs off the edge of a phone. */
-function useDeckSize() {
-  const [size, setSize] = useState({ width: 300, height: 380, distance: 45 });
-
-  useEffect(() => {
-    const measure = () => {
-      const w = window.innerWidth;
-      if (w < 400) setSize({ width: 218, height: 380, distance: 22 });
-      else if (w < 640) setSize({ width: 250, height: 390, distance: 30 });
-      else setSize({ width: 300, height: 420, distance: 45 });
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-
-  return size;
-}
 
 const testimonials = [
   {
     id: 1,
+    title: "Every field visit, verified by 9 AM",
     testimonial: "The fake-visit debate is over. GPS-, selfie- and photo-verified check-ins mean the entire field day is visible by 9 AM.",
-    author: "Rahul Mehta - National Field Manager",
+    name: "Rahul Mehta",
+    role: "National Field Manager",
     image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop&q=80"
   },
   {
     id: 2,
-    testimonial: "Stock, production and accounts finally reconcile against each other instead of living in three separate spreadsheets that never agreed. One source of truth, end to end.", 
-    author: "Anjali Rao - Head of Operations",
+    title: "Stock, production and accounts finally agree",
+    testimonial: "Stock, production and accounts finally reconcile against each other instead of living in three separate spreadsheets that never agreed. One source of truth, end to end.",
+    name: "Anjali Rao",
+    role: "Head of Operations",
     image: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=128&h=128&fit=crop&q=80"
   },
   {
     id: 3,
+    title: "The best rollout we've done",
     testimonial: "Honestly the best rollout we've done. The team walked our real scenarios in the demo, and what they showed is exactly what we run today.",
-    author: "Kavya Reddy - COO",
+    name: "Kavya Reddy",
+    role: "COO",
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&h=128&fit=crop&q=80"
   },
   {
     id: 4,
+    title: "Channel stock stopped being a guess",
     testimonial: "Our distributors now work in the same system we do. Channel stock and sell-through stopped being a guess overnight.",
-    author: "Vikram Shah - Channel & Distribution Head",
+    name: "Vikram Shah",
+    role: "Channel & Distribution Head",
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=128&h=128&fit=crop&q=80"
   },
   {
     id: 5,
-    testimonial: "A lead flows straight to the invoice — nobody re-types anything between the field and the back office. We closed our books three days sooner the very first month.",
-    author: "Priya Nair - VP of Sales",
+    title: "Lead to invoice, without re-typing",
+    testimonial: "A lead flows straight to the invoice. Nobody re-types anything between the field and the back office. We closed our books three days sooner the very first month.",
+    name: "Priya Nair",
+    role: "VP of Sales",
     image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=128&h=128&fit=crop&q=80"
   },
   {
     id: 6,
-    testimonial: "GST-ready invoicing that just works. Procurement, accounts and the field team all speak to each other now — no exports, no reconciliation nights.",
-    author: "Meera Krishnan - Finance Controller",
+    title: "GST invoicing that just works",
+    testimonial: "GST-ready invoicing that just works. Procurement, accounts and the field team all speak to each other now: no exports, no reconciliation nights.",
+    name: "Meera Krishnan",
+    role: "Finance Controller",
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=128&h=128&fit=crop&q=80"
   }
 ];
 
 export function CardSwapDemo() {
-  const deck = useDeckSize();
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  /* `active` is in the deps on purpose: picking an avatar restarts the
+     countdown, so the slide you just chose gets a full turn on screen. */
+  useEffect(() => {
+    if (paused) return;
+    const id = window.setInterval(
+      () => setActive((i) => (i + 1) % testimonials.length),
+      5200
+    );
+    return () => window.clearInterval(id);
+  }, [paused, active]);
+
+  const t = testimonials[active];
 
   return (
     <section
       id="testimonials"
-      className="border-t border-line bg-[#fbfbf9] pt-16 pb-32 md:pt-20 md:pb-48 w-full relative overflow-visible"
+      className="relative w-full overflow-hidden border-t border-line bg-[#fbfbf9] py-16 md:py-24"
     >
-      {/* Banner background + decorative blur share one clipping layer so the
-          500px orb can't add 250px of horizontal scroll on phones. */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <img src="/map-bg.png" alt="" className="w-full h-full object-fill opacity-100 mix-blend-normal" />
-        <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-slate-200/50 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+      {/* The 500px orb is clipped by its own layer so it can't add 250px of
+          horizontal scroll on phones. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute left-0 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-200/50 blur-[120px]"></div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-16 relative z-10">
+      <div className="relative z-10 mx-auto max-w-[1600px] px-5">
+        <div
+          className="grid overflow-hidden rounded-[2rem] border border-line bg-card shadow-float lg:grid-cols-[minmax(0,0.35fr)_minmax(0,0.65fr)]"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {/* ── Navy panel ── */}
+          <div className="relative isolate overflow-hidden bg-espresso px-8 py-12 sm:px-12 md:px-16 md:py-20 lg:rounded-r-[2.75rem]">
+            {/* dot field, top-left — decorative */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-6 -top-6 h-40 w-40 opacity-[0.18] [background-image:radial-gradient(rgba(255,255,255,0.9)_1.4px,transparent_1.4px)] [background-size:14px_14px]"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-16 -right-10 h-56 w-56 rounded-full bg-accent/20 blur-3xl"
+            />
 
-        <div className="w-full min-w-0 lg:w-5/12 text-left mb-8 lg:mb-0">
-          <h2 className="font-display text-[2rem] sm:text-[2.5rem] font-extrabold leading-tight md:text-[3.5rem] text-slate-900 mb-5 sm:mb-6 tracking-tight">
-            Don&apos;t take our<br/>word for it.
-          </h2>
-          <p className="text-slate-600 text-base sm:text-lg md:text-xl font-medium max-w-md leading-relaxed mb-6 sm:mb-8">
-            KaySetu bridges the gap between your field force, distributors, and back-office operations. See how we transform businesses just like yours:
-          </p>
-          
-          <ul className="space-y-3 sm:space-y-4 text-slate-700 font-medium text-base sm:text-lg">
-            <li className="flex items-center gap-3 sm:gap-4">
-              <div className="w-2 h-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-              End-to-end supply chain visibility
-            </li>
-            <li className="flex items-center gap-3 sm:gap-4">
-              <div className="w-2 h-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-              Real-time verified field tracking
-            </li>
-            <li className="flex items-center gap-3 sm:gap-4">
-              <div className="w-2 h-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-              Automated reconciliation &amp; invoicing
-            </li>
-          </ul>
-        </div>
+            <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-accent-soft ring-1 ring-white/15">
+              <Quote className="h-5 w-5 fill-current" />
+            </span>
 
-        <div className="w-full lg:w-6/12 flex justify-center lg:justify-start">
-          <div style={{ height: `${deck.height + 40}px`, width: '100%', maxWidth: '400px', position: 'relative' }} className="flex justify-center mt-10 sm:mt-12 lg:mt-24">
-          <CardSwap
-            cardDistance={deck.distance}
-            verticalDistance={deck.distance}
-            delay={3800}
-            easing="elastic"
-            pauseOnHover={true}
-            width={deck.width}
-            height={deck.height}
-          >
-            {/* The card box is a fixed pixel height (the deck is 3D-transformed, so it
-                can't grow) — avatar and byline stay at their natural size and only the
-                quote gets the leftover space, so the longest testimonial still lands
-                inside the card instead of being clipped by overflow-hidden. */}
-            {testimonials.map((t, idx) => (
-              <Card key={idx} className="flex flex-col items-center justify-between overflow-hidden rounded-2xl bg-[#0f172a] px-5 py-6 sm:px-6 sm:py-7 md:px-7 md:py-8 shadow-2xl border border-white/10">
-                <div className="relative mx-auto shrink-0">
-                  <img
-                    src={t.image}
-                    alt={`Avatar of ${t.author}`}
-                    className="pointer-events-none h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-full border-4 border-[#0f172a] bg-slate-200 object-cover shadow-lg"
-                  />
-                  <div className="absolute -bottom-2 -right-2 bg-emerald-500 rounded-full p-1.5 sm:p-2 shadow-md">
-                    <Quote className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
-                  </div>
-                </div>
-                <div className="flex min-h-0 flex-1 items-center py-3 sm:py-4">
-                  <span className="text-center text-[0.8rem] sm:text-[0.85rem] md:text-[0.95rem] font-medium leading-[1.5] text-slate-200">&quot;{t.testimonial}&quot;</span>
-                </div>
-                <div className="flex shrink-0 flex-col items-center gap-1">
-                  <span className="text-center text-sm font-bold text-white">{t.author.split(' - ')[0]}</span>
-                  <span className="text-center text-[0.65rem] uppercase tracking-wider text-slate-400 font-mono">{t.author.split(' - ')[1]}</span>
-                </div>
-              </Card>
-            ))}
-          </CardSwap>
-        </div>
+            <h2 className="relative mt-7 font-display text-[2.2rem] font-extrabold leading-[1.12] tracking-tight text-white sm:text-[2.6rem] lg:text-[3rem]">
+              What Our<br />Customers<br />Are Saying
+            </h2>
+
+            <p className="relative mt-5 max-w-sm text-[1rem] leading-relaxed text-white/70">
+              KaySetu bridges the gap between your field force, distributors and back-office operations.
+            </p>
+          </div>
+
+          {/* ── Testimonial ── */}
+          <div className="flex flex-col items-center justify-center px-8 py-14 text-center sm:px-12 md:px-16 md:py-20">
+            <div key={active} className="animate-fade-up max-w-2xl" style={{ animationDuration: "0.5s" }}>
+              <h3 className="mx-auto text-[1.4rem] font-bold leading-snug text-ink sm:text-[1.7rem] lg:text-[1.9rem]">
+                {t.title}
+              </h3>
+              <p className="mx-auto mt-5 text-[1.05rem] leading-relaxed text-muted sm:text-[1.1rem]">
+                "{t.testimonial}"
+              </p>
+            </div>
+
+            {/* avatar picker — the active face grows and takes a teal ring */}
+            <div className="mt-10 flex items-center justify-center gap-3 sm:gap-4">
+              {testimonials.map((item, i) => {
+                const isActive = i === active;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActive(i)}
+                    aria-label={`Read the testimonial from ${item.name}`}
+                    aria-current={isActive}
+                    className="shrink-0 rounded-full outline-none transition-transform duration-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+                  >
+                    <img
+                      src={item.image}
+                      alt=""
+                      className={
+                        "rounded-full bg-paper object-cover transition-all duration-300 " +
+                        (isActive
+                          ? "h-14 w-14 ring-2 ring-accent ring-offset-2 ring-offset-card sm:h-16 sm:w-16"
+                          : "h-9 w-9 opacity-45 grayscale hover:opacity-80 hover:grayscale-0 sm:h-10 sm:w-10")
+                      }
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div key={`${active}-byline`} className="animate-fade-up mt-6" style={{ animationDuration: "0.5s" }}>
+              <div className="font-display text-[1.1rem] font-bold text-ink">{t.name}</div>
+              <div className="mt-1 font-mono text-[0.75rem] uppercase tracking-wider text-faint">
+                {t.role}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

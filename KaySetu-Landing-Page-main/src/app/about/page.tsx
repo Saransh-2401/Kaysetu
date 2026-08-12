@@ -5,7 +5,7 @@ import { PageShell, PageHeader } from "@/components/PageChrome";
 import { aboutPage } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: { absolute: "About Kayease — The team behind KaySetu ERP + CRM" },
+  title: { absolute: "About Kayease | The team behind KaySetu ERP + CRM" },
   description:
     "Kayease is the product studio behind KaySetu, a unified ERP + CRM for fast-moving Indian SMEs. Why we built one source of truth for sales, stock and accounts.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/about" },
   openGraph: {
-    title: "About Kayease — The team behind KaySetu",
+    title: "About Kayease | The team behind KaySetu",
     description:
       "Why Kayease built KaySetu: one connected system for sales, field operations, inventory, production, procurement and accounts.",
     type: "website",

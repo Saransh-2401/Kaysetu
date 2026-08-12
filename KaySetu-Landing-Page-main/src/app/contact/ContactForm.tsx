@@ -96,9 +96,11 @@ export default function ContactForm() {
         {f.eyebrow}
       </span>
 
-      <h2 className="mt-5 font-display text-[2.1rem] font-bold leading-[1.05] tracking-tight md:text-[2.6rem]">
+      {/* h1, not h2: the contact hero was removed, so this is the first and
+          only top-level heading on the page. Styling is unchanged. */}
+      <h1 className="mt-5 font-display text-[2.1rem] font-bold leading-[1.05] tracking-tight md:text-[2.6rem]">
         {f.titleLead} <span className="text-accent">{f.titleAccent}</span>
-      </h2>
+      </h1>
       <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-muted">{f.note}</p>
       <div className="mt-5 h-1 w-12 rounded-full bg-accent" />
 

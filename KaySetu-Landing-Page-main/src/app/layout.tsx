@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Cormorant_Garamond } from "next/font/google";
+import {
+  Inter,
+  JetBrains_Mono,
+  Cormorant_Garamond,
+  Plus_Jakarta_Sans,
+  Playfair_Display,
+  Fraunces,
+} from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -7,10 +14,28 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-display",
-  weight: ["300", "400", "500", "600", "700"],
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  weight: ["400", "500", "600", "700", "800"],
   style: ["normal", "italic"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Section/step headings. Inter is the UI voice and Cormorant the editorial
+// one; Jakarta sits between them — geometric and warmer than Inter, with
+// enough character to carry a heading at semibold instead of needing 800.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -24,7 +49,7 @@ const monoTech = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://kaysetu.kayease.com"),
   title: {
-    default: "KaySetu — Your Business. Unified. | ERP + CRM by Kayease",
+    default: "KaySetu: Your Business. Unified. | ERP + CRM by Kayease",
     template: "%s | KaySetu",
   },
   // Keep meta descriptions under ~160 chars — Google truncates past that and
@@ -59,7 +84,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   openGraph: {
-    title: "KaySetu — Your Business. Unified.",
+    title: "KaySetu: Your Business. Unified.",
     description:
       "A unified ERP + CRM platform: sales, field ops, inventory, production, procurement and accounts in one real-time workflow. Web + mobile, GST-ready.",
     type: "website",
@@ -69,7 +94,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "KaySetu — Your Business. Unified.",
+    title: "KaySetu: Your Business. Unified.",
     description:
       "A unified ERP + CRM platform: sales, field ops, inventory, production, procurement and accounts in one real-time workflow.",
   },
@@ -107,6 +132,8 @@ const jsonLd = {
   ],
 };
 
+import PageLoader from "@/components/PageLoader";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -115,13 +142,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${monoTech.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${inter.variable} ${monoTech.variable} ${playfair.variable} ${fraunces.variable} ${jakarta.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: "document.documentElement.classList.add('js')",
+            __html: "document.documentElement.classList.add('js');if(typeof sessionStorage!=='undefined'&&sessionStorage.getItem('kaysetu_loader_seen')){document.documentElement.classList.add('no-loader');}",
           }}
         />
         <script
@@ -130,6 +157,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <PageLoader />
         {children}
       </body>
     </html>

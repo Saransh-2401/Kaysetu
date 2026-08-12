@@ -52,6 +52,20 @@ import {
   CheckCircle2,
   ExternalLink,
   ArrowRight,
+  Play,
+  Briefcase,
+  Info,
+  Cpu,
+  Inbox,
+  MonitorPlay,
+  Plus,
+  AlertCircle,
+  Barcode,
+  Calculator,
+  Store,
+  Percent,
+  Scan,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 
@@ -109,6 +123,23 @@ const map: Record<string, LucideIcon> = {
   CheckCircle2,
   ExternalLink,
   ArrowRight,
+  Play,
+  Briefcase,
+  Info,
+  // Cpu was referenced by the Electronics industry but never mapped, so it had
+  // been falling back to the generic Layers glyph.
+  Cpu,
+  Inbox,
+  MonitorPlay,
+  Plus,
+  // Used by the contact form's error banner — was falling back to Layers.
+  AlertCircle,
+  Barcode,
+  Calculator,
+  Store,
+  Percent,
+  Scan,
+  Receipt,
 };
 
 export default function Icon({

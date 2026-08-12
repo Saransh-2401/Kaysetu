@@ -47,15 +47,17 @@ function SectionHead({
   title,
   lead,
   dark = false,
+  center = false,
 }: {
   index: string;
   kicker: string;
   title: React.ReactNode;
   lead?: string;
   dark?: boolean;
+  center?: boolean;
 }) {
   return (
-    <div className="max-w-3xl">
+    <div className={`max-w-3xl${center ? " mx-auto text-center" : ""}`}>
       <h2
         className={`font-display text-[1.9rem] font-bold leading-[1.08] tracking-tight balance md:text-[2.7rem] ${
           dark ? "text-card" : "text-ink"
@@ -64,7 +66,11 @@ function SectionHead({
         {title}
       </h2>
       {lead && (
-        <p className={`mt-5 text-[1.05rem] leading-relaxed ${dark ? "text-card/70" : "text-muted"}`}>
+        <p
+          className={`mt-5 text-[1.05rem] leading-relaxed ${center ? "mx-auto max-w-2xl " : ""}${
+            dark ? "text-card/70" : "text-muted"
+          }`}
+        >
           {lead}
         </p>
       )}
@@ -211,14 +217,33 @@ export function Problem() {
   return (
     <Section id="problem">
       <SectionHead index="01" kicker="The Problem" title={problem.title} lead={problem.intro} />
-      <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
-        {problem.points.map((p) => (
-          <div key={p.pain} className="bg-card p-6 transition-colors hover:bg-paper/60">
-            <p className="font-medium text-ink">{p.pain}</p>
-            <p className="mt-2 flex items-start gap-1.5 text-sm text-muted">
-              <span className="text-accent">→</span>
+      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {problem.points.map((p, i) => (
+          <div
+            key={p.pain}
+            className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-line/80 bg-card p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-float"
+          >
+            {/* Top gradient accent line */}
+            <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent/20 via-accent to-accent/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-white">
+                  <span className="h-2 w-2 rounded-full bg-current" />
+                </span>
+                <span className="font-mono text-[0.68rem] font-bold tracking-wider text-accent uppercase rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5">
+                  0{i + 1}
+                </span>
+              </div>
+              <p className="font-display text-[1.1rem] font-bold leading-snug text-ink transition-colors group-hover:text-accent">
+                {p.pain}
+              </p>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-line bg-paper/60 p-3.5 text-[0.88rem] leading-relaxed text-muted transition-colors group-hover:border-accent/20 group-hover:bg-accent/5">
+              <span className="font-semibold text-accent me-1.5">Impact:</span>
               {p.cost}
-            </p>
+            </div>
           </div>
         ))}
       </div>
@@ -275,7 +300,7 @@ export function Modules() {
                     {(m as any).code}
                   </span>
                 )}
-                <h3 className="font-semibold leading-snug text-ink">{m.name}</h3>
+                <h3 className="font-display font-semibold leading-snug text-ink">{m.name}</h3>
               </div>
               <p className="mt-1.5 text-[0.86rem] leading-relaxed text-muted">{m.desc}</p>
             </div>
@@ -345,21 +370,38 @@ export function Spotlights() {
 export function Operations() {
   return (
     <Section id="operations">
-      <SectionHead index="04" kicker="Operations Backbone" title={operations.title} lead={operations.lead} />
+      <SectionHead index="04" kicker="Operations Backbone" title={operations.title} lead={operations.lead} center />
 
-      {/* Pipeline rail — the four stages moving in lock-step */}
-      <div className="mt-10 flex items-center gap-2 overflow-x-auto pb-1 sm:gap-3">
-        {operations.cards.map((c, i) => (
-          <div key={c.code} className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3.5 py-1.5 shadow-soft">
-              <Icon name={c.icon} className="h-3.5 w-3.5 text-accent" />
-              <span className="font-mono text-[0.68rem] font-medium tracking-wider text-ink">{c.code}</span>
-            </span>
-            {i < operations.cards.length - 1 && (
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-faint" />
-            )}
-          </div>
-        ))}
+      {/* Pipeline rail — the four stages moving in lock-step. `w-max` + auto
+          margins centres the row while it fits and lets it scroll from the
+          left edge once it doesn't (flex `justify-center` would strand the
+          first stage outside the scrollable area). */}
+      <div className="-mx-5 mt-12 overflow-x-auto px-5 pb-4 pt-4">
+        <ol className="mx-auto flex w-max items-center">
+          {operations.cards.map((c, i) => (
+            <li key={c.code} className="flex items-center">
+              <div className="group relative flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_20px_38px_-24px_rgba(0,150,136,0.55)]">
+                <span className="absolute -top-2 left-4 rounded-full border border-line bg-paper px-1.5 font-mono text-[0.55rem] font-semibold leading-4 tracking-[0.18em] text-faint transition-colors duration-300 group-hover:border-accent/40 group-hover:text-accent">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-paper text-accent transition-all duration-300 group-hover:border-accent group-hover:bg-accent group-hover:text-white group-hover:shadow-[0_8px_18px_-8px_rgba(0,150,136,0.6)]">
+                  <Icon name={c.icon} className="h-4 w-4" />
+                </span>
+                <span className="flex flex-col text-left leading-tight">
+                  <span className="font-mono text-[0.68rem] font-semibold tracking-[0.14em] text-ink">{c.code}</span>
+                  <span className="mt-0.5 whitespace-nowrap text-[0.72rem] text-muted">{c.name}</span>
+                </span>
+              </div>
+
+              {i < operations.cards.length - 1 && (
+                <span className="mx-2 flex shrink-0 items-center gap-1 sm:mx-3" aria-hidden>
+                  <span className="pipe-flow h-0.5 w-7 rounded-full opacity-60 sm:w-12" />
+                  <ArrowRight className="h-3.5 w-3.5 text-accent/70" />
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className="mt-8">
@@ -443,7 +485,7 @@ export function Insights() {
               <span className={iconTile}>
                 <Icon name={d.icon} className="h-5 w-5" />
               </span>
-              <h3 className="font-semibold text-ink">{d.name}</h3>
+              <h3 className="font-display font-semibold text-ink">{d.name}</h3>
             </div>
             <ul className="mt-5 space-y-2.5">
               {d.points.map((p) => (
@@ -713,7 +755,7 @@ export function Packages() {
         <div className="flex flex-col justify-center rounded-2xl border border-line bg-card p-6">
           <p className="font-mono text-[0.66rem] uppercase tracking-wider text-faint">Add-ons</p>
           <p className="mt-2 text-[0.9rem] text-muted">
-            Attach to any package — {packages.note.toLowerCase()}
+            Attach to any package. {packages.note}
           </p>
         </div>
         {packages.addons.map((a) => (

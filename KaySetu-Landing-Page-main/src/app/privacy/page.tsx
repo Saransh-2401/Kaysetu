@@ -3,7 +3,7 @@ import LegalDoc from "@/components/LegalDoc";
 import { legalPages } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: { absolute: "Privacy Policy — KaySetu by Kayease" },
+  title: { absolute: "Privacy Policy | KaySetu by Kayease" },
   description:
     "How KaySetu (by Kayease) collects, uses and protects your information across the website and the ERP + CRM platform, and the choices and rights you have.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Privacy Policy — KaySetu by Kayease",
+    title: "Privacy Policy | KaySetu by Kayease",
     description:
       "How KaySetu collects, uses and protects your information, and the choices you have.",
     type: "website",

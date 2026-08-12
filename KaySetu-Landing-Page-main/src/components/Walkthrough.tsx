@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
 import Icon from "@/components/Icon";
 import { AutoMedia, Reveal } from "@/components/Motion";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -51,7 +50,6 @@ export default function Walkthrough({
   className?: string;
 }) {
   const [active, setActive] = useState(0);
-  const [modal, setModal] = useState<any | null>(null);
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -82,11 +80,11 @@ export default function Walkthrough({
 
   return (
     <section id="walkthrough" className={className || "mx-auto max-w-[1600px] px-5 py-20 md:py-28"}>
-      <Reveal className="max-w-4xl">
+      <Reveal className="mx-auto max-w-4xl text-center">
         <h2 className="font-display text-[2.1rem] font-bold leading-[1.03] tracking-tight balance md:text-[3rem]">
           {data.title}
         </h2>
-        <p className="mt-5 max-w-2xl text-[1.05rem] leading-relaxed text-muted md:text-[1.15rem]">
+        <p className="mx-auto mt-5 max-w-2xl text-[1.05rem] leading-relaxed text-muted md:text-[1.15rem]">
           {data.lead}
         </p>
       </Reveal>
@@ -107,7 +105,11 @@ export default function Walkthrough({
         </div>
       </div>
 
-      <div ref={containerRef} className="mt-20 relative max-w-7xl mx-auto pl-2 md:pl-0">
+      {/* No max-w-7xl cap here: the timeline runs the full width of the
+          section so the mockups on the right can grow instead of leaving a
+          dead right margin. The text column stays fixed, so every extra
+          pixel goes to the screen. */}
+      <div ref={containerRef} className="mt-20 relative w-full pl-2 md:pl-0">
         {/* Continuous track */}
         <div className="absolute left-[24px] md:left-[30px] top-4 bottom-0 w-[2px] bg-line" />
         {/* Growing accent line */}
@@ -139,12 +141,21 @@ export default function Walkthrough({
 
                 {/* Left Text Block — min-w-0 stops the grid track from being
                     widened past the viewport by its own min-content size. */}
-                <div className="min-w-0 pl-[46px] sm:pl-[50px] md:pl-[60px] pt-1">
+                <div className="min-w-0 pl-[58px] sm:pl-[66px] md:pl-[70px] pt-1">
                   <Reveal>
-                    <h3 className="font-display text-[1.5rem] font-bold leading-tight tracking-tight text-ink md:text-[2rem]">
-                      <span className="block text-ink mb-1 transition-colors duration-500 group-hover:text-accent">{s.kicker}: {s.title}</span>
+                    {/* Jakarta at 600, not font-display: the section title above
+                        is the serif voice, so a second editorial headline here
+                        competes with it. Jakarta's wider counters let the line
+                        stay legible at semibold — going heavier just made it
+                        shouty. The kicker is tinted and set a notch lighter so
+                        the eye lands on it without it out-weighing the line. */}
+                    <h3 className="font-heading text-[1.7rem] font-semibold leading-[1.2] tracking-[-0.02em] text-ink md:text-[2rem] lg:text-[2.2rem]">
+                      <span className="block mb-1">
+                        <span className="font-medium text-accent">{s.kicker}:</span>{" "}
+                        <span className="transition-colors duration-500 group-hover:text-accent">{s.title}</span>
+                      </span>
                     </h3>
-                    <p className="mt-3.5 text-[1rem] leading-relaxed text-muted max-w-sm">{s.body}</p>
+                    <p className="mt-4 text-[1.05rem] leading-relaxed text-muted max-w-sm">{s.body}</p>
                     
                     {(s as any).points && (s as any).points.length > 0 && (
                       <ul className="mt-6 space-y-3">
@@ -160,21 +171,11 @@ export default function Walkthrough({
                         ))}
                       </ul>
                     )}
-
-                    {(s as any).ctaLabel && (
-                      <button
-                        onClick={() => setModal(s)}
-                        className="mt-8 inline-flex items-center justify-center rounded bg-accent px-5 py-2.5 text-[0.82rem] font-bold text-card shadow-sm transition-all duration-300 hover:brightness-110 hover:scale-105 active:scale-95 group/btn"
-                      >
-                        <span className="transition-transform duration-300 group-hover/btn:-translate-x-1">{(s as any).ctaLabel.replace(' >', '')}</span>
-                        <span className="ml-1 opacity-0 -translate-x-2 transition-all duration-300 group-hover/btn:opacity-100 group-hover/btn:translate-x-0">-&gt;</span>
-                      </button>
-                    )}
                   </Reveal>
                 </div>
 
                 {/* Right Image/Video Block */}
-                <div className="w-full min-w-0 pr-0 md:pr-0 pl-[46px] sm:pl-[50px] md:pl-0 pt-2 md:pt-0 transition-transform duration-700 ease-out group-hover:-translate-y-2">
+                <div className="w-full min-w-0 pr-0 md:pr-0 pl-[40px] sm:pl-[48px] md:pl-0 pt-2 md:pt-0 transition-transform duration-700 ease-out group-hover:-translate-y-2">
                   <Reveal delay={90}>
                     <Media step={s} />
                   </Reveal>
@@ -184,39 +185,6 @@ export default function Walkthrough({
           })}
         </div>
       </div>
-
-      {/* full-tutorial modal */}
-      {modal && (
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm"
-          onClick={() => setModal(null)}
-        >
-          <div
-            className="relative w-full max-w-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              aria-label="Close"
-              onClick={() => setModal(null)}
-              className="absolute -top-11 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-card/20 bg-card/10 text-card transition hover:bg-card/20"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="mb-3 flex items-center gap-2 text-card">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[0.62rem] font-bold">
-                {modal.n}
-              </span>
-              <span className="font-display text-lg font-bold">{modal.title}</span>
-            </div>
-            <Media step={modal} />
-            <p className="mt-3 text-center text-[0.75rem] text-card/60">
-              Live product screen. Drop a screen recording at{" "}
-              <code className="text-card/80">/public/media/step-{modal.screen}.mp4</code> to play the
-              full tutorial here.
-            </p>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

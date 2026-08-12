@@ -1,0 +1,33 @@
+# KaySetu — Enterprise ERP & CRM Platform
+
+> KaySetu is a unified ERP + CRM platform designed for fast-moving SME businesses, distributors, manufacturers, and field sales teams in India. It integrates sales, field operations, inventory, production, procurement, and accounts into one real-time, GST-ready workflow.
+
+## Key Features & Capabilities
+
+- **Field Sales Automation (SFA)**: Real-time beat planning, agent GPS tracking, offline order booking, distributor check-ins, and target tracking.
+- **Inventory & Multi-Warehouse**: Batch tracking, expiry management, serial numbers, inter-godown transfers, and automated reorder points.
+- **Production & Manufacturing**: Bill of Materials (BOM), work orders, shop-floor tracking, material issue, and scrap accounting.
+- **GST & Financial Accounting**: GST invoicing, e-Way bills, GSTR-1 & 3B reports, customer ledgers, automated payment collection reminders, and P&L.
+- **Procurement & Vendor Management**: PO creation, GRN inspection, vendor bills, 3-way matching, and supplier scorecards.
+- **Leads & CRM Pipeline**: Multi-channel lead capture, quotation builder, deal stages, communication history, and sales analytics.
+
+## Platform Modules
+
+- Field Sales & Beats: https://kaysetu.kayease.com/platform/field-sales-operations
+- Leads & Pipeline: https://kaysetu.kayease.com/platform/leads-pipeline
+- Multi-Warehouse Inventory: https://kaysetu.kayease.com/platform/inventory-warehousing
+- GST Accounting & Ledger: https://kaysetu.kayease.com/platform/gst-accounting
+- Production & BOM: https://kaysetu.kayease.com/platform/production-manufacturing
+- Interactive Walkthrough: https://kaysetu.kayease.com/walkthrough
+
+## Target Industries
+
+- FMCG & Consumer Goods: https://kaysetu.kayease.com/industries/fmcg
+- Wholesale & Distribution: https://kaysetu.kayease.com/industries/distribution
+- Manufacturing & Industrial: https://kaysetu.kayease.com/industries/manufacturing
+
+## Developer & Company Information
+
+- Product Studio: Kayease Studio
+- Main Website: https://kaysetu.kayease.com
+- Contact Support: https://kaysetu.kayease.com/contact

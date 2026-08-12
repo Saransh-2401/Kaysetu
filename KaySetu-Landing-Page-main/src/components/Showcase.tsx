@@ -1,8 +1,8 @@
-import { ArrowRight, Check, MapPin, Search, Menu, MoreVertical, Plus, ShoppingCart, User, Bell } from "lucide-react";
+import { ArrowRight, Check, Contact, Navigation, ShoppingCart } from "lucide-react";
 import Icon from "@/components/Icon";
 import AppDownloadButton from "@/components/AppDownloadButton";
 import { Reveal, Counter } from "@/components/Motion";
-import { Dashboard } from "@/components/AppScreens";
+import PhoneMockupBasic from "@/components/ui/phone-mockups-1";
 import {
   problemShift,
   stats,
@@ -50,196 +50,120 @@ export function StatBar() {
       </div>
     </section>
   );
-}export function ProductReveal() {
+}
+
+/* ================= Mobile agent app ================= */
+
+/* Feature notes that used to be absolutely-positioned cards floating either
+   side of a single phone. A centred carousel has no free gutter to hang them
+   in, so they read as a row underneath instead. */
+const agentAppHighlights = [
+  {
+    icon: Check,
+    tint: "bg-emerald-100 text-emerald-600",
+    kicker: "Feature",
+    title: "GPS Verified",
+    body: "Check-ins are stamped with location, so a visit log is proof, not a claim.",
+  },
+  {
+    icon: ShoppingCart,
+    tint: "bg-orange-100 text-orange-600",
+    kicker: "Live sync",
+    title: "Instant Orders",
+    body: "Orders push straight into the ERP without a round of manual entry.",
+  },
+  {
+    icon: Navigation,
+    tint: "bg-blue-100 text-blue-600",
+    kicker: "Live",
+    title: "Route Tracking",
+    body: "Follow the beat plan as it happens, and replay any route later.",
+  },
+  {
+    icon: Contact,
+    tint: "bg-purple-100 text-purple-600",
+    kicker: "CRM",
+    title: "Lead Capture",
+    body: "A single structured pipeline for every lead, so nothing is lost in WhatsApp.",
+  },
+];
+
+export function ProductReveal() {
   return (
-    <section id="workspace" className="relative mx-auto w-[96%] max-w-[1600px] px-4 sm:px-8 py-12 lg:py-16 lg:px-20 overflow-visible rounded-[2.5rem] mt-12 border border-slate-200/50 shadow-sm bg-[#fbfbf9]">
-      
-      {/* Banner Background Image */}
-      <div className="absolute inset-0 z-0 overflow-hidden rounded-[2.5rem]">
-        <img src="/map-bg.png" alt="Section Banner Background" className="w-full h-full object-fill opacity-100 mix-blend-normal" />
+    <section id="workspace" className="relative overflow-hidden bg-[#fbfbf9] py-20 md:py-28">
+      {/* Banner background */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <img
+          src="/map-bg.png"
+          alt=""
+          aria-hidden
+          className="h-full w-full object-cover opacity-70"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#fbfbf9] via-[#fbfbf9]/40 to-[#fbfbf9]" />
       </div>
 
-      <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12 max-w-6xl mx-auto">
-        
-        {/* Left Content (Text) */}
-        <div className="w-full lg:w-1/2 flex flex-col items-start text-left mb-12 lg:mb-0">
-          <Reveal delay={0}>
-            <img src="/logo2.png" alt="KaySetu Logo" className="h-8 md:h-12 w-auto mb-6 drop-shadow-sm" />
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 mb-6">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-xs font-bold text-emerald-700 tracking-wider uppercase">Native iOS & Android</span>
+      <div className="relative z-10 mx-auto max-w-[1600px] px-5">
+        {/* ── Centred header ────────────────────────────────── */}
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <Reveal delay={0} className="flex flex-col items-center">
+            <img
+              src="/logo2.png"
+              alt="KaySetu"
+              className="mb-6 h-8 w-auto drop-shadow-sm md:h-11"
+            />
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                Native iOS &amp; Android
+              </span>
             </div>
           </Reveal>
-          
+
           <Reveal delay={100}>
-            <h2 className="font-display text-[2.2rem] font-extrabold leading-tight md:text-[3.5rem] text-slate-900 tracking-tight mb-4">
+            <h2 className="mb-4 font-display text-[2.2rem] font-extrabold leading-tight tracking-tight text-slate-900 md:text-[3.5rem]">
               Mobile agent app
             </h2>
           </Reveal>
-          
+
           <Reveal delay={200}>
-            <p className="text-base md:text-lg text-slate-600 font-medium mb-8 leading-relaxed max-w-xl">
-              Empower your field force with a unified mobile experience. Say goodbye to scattered WhatsApp updates and delayed end-of-day reports.
+            <p className="mb-8 text-base font-medium leading-relaxed text-slate-600 md:text-lg">
+              Empower your field force with a unified mobile experience. Say goodbye to
+              scattered WhatsApp updates and delayed end-of-day reports.
             </p>
           </Reveal>
-          
+
           <Reveal delay={300}>
-            <div className="flex flex-wrap gap-4">
-              <AppDownloadButton />
-            </div>
+            <AppDownloadButton />
           </Reveal>
         </div>
 
-        {/* Right Content (Phone and Floating Cards) */}
-        <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
-          <Reveal delay={400} className="relative z-10 flex justify-center perspective-[2000px] scale-[0.8] xs:scale-[0.85] lg:scale-[0.9] origin-center lg:origin-right">
-            {/* Hover Group wrapper */}
-            <div className="relative group flex justify-center w-[280px] xs:w-[300px] sm:w-[320px] h-[600px] xs:h-[640px]">
-          
-          {/* Front Phone (Light Mode) */}
-          <div className="absolute top-0 w-full h-full bg-white rounded-[2.5rem] border-[8px] border-slate-900 shadow-[0_40px_80px_rgba(0,0,0,0.15)] overflow-hidden z-20 transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-2 group-hover:shadow-[0_50px_100px_rgba(0,0,0,0.25)]">
-             <div className="absolute top-0 inset-x-0 h-6 bg-slate-900 rounded-b-3xl mx-16 z-20"></div>
-             
-             {/* App Header */}
-             <div className="flex items-center justify-between px-6 pt-10 pb-4 border-b border-slate-100 bg-white/90 backdrop-blur-md sticky top-0 z-30">
-               <div className="font-bold text-lg flex items-center gap-2"><span className="text-accent">KAY</span>SETU</div>
-               <div className="flex gap-3 text-slate-400">
-                 <Search className="w-5 h-5 hover:text-accent transition-colors cursor-pointer"/>
-                 <Menu className="w-5 h-5 hover:text-accent transition-colors cursor-pointer"/>
-               </div>
-             </div>
-             
-             <div className="p-4 bg-slate-50 h-full overflow-hidden">
-               <h3 className="font-bold text-slate-800 mb-4 px-2">Active Visits</h3>
-               
-               {/* Card 1 */}
-               <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4 relative">
-                 <div className="flex gap-3 items-start relative z-10">
-                   <div className="w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
-                     <MapPin className="w-4 h-4"/>
-                   </div>
-                   <div>
-                     <div className="font-bold text-sm text-slate-800">Sharma Distributors</div>
-                     <div className="text-xs text-slate-400 mt-1">Pending Check-in</div>
-                     <div className="text-[10px] text-slate-500 mt-3 bg-slate-100 p-2 rounded-lg">
-                       Target: ₹50,000 | Last Order: 12 days ago
-                     </div>
-                   </div>
-                 </div>
-               </div>
+        {/* ── Phone carousel ────────────────────────────────── */}
+        <Reveal delay={400} className="mt-14 md:mt-16">
+          <PhoneMockupBasic />
+        </Reveal>
 
-               {/* Card 2 */}
-               <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 mb-4 relative z-20 transform scale-105 -ml-4 -mr-2 mt-6">
-                 <div className="absolute -inset-1 bg-green-400 rounded-2xl blur-lg opacity-20 animate-pulse"></div>
-                 <div className="flex gap-3 items-start relative z-10">
-                   <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
-                     <Check className="w-4 h-4" strokeWidth={3}/>
-                   </div>
-                   <div className="flex-1">
-                     <div className="flex justify-between items-start">
-                       <div className="font-bold text-sm text-slate-800">New Metro Traders</div>
-                       <MoreVertical className="w-4 h-4 text-slate-300"/>
-                     </div>
-                     <div className="text-xs text-slate-400 mt-1">Checked in • GPS Verified</div>
-                     <div className="text-[10px] text-slate-500 mt-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                       Order Placed: ₹1,24,500 <br/>
-                       14 items added to cart
-                     </div>
-                     <div className="flex justify-between items-center mt-3 text-[10px] text-slate-400">
-                       <span>Today, 11:30 AM</span>
-                       <span className="bg-green-50 text-green-600 px-2 py-1 rounded-full font-medium shadow-sm">Completed</span>
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-
-             {/* Bottom Nav */}
-             <div className="absolute bottom-0 inset-x-0 h-16 bg-white/90 backdrop-blur-md border-t border-slate-100 flex justify-around items-center px-4 z-30">
-               <div className="flex flex-col items-center gap-1 text-accent"><MapPin className="w-5 h-5 fill-accent/20"/><span className="text-[9px] font-medium">Visits</span></div>
-               <div className="flex flex-col items-center gap-1 text-slate-400"><ShoppingCart className="w-5 h-5"/><span className="text-[9px] font-medium">Orders</span></div>
-               <div className="flex flex-col items-center gap-1 text-slate-400"><User className="w-5 h-5"/><span className="text-[9px] font-medium">Profile</span></div>
-             </div>
-          </div>
-          
-          {/* FLOATING CARDS (Staggered fade in) */}
-          
-          {/* FLOATING CARDS are decoration hung off the phone's centre line.
-              Below xl there is no room beside the phone for them, so they are
-              hidden rather than allowed to hang off the page. */}
-
-          {/* Top Left Card */}
-          <div className="absolute top-[20%] left-1/2 hidden -translate-x-[150%] -translate-y-1/2 w-48 z-30 pointer-events-none xl:block">
-            <Reveal delay={500}>
-              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Check className="w-4 h-4"/>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-medium">Feature</span>
-                    <span className="text-sm font-bold text-slate-800">GPS Verified</span>
-                  </div>
+        {/* ── Highlights ────────────────────────────────────── */}
+        <div className="mx-auto mt-14 grid max-w-5xl gap-4 sm:grid-cols-2 md:mt-16 lg:grid-cols-4">
+          {agentAppHighlights.map((item, i) => (
+            <Reveal
+              key={item.title}
+              delay={500 + i * 90}
+              className="rounded-2xl border border-slate-100 bg-white/90 p-5 shadow-sm backdrop-blur-md"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.tint}`}
+                >
+                  <item.icon className="h-4 w-4" />
+                </div>
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-xs font-medium text-slate-400">{item.kicker}</span>
+                  <span className="text-sm font-bold text-slate-800">{item.title}</span>
                 </div>
               </div>
+              <p className="mt-3 text-[0.78rem] leading-relaxed text-slate-500">{item.body}</p>
             </Reveal>
-          </div>
-
-          {/* Bottom Left Card */}
-          <div className="absolute top-[60%] left-1/2 hidden -translate-x-[130%] translate-y-[40%] w-56 z-30 pointer-events-none xl:block">
-            <Reveal delay={700}>
-              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                    <ShoppingCart className="w-4 h-4"/>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-medium">Live sync</span>
-                    <span className="text-sm font-bold text-slate-800">Instant Orders</span>
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">Orders push instantly to ERP without manual entry.</p>
-              </div>
-            </Reveal>
-          </div>
-
-          {/* Top Right Card */}
-          <div className="absolute top-[30%] right-1/2 hidden translate-x-[125%] -translate-y-1/2 w-48 z-30 pointer-events-none xl:block 2xl:translate-x-[150%]">
-            <Reveal delay={900}>
-              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                    <MapPin className="w-4 h-4"/>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-medium">Live</span>
-                    <span className="text-sm font-bold text-slate-800">Route Tracking</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-
-          {/* Bottom Right Card */}
-          <div className="absolute top-[70%] right-1/2 hidden translate-x-[120%] -translate-y-[50%] w-56 z-30 pointer-events-none xl:block">
-            <Reveal delay={1100}>
-              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                    <Search className="w-4 h-4"/>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-medium">Offline Ready</span>
-                    <span className="text-sm font-bold text-slate-800">No Signal?</span>
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">App works seamlessly offline and syncs when online.</p>
-              </div>
-            </Reveal>
-          </div>
-
-        </div>
-      </Reveal>
+          ))}
         </div>
       </div>
     </section>

@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Modern Romance — self-hosted display face for every heading.
+   Not on Google Fonts, so the files live in /public/fonts. The src list is
+   tried in order, which means dropping in any one of these formats works and
+   the earlier 404s are recoverable misses, not failures. If none of the files
+   are present the whole @font-face is inert and headings quietly fall back to
+   Cormorant Garamond — the page never breaks over a missing font. */
+@font-face {
+  font-family: "Modern Romance";
+  src:
+    url("/fonts/ModernRomance.woff2") format("woff2"),
+    url("/fonts/ModernRomance.woff") format("woff"),
+    url("/fonts/ModernRomance.otf") format("opentype"),
+    url("/fonts/ModernRomance.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   /* Extra breakpoint for small phones (iPhone SE / 360-412px Android) */
   --breakpoint-xs: 25rem;        /* 400px */
@@ -19,14 +37,22 @@
   --color-line: rgba(16, 35, 75, 0.1);
   --color-line-2: rgba(16, 35, 75, 0.055);
 
+  /* Nav condense/expand curve — decelerates hard, so the bar settles into
+     its pill instead of coasting to a stop. */
+  --ease-nav: cubic-bezier(0.22, 1, 0.36, 1);
+
   --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
+  --font-display: var(--font-playfair), Georgia, serif;
+  --font-heading: var(--font-jakarta), var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-mono-tech), ui-monospace, monospace;
 }
 
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 6rem;
+  /* Keep the scrollbar's gutter reserved at all times so locking the scroll
+     behind an overlay (see useScrollLock) doesn't reflow the page sideways. */
+  scrollbar-gutter: stable;
 }
 
 /* Backstop against sideways scroll on phones. `clip` (not `hidden`) is
@@ -36,6 +62,11 @@ html,
 body {
   overflow-x: clip;
   max-width: 100%;
+}
+
+/* Hide page loader instantly before initial paint for returning users */
+html.no-loader #kaysetu-page-loader {
+  display: none !important;
 }
 
 /* Never let a long unbroken token (SKU, URL, email) push the layout wide */
@@ -66,7 +97,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Display headings — Cormorant Garamond: editorial serif, elegant and premium.
+/* Display headings — Modern Romance, falling back to Cormorant Garamond.
    Bold weights use tight letter-spacing; lighter display leads stay open and refined. */
 .font-display {
   font-family: var(--font-display);
@@ -174,6 +205,34 @@ details > summary::-webkit-details-marker { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-dropdown { animation: none; }
+}
+
+/* ============================================================
+   Hero backdrop — stacked paper panels
+   ============================================================
+   Light-on-light: an off-white wash under the panel artwork
+   (/hero-custom-bg-1.webp), which carries the stacked sheets. The
+   wash fills whatever height is left below the artwork; the spot
+   pools light behind the headline. Gradients live here (not in
+   arbitrary Tailwind values) so the long rgba stops stay readable. */
+
+.hero-wash {
+  background: radial-gradient(
+    125% 88% at 50% -18%,
+    #ffffff 0%,
+    #fafcfc 40%,
+    #f1f5f6 100%
+  );
+}
+
+/* Light pooling behind the headline — lifts the copy off the panels */
+.hero-spot {
+  background: radial-gradient(
+    46% 46% at 50% 26%,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.34) 45%,
+    rgba(255, 255, 255, 0) 76%
+  );
 }
 
 /* ============================================================
@@ -360,12 +419,126 @@ html.js .word-reveal.is-in .word-reveal-word {
   0%, 100% { transform: translateY(0) rotate(-4deg); }
   50% { transform: translateY(-10px) rotate(-2deg); }
 }
+@keyframes pipe-dash {
+  to {
+    stroke-dashoffset: -40px;
+  }
+}
+.animate-dash-flow {
+  animation: pipe-dash 2.5s linear infinite;
+}
+
 .ghost-drift { animation: ghost-drift 9s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .pipe-flow, .pipe-flow-v { animation: none; }
   .aura-pulse { animation: none; }
   .ghost-drift { animation: none; }
+}
+
+/* ============================================================
+   FOOTER — link underlines, breathing rings, drifting artwork
+   ============================================================ */
+
+/* Nav-style link: label nudges right while an underline wipes in from
+   the left. On leave the underline retracts to the right so the exit
+   reads as a wipe-out rather than a mirror of the entrance. */
+.footer-link {
+  position: relative;
+  display: inline-block;
+  transition:
+    color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.footer-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.footer-link:hover,
+.footer-link:focus-visible {
+  transform: translateX(4px);
+}
+.footer-link:hover::after,
+.footer-link:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+/* Diagonal left edge on the dark panel (desktop only — on stacked
+   layouts the cut would slice the artwork). Cutting the panel itself
+   lets the footer's white background show through the notch. */
+@media (min-width: 80rem) {
+  .footer-panel-cut {
+    clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%);
+  }
+}
+
+/* Concentric rings on the dark panel breathe out of phase with each
+   other, so the backdrop never sits perfectly still. */
+@keyframes footer-ring-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.45; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.footer-ring {
+  animation: footer-ring-breathe 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes footer-artwork-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+.footer-artwork-float { animation: footer-artwork-float 7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-ring,
+  .footer-artwork-float { animation: none; }
+  .footer-link,
+  .footer-link::after { transition: none; }
+  .footer-link:hover { transform: none; }
+}
+
+/* ============================================================
+   CLOSING CTA — mint band that hands the page to the footer
+   ============================================================ */
+
+.cta-band {
+  background:
+    radial-gradient(120% 95% at 10% 0%, rgba(0, 150, 136, 0.11) 0%, rgba(0, 150, 136, 0) 62%),
+    radial-gradient(90% 80% at 95% 100%, rgba(0, 150, 136, 0.09) 0%, rgba(0, 150, 136, 0) 60%),
+    linear-gradient(180deg, #f4fbf9 0%, #e9f5f2 100%);
+}
+
+/* The chain runs on one continuous rail that the node cards sit on, rather
+   than a separate connector between each pair — the row then reads as a single
+   flow instead of five loose boxes. Dashes travel hub → operation, hence the
+   reversed left half. The tile is one dash period, so the loop is seamless. */
+.cta-rail {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-accent) 0 3px,
+    transparent 3px 11px
+  );
+  background-size: 11px 100%;
+  animation: cta-rail-flow 1.6s linear infinite;
+}
+.cta-rail-inbound {
+  animation-direction: reverse;
+}
+@keyframes cta-rail-flow {
+  to { background-position-x: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-rail { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

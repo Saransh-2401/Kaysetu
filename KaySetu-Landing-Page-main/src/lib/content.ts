@@ -23,9 +23,14 @@ export const nav = {
     { label: "Walkthrough", href: "/walkthrough" },
     { label: "Contact", href: "/contact" },
   ],
-  login: { label: "Login", href: "/#demo" },
-  demo: { label: "Book a demo", href: "/contact" },
-  cta: { label: "Instant Demo", href: "/#demo" },
+  // Auth lives on the product hosts, not the marketing site: `signup` is the
+  // self-serve trial form on the ops console, `login` the tenant portal.
+  // See Caddyfile / docker-compose.prod.yml for the host mapping.
+  login: { label: "Log in", href: "https://app.kaysetu.in/login" },
+  signup: { label: "Sign up", href: "https://ops.kaysetu.in/signup" },
+  // Drop the PDF at public/brochure/kaysetu-brochure.pdf — until it exists this
+  // link 404s.
+  brochure: { label: "Brochure", href: "/brochure/kaysetu-brochure.pdf" },
 };
 
 export const platformMenu = {
@@ -61,7 +66,7 @@ export const platformMenu = {
   promo: {
     kicker: "Overview",
     title: "See the whole connected workflow",
-    text: "Lead → visit → order → dispatch → invoice → ledger — one system.",
+    text: "Lead → visit → order → dispatch → invoice → ledger. One system.",
     cta: "Explore the workspace",
     href: "/walkthrough",
   },
@@ -71,7 +76,7 @@ export const industriesMenu = {
   promo: {
     kicker: "Industries",
     title: "Configured for your vertical",
-    text: "FMCG, pharma, building materials and more — matched to your channel.",
+    text: "FMCG, pharma, building materials and more, matched to your channel.",
     cta: "See all industries",
     href: "/industries",
   },
@@ -82,8 +87,8 @@ export const hero = {
   titleLead: "Your business.",
   titleAccent: "Unified.",
   subhead:
-    "KaySetu is a next-generation ERP & CRM platform that unifies sales, field operations, inventory, production, procurement and accounts into one seamless workflow — replacing scattered spreadsheets and siloed tools with a single source of truth.",
-  orbit: "Sales · Logistics · Production · Intelligence — in a single high-performance orbit.",
+    "KaySetu is a next-generation ERP & CRM platform that unifies sales, field operations, inventory, production, procurement and accounts into one seamless workflow, replacing scattered spreadsheets and siloed tools with a single source of truth.",
+  orbit: "Sales · Logistics · Production · Intelligence, in a single high-performance orbit.",
   primary: { label: "Book a Free Demo", href: "#demo" },
   secondary: { label: "Explore the modules", href: "#modules" },
   strip: [
@@ -110,14 +115,14 @@ export const hero = {
 };
 
 export const trustBar = [
-  { icon: "LayoutGrid", text: "11 modules — buy what you need" },
+  { icon: "LayoutGrid", text: "11 modules, buy what you need" },
   { icon: "MonitorSmartphone", text: "Web + mobile, access anywhere" },
   { icon: "RefreshCw", text: "Real-time sync across teams" },
   { icon: "Smartphone", text: "Native Android & iOS apps" },
 ];
 
 export const problem = {
-  title: "Your business runs on disconnected tools — and it's costing you.",
+  title: "Your business runs on disconnected tools, and it's costing you.",
   intro:
     "Leads live in WhatsApp, stock lives in spreadsheets, and finance finds out last. When systems don't talk to each other, work slips through the cracks.",
   points: [
@@ -128,13 +133,13 @@ export const problem = {
     { pain: "Production blind to demand", cost: "Shortages and firefighting" },
     { pain: "Accounts reconciled month-end", cost: "No real-time cash picture" },
   ],
-  closing: "KaySetu connects all of it into one workflow — one source of truth.",
+  closing: "KaySetu connects all of it into one workflow, one source of truth.",
 };
 
 export const flow = {
-  title: "From the first lead to the ledger entry — every step connected.",
+  title: "From the first lead to the ledger entry, every step connected.",
   body:
-    "From the moment a lead is captured, to the field visit, the quotation, the production order, the warehouse dispatch, the invoice, and the ledger entry — every step flows into the next. Managers get real-time visibility; teams execute without friction, and with zero double-entry.",
+    "From the moment a lead is captured, to the field visit, the quotation, the production order, the warehouse dispatch, the invoice, and the ledger entry, every step flows into the next. Managers get real-time visibility; teams execute without friction, and with zero double-entry.",
   steps: [
     { icon: "Contact", label: "Lead captured" },
     { icon: "Navigation", label: "Field visit" },
@@ -148,8 +153,11 @@ export const flow = {
 };
 
 export const modules = {
-  title: "Eleven modules. One unified platform.",
-  lead: "Scroll through to explore each module. Every module shares the same data, so nothing is ever re-entered and nobody works blind.",
+  title: "Eleven modules. One system, end to end.",
+  // Keep this to ~140 characters: the showcase section is a sticky h-screen
+  // panel, and a third line of lead pushes the heading up behind the nav on a
+  // 768px-tall laptop.
+  lead: "Book an order on a phone. Stock updates, dispatch begins, the ledger posts. One record, no re-entry, no waiting on a report.",
   // `slug` maps each card to its /platform/<slug> page — these are the only
   // crawlable links into the module pages from the homepage, so keep them in
   // sync with modulePages.ts.
@@ -188,7 +196,7 @@ export const comparison = {
     { name: "Legacy ERP" },
   ],
   rows: [
-    { label: "Unified data — zero re-entry", values: ["no", "yes", "partial"] },
+    { label: "Unified data, zero re-entry", values: ["no", "yes", "partial"] },
     { label: "Real-time sync across teams", values: ["no", "yes", "partial"] },
     { label: "Field sales + office in one system", values: ["no", "yes", "no"] },
     { label: "Live inventory & production", values: ["no", "yes", "yes"] },
@@ -205,7 +213,7 @@ export const comparison = {
 
 export const packages = {
   title: "Buy only what you run.",
-  lead: "Eight ready-made packages, from a single module to the full enterprise suite — plus two add-ons you can attach to any of them.",
+  lead: "Eight ready-made packages, from a single module to the full enterprise suite, plus two add-ons you can attach to any of them.",
   base: [
     { code: "P1", name: "Agent Live Tracking", modules: ["TRACK"] },
     { code: "P2", name: "Sales Management", modules: ["FIELD"] },
@@ -220,7 +228,7 @@ export const packages = {
     { code: "A1", name: "Travel Allowance", modules: ["TA"] },
     { code: "A2", name: "Attendance & Leave", modules: ["ATT"] },
   ],
-  note: "Modular pricing — pay only for the modules you use.",
+  note: "Modular pricing: pay only for the modules you use.",
   cta: { label: "Get pricing", href: "#demo" },
 };
 
@@ -234,10 +242,10 @@ export const spotlights = [
     title: "Leads & pipeline that never let an opportunity slip.",
     roles: ["Manager", "Sales Agent"],
     points: [
-      "A single structured pipeline for every lead and opportunity — no more leads lost in Excel and WhatsApp.",
+      "A single structured pipeline for every lead and opportunity, so nothing is lost in Excel and WhatsApp.",
       "A clear funnel view with stages, so managers always know what's about to close.",
       "Follow-ups with next-action prompts, so nothing goes cold.",
-      "Convert a qualified lead straight into an order — with zero double-entry.",
+      "Convert a qualified lead straight into an order, with zero double-entry.",
       "Real-time alerts the moment a lead is added, claimed, or won.",
     ],
   },
@@ -249,10 +257,10 @@ export const spotlights = [
     title: "Field sales operations, live on the map.",
     roles: ["Manager", "Field Agent"],
     points: [
-      "Beat plans and visit schedules for the whole field force — individually or in bulk.",
+      "Beat plans and visit schedules for the whole field force, individually or in bulk.",
       "Live map with GPS attendance, route replay and tracking health for every agent.",
       "Field orders, collections and expenses captured right from the visit screen.",
-      "Targets tracked per agent, team and territory — plan vs. achievement at a glance.",
+      "Targets tracked per agent, team and territory, with plan vs. achievement at a glance.",
       "Auto-generated daily activity reports, ready every morning.",
     ],
   },
@@ -264,18 +272,18 @@ export const spotlights = [
     title: "Sales orders & dispatch, without the double entry.",
     roles: ["Sales Manager", "Sales Agent"],
     points: [
-      "A clean order approval chain — from raised to confirmed in a click.",
+      "A clean order approval chain, from raised to confirmed in a click.",
       "Pick lists and delivery notes generated straight from the order.",
       "Automatic invoicing with GST handled, no re-keying between steps.",
       "Live stock and price visibility while ordering prevents over-promising.",
-      "Every status change — approved, dispatched, invoiced — pushed in real time.",
+      "Approved, dispatched, invoiced: every status change pushed in real time.",
     ],
   },
 ];
 
 export const operations = {
-  title: "The operational backbone — inventory to accounts, automated.",
-  lead: "Behind the sales floor, KaySetu keeps stock, production, purchasing and finance moving in lock-step.",
+  title: "The operational backbone: inventory to accounts, automated.",
+  lead: "Behind the sales floor, KaySetu keeps stock, purchasing, production and finance moving in lock-step.",
   cards: [
     {
       icon: "Boxes",
@@ -284,8 +292,19 @@ export const operations = {
       points: [
         "Multiple warehouses with a single, real-time stock ledger",
         "Stock adjustments with reason codes and a full audit trail",
-        "Stock transfers between warehouses — request, approve, ship",
+        "Stock transfers between warehouses: request, approve, ship",
         "Committed vs. available stock honoured across sales and production",
+      ],
+    },
+    {
+      icon: "ShoppingCart",
+      code: "PURCH",
+      name: "Procurement",
+      points: [
+        "Purchase orders raised straight from material requests",
+        "Single supplier master with contact, GST, terms, ledger and history",
+        "GRN-based receiving with three-way matching before payment",
+        "Full audit trail on every PO and approval",
       ],
     },
     {
@@ -300,24 +319,13 @@ export const operations = {
       ],
     },
     {
-      icon: "ShoppingCart",
-      code: "PURCH",
-      name: "Procurement",
-      points: [
-        "Purchase orders raised straight from material requests",
-        "Single supplier master — contact, GST, terms, ledger, history",
-        "GRN-based receiving with three-way matching before payment",
-        "Full audit trail on every PO and approval",
-      ],
-    },
-    {
       icon: "Landmark",
       code: "BOOKS",
       name: "Accounts & Finance",
       points: [
         "Customer, supplier and general ledgers, always up to date",
         "Invoices, bills and payments posted automatically from operations",
-        "Built-in GST hub — GST-ready invoicing, taxes and returns",
+        "Built-in GST hub for GST-ready invoicing, taxes and returns",
         "Banking and reconciliation, with drill-down to every voucher",
       ],
     },
@@ -327,9 +335,9 @@ export const operations = {
 export const distributor = {
   kicker: "Extend to your channel.",
   title: "Distributor network management, in the same system.",
-  body: "Bring your distributors into the same platform your sales team uses — and watch the visibility gap disappear.",
+  body: "Bring your distributors into the same platform your sales team uses, and watch the visibility gap disappear.",
   points: [
-    "Manage every distributor as a first-class entity — with their own inventory, pricing and ledger.",
+    "Manage every distributor as a first-class entity, with their own inventory, pricing and ledger.",
     "Track channel stock: what's sitting with distributors vs. reaching the end-customer.",
     "Distributor invoices, adjustments and stock transfers, all through one workflow.",
     "Approval-driven onboarding keeps the master list clean and audit-ready.",
@@ -340,10 +348,10 @@ export const distributor = {
 export const mobile = {
   kicker: "Built for the field.",
   title: "Your whole business, in your field team's pocket.",
-  body: "Capture leads, plan visits, check in, and punch orders on the go — every action syncs in real time across web and mobile, so managers always see the latest.",
+  body: "Capture leads, plan visits, check in, and punch orders on the go. Every action syncs in real time across web and mobile, so managers always see the latest.",
   features: [
-    { icon: "Smartphone", title: "Native Android & iOS", text: "Built on Flutter — one codebase, identical experience." },
-    { icon: "MapPin", title: "GPS-verified check-ins", text: "Check in with GPS, a selfie and a shop photo — no faked visits." },
+    { icon: "Smartphone", title: "Native Android & iOS", text: "Built on Flutter: one codebase, identical experience." },
+    { icon: "MapPin", title: "GPS-verified check-ins", text: "Check in with GPS, a selfie and a shop photo. No faked visits." },
     { icon: "KeyRound", title: "Secure sign-in", text: "OTP + 4-digit PIN with JWT-based session management." },
     { icon: "Languages", title: "Multi-language + dark mode", text: "English & Hindi UI, dark mode out of the box." },
     { icon: "Bell", title: "Real-time updates", text: "Push notifications and Socket.IO alerts for leads and approvals." },
@@ -354,7 +362,7 @@ export const mobile = {
 export const insights = {
   kicker: "Insights & reports. At a glance.",
   title: "The more your team uses KaySetu, the sharper it gets.",
-  body: "Cross-cutting insights that join sales, stock, production and finance — surfacing patterns no single tool can show. Every report downloads as raw data, ready for Excel or your BI tools.",
+  body: "Cross-cutting insights that join sales, stock, production and finance, surfacing patterns no single tool can show. Every report downloads as raw data, ready for Excel or your BI tools.",
   domains: [
     {
       icon: "BarChart3",
@@ -372,7 +380,7 @@ export const insights = {
       points: ["Stock-aging, fast/slow movers & inventory value", "Production yield, downtime & rejections", "Supplier spend, aged receivables/payables & DSO"],
     },
   ],
-  quote: "“Wait — why didn't I think of that?” — what the right cross-cutting insight feels like.",
+  quote: "“Wait, why didn't I think of that?” is what the right cross-cutting insight feels like.",
 };
 
 export const usps = [
@@ -412,26 +420,26 @@ export const socialProof = {
   logosNote: "Trusted by growing, sales-led businesses",
   logos: 6,
   testimonials: [
-    { tag: "Distribution", quote: "[ Add a customer outcome — e.g. cut order-to-invoice time in half. ]", name: "Customer name", role: "Role · Company" },
-    { tag: "FMCG", quote: "[ Add a customer outcome — e.g. ended fake field visits with GPS check-ins. ]", name: "Customer name", role: "Role · Company" },
-    { tag: "Manufacturing", quote: "[ Add a customer outcome — e.g. one system replaced four disconnected tools. ]", name: "Customer name", role: "Role · Company" },
+    { tag: "Distribution", quote: "[ Add a customer outcome, e.g. cut order-to-invoice time in half. ]", name: "Customer name", role: "Role · Company" },
+    { tag: "FMCG", quote: "[ Add a customer outcome, e.g. ended fake field visits with GPS check-ins. ]", name: "Customer name", role: "Role · Company" },
+    { tag: "Manufacturing", quote: "[ Add a customer outcome, e.g. one system replaced four disconnected tools. ]", name: "Customer name", role: "Role · Company" },
   ],
 };
 
 export const market = {
   title: "A large, fast-growing, under-served market.",
   stats: [
-    { value: "$786M", label: "India's sales-force-automation market by 2030 — growing 9.1%/yr, the fastest-growing SFA region in APAC.", source: "https://www.grandviewresearch.com/horizon/outlook/sales-force-automation-software-market/india" },
+    { value: "$786M", label: "India's sales-force-automation market by 2030, growing 9.1%/yr, the fastest-growing SFA region in APAC.", source: "https://www.grandviewresearch.com/horizon/outlook/sales-force-automation-software-market/india" },
     { value: "$5.46B", label: "India's CRM software market in 2026, with SMEs the fastest-growing segment.", source: "https://www.fortunebusinessinsights.com/customer-relationship-management-crm-market-103418" },
     { value: "~16%", label: "annual growth of India's ERP market; SME installations growing 19.2%/yr.", source: "https://www.mordorintelligence.com/industry-reports/india-enterprise-resource-planning-market" },
-    { value: "~12%", label: "of MSMEs use an ERP today despite 95%+ using some digital tool — a wide-open gap.", source: "https://www.marketresearchfuture.com/reports/india-erp-software-market-45931" },
+    { value: "~12%", label: "of MSMEs use an ERP today despite 95%+ using some digital tool, a wide-open gap.", source: "https://www.marketresearchfuture.com/reports/india-erp-software-market-45931" },
   ],
   framing:
-    "India's field-sales, CRM and ERP markets are all compounding at double digits — yet most SMEs still run on spreadsheets and WhatsApp. The winners will unify field sales and the back office in one system. That's KaySetu.",
+    "India's field-sales, CRM and ERP markets are all compounding at double digits, yet most SMEs still run on spreadsheets and WhatsApp. The winners will unify field sales and the back office in one system. That's KaySetu.",
 };
 
 export const competitive = {
-  title: "Most tools automate the field — or the channel. KaySetu unifies the business.",
+  title: "Most tools automate the field, or the channel. KaySetu unifies the business.",
   lead: "SFA and DMS apps still leave you bolting on separate inventory, production and accounting. KaySetu is one system, end to end.",
   columns: [
     { label: "", eg: "" },
@@ -448,23 +456,23 @@ export const competitive = {
     { k: "Distributor network", cells: [{ t: "First-class module", v: "yes" }, { t: "Varies", v: "warn" }, { t: "Core strength", v: "yes" }, { t: "Manual", v: "no" }] },
     { k: "One source of truth", cells: [{ t: "End-to-end", v: "yes" }, { t: "Field only", v: "no" }, { t: "Channel only", v: "no" }, { t: "Siloed", v: "no" }] },
   ],
-  quote: "From the first lead to the ledger entry, it's one system — nothing re-entered, no one working blind.",
+  quote: "From the first lead to the ledger entry, it's one system: nothing re-entered, no one working blind.",
 };
 
 export const faqs = [
-  { q: "Does KaySetu work on both web and mobile?", a: "Yes — native Android & iOS apps plus a full web app, with single sign-on and one user identity everywhere." },
+  { q: "Does KaySetu work on both web and mobile?", a: "Yes. Native Android & iOS apps plus a full web app, with single sign-on and one user identity everywhere." },
   { q: "How quickly does data sync across the team?", a: "In real time. Updates propagate instantly across web and mobile via Socket.IO, so managers see new leads, orders and approvals the moment they happen." },
-  { q: "Is it GST-ready?", a: "Yes — GST-compliant invoicing with tax masters, HSN mapping and configurable invoice templates out of the box." },
-  { q: "How do you prevent fake field visits?", a: "Check-ins are verified with GPS, a selfie and a shop photo — anti-spoof — so attendance and visits can't be faked." },
+  { q: "Is it GST-ready?", a: "Yes. GST-compliant invoicing with tax masters, HSN mapping and configurable invoice templates out of the box." },
+  { q: "How do you prevent fake field visits?", a: "Check-ins are verified with GPS, a selfie and a shop photo, with anti-spoof checks, so attendance and visits can't be faked." },
   { q: "Can I bring my distributors onto the platform?", a: "Yes. The distributor network module manages each distributor as a first-class entity with their own inventory, pricing and ledger." },
-  { q: "Which languages does the app support?", a: "English and Hindi, with dark mode built in — so every team member is comfortable." },
+  { q: "Which languages does the app support?", a: "English and Hindi, with dark mode built in, so every team member is comfortable." },
   { q: "How are the insights generated?", a: "The more your team uses KaySetu, the sharper the cross-cutting insights become. Every report is also downloadable as raw data for your own analysis." },
 ];
 
 export const finalCta = {
   title: "See your business, unified.",
   body:
-    "Book a free, no-obligation demo. We'll walk your team through the whole flow — from a captured lead to the ledger entry — on your real scenarios.",
+    "Book a free, no-obligation demo. We'll walk your team through the whole flow, from a captured lead to the ledger entry, on your real scenarios.",
   primary: { label: "Book a Free Demo", href: "#demo" },
   secondary: { label: "Talk to Kayease", href: "mailto:hello@kayease.com" },
   reassurance: "ERP + CRM · Web + Mobile · Real-time · GST-ready",
@@ -476,7 +484,7 @@ export const finalCta = {
 export const footer = {
   tagline: "Your business. Unified.",
   description:
-    "KaySetu brings field sales, distribution, inventory, production and accounts into one real-time platform — web and mobile, always in sync.",
+    "KaySetu brings field sales, distribution, inventory, production and accounts into one real-time platform. Web and mobile, always in sync.",
   builtBy: "Built by Kayease",
   copyright: "© 2026 KaySetu · by Kayease. All rights reserved.",
   wordmark: "kaysetu",
@@ -490,14 +498,30 @@ export const footer = {
   },
   columns: [
     {
-      title: "Product",
+      title: "Sales & Field",
       links: [
-        { label: "Module walkthroughs", href: "/walkthrough" },
-        { label: "Field Sales Operations", href: "/platform/field-sales-operations" },
-        { label: "Inventory & Warehouse", href: "/platform/inventory-warehouse" },
-        { label: "Distribution Network", href: "/platform/distribution-network" },
-        { label: "Accounts & Finance", href: "/platform/accounts-finance" },
-        { label: "FAQ", href: "/#faq" },
+        { label: "Agent Live Tracking", href: "/walkthrough?module=agent-live-tracking" },
+        { label: "Field Sales Operations", href: "/walkthrough?module=field-sales-operations" },
+        { label: "Leads & Pipeline", href: "/walkthrough?module=leads-pipeline" },
+        { label: "Sales Orders & Dispatch", href: "/walkthrough?module=sales-orders-dispatch" },
+      ],
+    },
+    {
+      title: "Operations",
+      links: [
+        { label: "Inventory & Warehouse", href: "/walkthrough?module=inventory-warehouse" },
+        { label: "Production", href: "/walkthrough?module=production" },
+        { label: "Procurement", href: "/walkthrough?module=procurement" },
+        { label: "Accounts & Finance", href: "/walkthrough?module=accounts-finance" },
+      ],
+    },
+    {
+      title: "Channel & Team",
+      links: [
+        { label: "Distribution Network", href: "/walkthrough?module=distribution-network" },
+        { label: "Attendance & Leave", href: "/walkthrough?module=attendance-leave" },
+        { label: "Travel Allowance", href: "/walkthrough?module=travel-allowance" },
+        { label: "Insights & Reports", href: "/walkthrough?module=insights-reports" },
       ],
     },
     {
@@ -558,9 +582,9 @@ export const aboutPage = {
   story: {
     title: "Why we built KaySetu",
     paragraphs: [
-      "Most businesses don't fail for lack of effort. They lose deals because a lead sat unanswered in WhatsApp, or over-promise stock they didn't have, or find out about a cash crunch a month too late. The work is fine — the systems don't talk to each other.",
+      "Most businesses don't fail for lack of effort. They lose deals because a lead sat unanswered in WhatsApp, or over-promise stock they didn't have, or find out about a cash crunch a month too late. The work is fine; the systems don't talk to each other.",
       "The market is full of tools that automate one slice: the field, or the channel, or the ledger. Bolting five of them together just moves the disconnection somewhere else. We wanted one system where a lead flows all the way to the ledger entry with zero re-keying.",
-      "That's KaySetu — Kayease + Setu, the Sanskrit word for 'bridge'. One source of truth for sales, field operations, inventory, production, procurement, accounts and your distributor network. Web and mobile, real-time, and ready for the way Indian businesses actually run.",
+      "That's KaySetu: Kayease + Setu, the Sanskrit word for 'bridge'. One source of truth for sales, field operations, inventory, production, procurement, accounts and your distributor network. Web and mobile, real-time, and ready for the way Indian businesses actually run.",
     ],
   },
   values: [
@@ -589,16 +613,18 @@ export const aboutPage = {
 
 export const contactPage = {
   kicker: "Contact",
-  title: "Talk to the team behind KaySetu.",
+  // Rendered as one headline — `titleAccent` is the teal tail of the line.
+  title: "Talk to the team behind",
+  titleAccent: "KaySetu.",
   lead:
     "Book a demo, ask a question, or tell us about your business. We usually reply within one business day.",
 
   // ── Hero: trust chips + reassurance panel (fills the header) ─
   chips: ["Free demo", "No obligation", "Reply within 1 business day"],
   highlights: [
-    { icon: "Clock", title: "Fast, human replies", text: "A real member of the Kayease team gets back to you — usually within one business day." },
+    { icon: "Clock", title: "Fast, human replies", text: "A real member of the Kayease team gets back to you, usually within one business day." },
     { icon: "BadgeCheck", title: "A demo on your terms", text: "We walk your team through the whole flow on your real scenarios. Free, no obligation." },
-    { icon: "ShieldCheck", title: "Private by default", text: "Your details are only ever used to reply to you — never sold or spammed." },
+    { icon: "ShieldCheck", title: "Private by default", text: "Your details are only ever used to reply to you, never sold or spammed." },
   ],
 
   // ── Left card: the "Get in touch" message form ──────────────
@@ -624,10 +650,10 @@ export const contactPage = {
     },
     consent: { lead: "I agree to the", privacy: "Privacy Policy", and: "and", terms: "Terms of Use." },
     submit: "Send Message",
-    reassurance: "No spam — we only use your details to reply and, if you like, schedule your demo.",
+    reassurance: "No spam. We only use your details to reply and, if you like, schedule your demo.",
     // Success state after submit
     success: {
-      title: "Thanks — we'll be in touch.",
+      title: "Thanks, we'll be in touch.",
       body: "Your message is in. A member of the Kayease team usually replies within one business day.",
     },
   },
@@ -640,15 +666,22 @@ export const contactPage = {
     poster: "", // optional still frame, e.g. "/media/product-tour.jpg"
     kicker: "Product tour",
     title: "See KaySetu in action.",
-    caption: "A quick look at the unified ERP + CRM workflow — from the first lead to the ledger entry.",
+    caption: "A quick look at the unified ERP + CRM workflow, from the first lead to the ledger entry.",
   },
 
-  // ── Office location (used by the Head Office quick card) ─────
+  // ── Office location (used by the Head Office quick card, the
+  //    map section and the directions button) ──────────────────
   // Placeholder head-office details — edit to your real address.
   office: {
+    kicker: "Visit us",
+    heading: "Come say hello in Jaipur.",
+    subheading:
+      "We're happy to host you at the studio, or come to you if you're nearby. Drop us a line first so someone's expecting you.",
     brand: "KaySetu",
     company: "Kayease Global Solutions",
     address: ["B-50 A, Bhagat Singh Tilak Nagar,", "Jaipur, Rajasthan 302004, India"],
+    hoursLabel: "Office hours",
+    hours: "Mon to Sat, 10:00 AM to 7:00 PM IST",
     directionsLabel: "Get Directions",
     directionsHref:
       "https://www.google.com/maps/dir/?api=1&destination=Bhagat+Singh+Tilak+Nagar,+Jaipur,+Rajasthan+302004",
@@ -665,9 +698,38 @@ export const contactPage = {
   quick: [
     { icon: "Headphones", label: "Talk to Sales", value: "+919887664666", href: "tel:+919887664666" },
     { icon: "Mail", label: "Email Us", value: "sales@kayease.com", href: "mailto:sales@kayease.com" },
-    { icon: "Clock", label: "Business Hours", value: "Mon – Sat, 10AM – 7PM", href: null },
+    { icon: "Clock", label: "Business Hours", value: "Mon to Sat, 10AM to 7PM", href: null },
     { icon: "MapPin", label: "Head Office", value: "Jaipur, Rajasthan, India", href: "https://www.google.com/maps/search/?api=1&query=Bhagat+Singh+Tilak+Nagar,+Jaipur,+Rajasthan+302004" },
   ],
+
+  // ── Contact-specific FAQ (not the product FAQ on the home page) ─
+  faq: {
+    kicker: "Before you write",
+    title: "Quick answers.",
+    lead: "The things people usually ask us right before they get in touch.",
+    items: [
+      {
+        q: "Is the demo really free?",
+        a: "Yes. It's a free, no-obligation walkthrough with a member of our team — no card, no trial clock, no pressure to decide on the call.",
+      },
+      {
+        q: "How long does a demo take?",
+        a: "Around 30 to 45 minutes for the full ERP + CRM flow. If you only want to see one module, say so and we'll keep it to fifteen.",
+      },
+      {
+        q: "Who should join from our side?",
+        a: "Whoever owns the pain: usually a sales or field lead, someone from accounts, and the person who'll run the rollout. Bring your real scenarios.",
+      },
+      {
+        q: "Can you work with our existing data?",
+        a: "In most cases, yes. We migrate customers, items, opening stock and outstanding balances from spreadsheets or your current system — bring a sample and we'll tell you honestly what's possible.",
+      },
+      {
+        q: "What if I just have a support question?",
+        a: "Write to support@kayease.com, or use the form and mention your company name — existing customers get routed straight to the support team.",
+      },
+    ],
+  },
 };
 
 export const careersPage = {
@@ -677,7 +739,7 @@ export const careersPage = {
     "We're a small, product-obsessed team building software that real field teams depend on every day. If that sounds like your kind of work, we'd love to talk.",
   perks: [
     { icon: "Sparkles", title: "Real ownership", text: "Small team, big surface area. You'll own features end to end, from spec to production." },
-    { icon: "MonitorSmartphone", title: "Web + mobile + real-time", text: "Modern stack — Next.js, Flutter, Socket.IO — solving genuinely hard connected-systems problems." },
+    { icon: "MonitorSmartphone", title: "Web + mobile + real-time", text: "Modern stack (Next.js, Flutter, Socket.IO) solving genuinely hard connected-systems problems." },
     { icon: "MapPin", title: "Close to the customer", text: "We ship for field teams and distributors. You'll hear from the people who use what you build." },
     { icon: "CalendarCheck", title: "Flexible & remote-friendly", text: "Focused work over face time. We care about outcomes, not hours logged." },
   ],
@@ -705,7 +767,7 @@ export const legalPages = {
     sections: [
       {
         heading: "Information we collect",
-        body: "We collect information you provide directly — such as your name, company, email and phone when you request a demo or contact us — and standard technical data (like IP address and browser type) needed to operate and secure the site.",
+        body: "We collect information you provide directly, such as your name, company, email and phone when you request a demo or contact us, and standard technical data (like IP address and browser type) needed to operate and secure the site.",
       },
       {
         heading: "How we use information",
@@ -759,10 +821,10 @@ export const legalPages = {
       },
       {
         heading: "Changes & contact",
-        body: "We may update these terms from time to time; continued use means you accept the changes. Questions? Write to legal@kayease.com.",
+        body: "We may update these terms from time to time; continued use means you accept the changes. Questions? Write to sales@kayease.com.",
       },
     ],
-    contact: { label: "legal@kayease.com", href: "mailto:legal@kayease.com" },
+    contact: { label: "sales@kayease.com", href: "mailto:sales@kayease.com" },
   },
 };
 
@@ -779,7 +841,7 @@ export const showcaseHero = {
   titleLines: ["Run the whole", "business on"],
   titleAccent: "one screen.",
   subhead:
-    "KaySetu turns scattered spreadsheets, WhatsApp threads and five disconnected tools into a single, real-time workflow — from the first lead to the ledger entry.",
+    "KaySetu turns scattered spreadsheets, WhatsApp threads and five disconnected tools into a single, real-time workflow, from the first lead to the ledger entry.",
   primary: { label: "Explore the portal", href: "#walkthrough" },
   secondary: { label: "Watch the walkthrough", href: "#walkthrough" },
   trustLabel: "Built for fast-moving businesses across",
@@ -856,12 +918,12 @@ export const homeHero = {
 export const problemShift = {
   kicker: "The shift",
   old: "Today, the business runs on spreadsheets, WhatsApp and five tools that don't talk.",
-  new: "KaySetu connects every step into one live system — so nothing is re-entered and no one works blind.",
+  new: "KaySetu connects every step into one live system, so nothing is re-entered and no one works blind.",
 };
 
 export const walkthrough = {
   kicker: "Guided walkthrough",
-  title: "See exactly how the portal works — step by step.",
+  title: "See exactly how the portal works, step by step.",
   lead: "This is the same flow your team lives in every day. Follow it from onboarding to daily use.",
   steps: [
     {
@@ -869,14 +931,13 @@ export const walkthrough = {
       icon: "Contact",
       kicker: "Capture",
       title: "Capture every lead in one pipeline.",
-      body: "Leads from the field, calls and campaigns land in one structured pipeline — auto-routed, scored, and impossible to lose in a chat.",
+      body: "Leads from the field, calls and campaigns land in one structured pipeline: auto-routed, scored, and impossible to lose in a chat.",
       points: [
         "Single structured pipeline",
         "Clear funnel view with stages",
         "Next-action prompts",
         "Zero double-entry to convert"
       ],
-      ctaLabel: "Explore Lead Capture >",
       screen: "leads",
       video: "",
     },
@@ -884,7 +945,7 @@ export const walkthrough = {
       n: 2,
       icon: "Navigation",
       kicker: "Verify",
-      title: "Hit the field — verified in real time.",
+      title: "Hit the field, verified in real time.",
       body: "Plan visits, watch live routes on a map, and confirm every check-in with GPS, a selfie and a shop photo. Fake reports become impossible.",
       points: [
         "Live GPS map tracking",
@@ -892,7 +953,6 @@ export const walkthrough = {
         "Bulk visit scheduling",
         "Auto-generated daily reports"
       ],
-      ctaLabel: "Explore Field Operations >",
       screen: "field",
       video: "",
     },
@@ -908,7 +968,6 @@ export const walkthrough = {
         "Automatic GST invoicing",
         "Real-time order statuses"
       ],
-      ctaLabel: "Explore Sales Orders >",
       screen: "quote",
       video: "",
     },
@@ -917,14 +976,13 @@ export const walkthrough = {
       icon: "Boxes",
       kicker: "Fulfil",
       title: "See every unit of stock, live.",
-      body: "Real-time stock across every warehouse and bin, with low-stock alerts and reorder built in — tied straight to orders and production.",
+      body: "Real-time stock across every warehouse and bin, with low-stock alerts and reorder built in, tied straight to orders and production.",
       points: [
         "Multi-warehouse tracking",
         "Low-stock automated alerts",
         "Seamless stock transfers",
         "Full audit trails"
       ],
-      ctaLabel: "Explore Inventory >",
       screen: "inventory",
       video: "",
     },
@@ -933,14 +991,13 @@ export const walkthrough = {
       icon: "BarChart3",
       kicker: "Command",
       title: "Your whole business, on one command center.",
-      body: "Sales, field, stock and cash join up on a single dashboard — surfacing patterns no standalone tool can see.",
+      body: "Sales, field, stock and cash join up on a single dashboard, surfacing patterns no standalone tool can see.",
       points: [
         "Real-time cross-module data",
         "Customizable widgets",
         "Role-based visibility",
         "Actionable insights"
       ],
-      ctaLabel: "Explore Dashboard >",
       screen: "dashboard",
       video: "",
     },
@@ -949,14 +1006,13 @@ export const walkthrough = {
       icon: "Smartphone",
       kicker: "Anywhere",
       title: "Run the field from your pocket.",
-      body: "Native Android & iOS apps put capture, visits, check-ins and orders in the field team's hand — every action syncs in real time.",
+      body: "Native Android & iOS apps put capture, visits, check-ins and orders in the field team's hand. Every action syncs in real time.",
       points: [
         "Native Android & iOS",
         "Offline-capable data entry",
         "Push notifications & alerts",
         "Instant ledger sync"
       ],
-      ctaLabel: "Explore Mobile App >",
       screen: "mobile",
       video: "",
     },
@@ -966,8 +1022,8 @@ export const walkthrough = {
 export const stats = {
   kicker: "One platform, packaged your way",
   items: [
-    { value: 11, suffix: "", label: "Modules — from live tracking to accounts" },
-    { value: 8, suffix: "", label: "Packages (P1–P8) — buy only what you run" },
+    { value: 11, suffix: "", label: "Modules, from live tracking to accounts" },
+    { value: 8, suffix: "", label: "Packages (P1–P8), buy only what you run" },
     { value: 1, suffix: "", label: "Platform, one login, one source of truth" },
   ],
   caption: "Web + mobile · real-time sync · GST-ready · zero double-entry",
@@ -982,7 +1038,7 @@ export const appLinks = {
 export const productReveal = {
   kicker: "The workspace behind the motion",
   title: "One connected system. Every team, the same truth.",
-  lead: "Everything you just walked through rolls up here — the single screen leaders actually run the business from.",
+  lead: "Everything you just walked through rolls up here: the single screen leaders actually run the business from.",
   legend: [
     { n: 1, label: "Capture", text: "Leads & CRM pipeline" },
     { n: 2, label: "Verify", text: "Field visits & GPS check-ins" },
@@ -1020,7 +1076,7 @@ export const builtFor = {
 export const toolbox = {
   kicker: "Connects with your stack",
   title: "Fits the tools your team already uses.",
-  note: "Illustrative — confirm your live integrations before launch.",
+  note: "Illustrative. Confirm your live integrations before launch.",
   // Shown as a restrained static strip (not a marquee).
   tools: ["Tally", "WhatsApp", "Razorpay", "Google Maps", "GST Portal", "Excel / CSV", "Shiprocket", "Zoho"],
 };
@@ -1040,13 +1096,13 @@ export const testimonials = {
   title: "The outcomes teams come to KaySetu for.",
   // Honest framing: these are outcomes by role, not attributed customer
   // quotes. Swap `items` for real, named customer stories once you have them.
-  note: "Outcomes by role — we'll publish named customer stories as we onboard our first teams.",
+  note: "Outcomes by role. We'll publish named customer stories as we onboard our first teams.",
   items: [
     {
       icon: "Navigation",
       role: "Sales & field teams",
       quote:
-        "A lead flows to the invoice without anyone re-typing it — no double entry between the field and the back office.",
+        "A lead flows to the invoice without anyone re-typing it, with no double entry between the field and the back office.",
     },
     {
       icon: "MapPin",
@@ -1079,7 +1135,7 @@ export const proofWall = {
   items: [
     {
       quote:
-        "A lead flows straight to the invoice — nobody re-types anything between the field and the back office. We closed our books three days sooner the very first month.",
+        "A lead flows straight to the invoice. Nobody re-types anything between the field and the back office. We closed our books three days sooner the very first month.",
       name: "Priya Nair",
       role: "VP · Sales",
       company: "Regional FMCG Distributor",
@@ -1114,7 +1170,7 @@ export const proofWall = {
     },
     {
       quote:
-        "GST-ready invoicing that just works. Procurement, accounts and the field team all speak to each other now — no exports, no reconciliation nights.",
+        "GST-ready invoicing that just works. Procurement, accounts and the field team all speak to each other now: no exports, no reconciliation nights.",
       name: "Meera Krishnan",
       role: "Finance Controller",
       company: "Personal Care Brand",
@@ -1139,7 +1195,7 @@ export const proofWall = {
 export const closing = {
   line: "Stop bolting five tools together.",
   lineAccent: "Run the whole business on one.",
-  body: "Book a free, no-obligation demo — we'll walk your team through the entire flow on your real scenarios.",
+  body: "Book a free, no-obligation demo. We'll walk your team through the entire flow on your real scenarios.",
   primary: { label: "Book a Free Demo", href: "#demo" },
   secondary: { label: "Talk to Kayease", href: "mailto:hello@kayease.com" },
 };
@@ -1192,16 +1248,16 @@ export type IndustryPage = {
 
 // Shared closing copy for every industry CTA band.
 const industryCtaBody =
-  "Book a free, no-obligation demo. We'll model your channel, your SKUs and your GST flow on real scenarios — a working session, not a slide deck.";
+  "Book a free, no-obligation demo. We'll model your channel, your SKUs and your GST flow on real scenarios: a working session, not a slide deck.";
 
 export const industryIndex = {
   kicker: "Industries",
   title: "Built for how your industry actually sells.",
-  lead: "KaySetu adapts to your products, pricing and channel — from FMCG beats and pharma batches to building-materials dealers and agri-input seasons. One unified ERP + CRM, tuned to your vertical.",
+  lead: "KaySetu adapts to your products, pricing and channel, from FMCG beats and pharma batches to building-materials dealers and agri-input seasons. One unified ERP + CRM, tuned to your vertical.",
   seo: {
-    title: "Industries — ERP + CRM built for your vertical | KaySetu",
+    title: "Industries: ERP + CRM built for your vertical | KaySetu",
     description:
-      "A unified ERP + CRM tuned for FMCG, distribution, manufacturing, pharma, cosmetics, textiles, building materials and agri-inputs — one real-time platform.",
+      "A unified ERP + CRM tuned for FMCG, distribution, manufacturing, pharma, cosmetics, textiles, building materials, agri-inputs and electronics, all on one real-time platform.",
     keywords: [
       "ERP CRM by industry",
       "FMCG sales software",
@@ -1223,7 +1279,7 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "FMCG & Consumer Goods",
     tagline: "Beat-to-bill field sales, distribution and GST accounts in one real-time system.",
     seo: {
-      title: "FMCG ERP + CRM | Field Sales & Distribution — KaySetu",
+      title: "FMCG ERP + CRM | Field Sales & Distribution | KaySetu",
       description:
         "Unify FMCG field sales, distributor management, primary & secondary sales and GST accounts in one real-time platform. GPS-verified visits, live stock.",
       keywords: [
@@ -1244,7 +1300,7 @@ export const industryPages: IndustryPage[] = [
       title: "The whole FMCG business,",
       titleAccent: "on one platform.",
       subhead:
-        "From the salesman's beat to the distributor's ledger, KaySetu connects field sales, secondary sales, stock and accounts in real time — so high-velocity SKUs never stock out and no order is ever re-keyed.",
+        "From the salesman's beat to the distributor's ledger, KaySetu connects field sales, secondary sales, stock and accounts in real time, so high-velocity SKUs never stock out and no order is ever re-keyed.",
       stats: [
         { value: "GPS-verified", label: "field visits, no fake reports" },
         { value: "Real-time", label: "primary & secondary sales" },
@@ -1254,7 +1310,7 @@ export const industryPages: IndustryPage[] = [
     challenges: {
       title: "Why FMCG sales leaders lose velocity",
       intro:
-        "FMCG runs on speed and reach — thousands of outlets, fast-moving SKUs, thin margins. When the field, the distributor and the back office run on different tools, that speed leaks away.",
+        "FMCG runs on speed and reach: thousands of outlets, fast-moving SKUs, thin margins. When the field, the distributor and the back office run on different tools, that speed leaks away.",
       items: [
         { pain: "Beat plans on paper, visits unverified", impact: "Fake reports, skipped outlets, no coverage proof" },
         { pain: "Secondary sales invisible till month-end", impact: "You're blind to what actually sells through" },
@@ -1266,19 +1322,19 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "One platform, tuned for FMCG velocity",
-      lead: "Every FMCG workflow — beat to bill — in a single connected system your field, channel and finance teams share.",
+      lead: "Every FMCG workflow, beat to bill, in a single connected system your field, channel and finance teams share.",
       cards: [
         { icon: "Navigation", name: "Beat plans & field sales", desc: "Assign daily beats, take orders on the visit screen with live stock and price, and capture collections and expenses on the spot." },
-        { icon: "MapPin", name: "GPS-verified visits", desc: "Every check-in carries GPS, a selfie and a shop photo — outlet coverage you can actually prove, with full route replay." },
+        { icon: "MapPin", name: "GPS-verified visits", desc: "Every check-in carries GPS, a selfie and a shop photo: outlet coverage you can actually prove, with full route replay." },
         { icon: "Share2", name: "Distributor & channel network", desc: "Bring every distributor onto the same system: their stock, pricing, ledgers, claims and invoices in one workflow." },
-        { icon: "BarChart3", name: "Primary & secondary sales", desc: "See sell-in and sell-through side by side, by SKU, territory and outlet — no more month-end surprises." },
+        { icon: "BarChart3", name: "Primary & secondary sales", desc: "See sell-in and sell-through side by side, by SKU, territory and outlet, with no more month-end surprises." },
         { icon: "ReceiptText", name: "Schemes, pricing & claims", desc: "Configure trade schemes and price slabs, settle distributor claims cleanly, and protect margin with approval workflows." },
-        { icon: "Landmark", name: "GST invoicing & e-way bills", desc: "Auto-generate GST invoices and e-way bills from orders — zero re-keying between field, channel and finance." },
+        { icon: "Landmark", name: "GST invoicing & e-way bills", desc: "Auto-generate GST invoices and e-way bills from orders, with zero re-keying between field, channel and finance." },
       ],
     },
     workflow: {
       title: "From the salesman's beat to the ledger entry",
-      lead: "The exact path an FMCG order takes through KaySetu — end to end, without a single re-entry.",
+      lead: "The exact path an FMCG order takes through KaySetu, end to end, without a single re-entry.",
       steps: [
         { icon: "MapPin", label: "Beat visit" },
         { icon: "ReceiptText", label: "Field order" },
@@ -1306,11 +1362,11 @@ export const industryPages: IndustryPage[] = [
       company: "Regional FMCG Distributor",
     },
     faqs: [
-      { q: "Does KaySetu track both primary and secondary sales?", a: "Yes. KaySetu shows sell-in to your distributors and sell-through to retail outlets side by side — by SKU, territory and outlet — so you're never guessing what actually moved off the shelf." },
+      { q: "Does KaySetu track both primary and secondary sales?", a: "Yes. KaySetu shows sell-in to your distributors and sell-through to retail outlets side by side, by SKU, territory and outlet, so you're never guessing what actually moved off the shelf." },
       { q: "Can it prevent fake field visits?", a: "Every outlet check-in is verified with GPS, a selfie and a shop photo, with route replay for the whole beat. Coverage is provable, not self-reported." },
-      { q: "Can our distributors work in the same system?", a: "Yes — the distributor network module manages each distributor as a first-class entity with their own stock, pricing, ledger, claims and invoices, in the same platform your field team uses." },
-      { q: "Does it handle trade schemes and claims?", a: "You can configure slab- and scheme-based pricing and settle distributor claims through an approval workflow — so margins are protected and claims aren't disputed." },
-      { q: "Is invoicing GST-compliant with e-way bills?", a: "Yes. GST invoices and e-way bills generate straight from confirmed orders, with tax masters and HSN built in — no re-keying into a separate accounting tool." },
+      { q: "Can our distributors work in the same system?", a: "Yes. The distributor network module manages each distributor as a first-class entity with their own stock, pricing, ledger, claims and invoices, in the same platform your field team uses." },
+      { q: "Does it handle trade schemes and claims?", a: "You can configure slab- and scheme-based pricing and settle distributor claims through an approval workflow, so margins are protected and claims aren't disputed." },
+      { q: "Is invoicing GST-compliant with e-way bills?", a: "Yes. GST invoices and e-way bills generate straight from confirmed orders, with tax masters and HSN built in, with no re-keying into a separate accounting tool." },
       { q: "Does the field team get a mobile app?", a: "Native Android and iOS apps let agents run their beat, take orders, check in and collect payments, syncing in real time with the office." },
     ],
     cta: { title: "See your FMCG business, unified.", body: industryCtaBody },
@@ -1323,9 +1379,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Distribution & Wholesale",
     tagline: "Order-to-dispatch, live stock, credit control and GST billing on one platform.",
     seo: {
-      title: "Wholesale ERP | Distributor Management Software — KaySetu",
+      title: "Wholesale ERP | Distributor Management Software | KaySetu",
       description:
-        "Run distribution and wholesale on one platform — distributor network, order-to-dispatch, multi-warehouse stock, credit control, e-way bills and GST.",
+        "Run distribution and wholesale on one platform: distributor network, order-to-dispatch, multi-warehouse stock, credit control, e-way bills and GST.",
       keywords: [
         "distribution management software",
         "wholesale ERP software",
@@ -1343,7 +1399,7 @@ export const industryPages: IndustryPage[] = [
       title: "Distribution that runs",
       titleAccent: "in real time.",
       subhead:
-        "KaySetu connects your distributors, orders, warehouses and ledgers into one live system — so every order moves from request to dispatch to invoice without a single re-entry.",
+        "KaySetu connects your distributors, orders, warehouses and ledgers into one live system, so every order moves from request to dispatch to invoice without a single re-entry.",
       stats: [
         { value: "Real-time", label: "stock across every godown" },
         { value: "Live", label: "credit exposure & ageing" },
@@ -1365,14 +1421,14 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "One system from order to dispatch to ledger",
-      lead: "Every wholesale workflow, connected — so the field, the warehouse and accounts finally work off the same live data.",
+      lead: "Every wholesale workflow connected, so the field, the warehouse and accounts finally work off the same live data.",
       cards: [
-        { icon: "Share2", name: "Distributor & customer network", desc: "Every distributor and retailer as a first-class account — own pricing, credit terms, ledger and full order history." },
-        { icon: "ReceiptText", name: "Order to dispatch", desc: "Order approval chain, pick lists and delivery notes generated straight from the order — nothing re-keyed." },
+        { icon: "Share2", name: "Distributor & customer network", desc: "Every distributor and retailer as a first-class account, with its own pricing, credit terms, ledger and full order history." },
+        { icon: "ReceiptText", name: "Order to dispatch", desc: "Order approval chain, pick lists and delivery notes generated straight from the order, with nothing re-keyed." },
         { icon: "Boxes", name: "Multi-warehouse inventory", desc: "Real-time stock across every godown and bin, with transfers, adjustments and a single stock ledger." },
-        { icon: "Wallet", name: "Credit control & collections", desc: "Credit limits, ageing and outstanding tracked live — with collection reminders from the field." },
+        { icon: "Wallet", name: "Credit control & collections", desc: "Credit limits, ageing and outstanding tracked live, with collection reminders from the field." },
         { icon: "Truck", name: "Delivery & e-way bills", desc: "Delivery notes, dispatch tracking and e-way bills generated automatically from confirmed orders." },
-        { icon: "Landmark", name: "GST billing & ledgers", desc: "GST invoices post automatically to customer, supplier and general ledgers — no re-keying into Tally." },
+        { icon: "Landmark", name: "GST billing & ledgers", desc: "GST invoices post automatically to customer, supplier and general ledgers, with no re-keying into Tally." },
       ],
     },
     workflow: {
@@ -1405,11 +1461,11 @@ export const industryPages: IndustryPage[] = [
       company: "SME · Wholesale",
     },
     faqs: [
-      { q: "Can KaySetu manage multiple warehouses and godowns?", a: "Yes — real-time stock across every warehouse and bin, with a single stock ledger, transfers, adjustments and committed-vs-available quantities honoured across sales." },
+      { q: "Can KaySetu manage multiple warehouses and godowns?", a: "Yes. Real-time stock across every warehouse and bin, with a single stock ledger, transfers, adjustments and committed-vs-available quantities honoured across sales." },
       { q: "Does it control credit limits and outstanding?", a: "Credit limits, ageing and outstanding balances are tracked live per customer, with collection follow-ups from the field, so you never over-expose a risky account." },
       { q: "Are e-way bills and delivery notes automated?", a: "Delivery notes and e-way bills generate straight from confirmed orders, and dispatch status is tracked all the way to delivery." },
-      { q: "Can distributors and retailers place their own orders?", a: "Yes — bring them onto the same platform with their own pricing and ledger; their orders flow into the same approval and dispatch chain." },
-      { q: "Does billing stay in sync with stock and accounts?", a: "Every GST invoice posts automatically to the stock ledger and the customer/general ledgers — one entry, no reconciliation between tools." },
+      { q: "Can distributors and retailers place their own orders?", a: "Yes. Bring them onto the same platform with their own pricing and ledger; their orders flow into the same approval and dispatch chain." },
+      { q: "Does billing stay in sync with stock and accounts?", a: "Every GST invoice posts automatically to the stock ledger and the customer/general ledgers: one entry, no reconciliation between tools." },
       { q: "Is there a mobile app for field orders and collections?", a: "Native Android and iOS apps let your team take orders, check stock and record collections on the move, syncing in real time." },
     ],
     cta: { title: "See your distribution business, unified.", body: industryCtaBody },
@@ -1422,9 +1478,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Manufacturing",
     tagline: "BOM-driven production tied to real orders, procurement, stock and GST accounts.",
     seo: {
-      title: "Manufacturing ERP | Production, Inventory & Sales — KaySetu",
+      title: "Manufacturing ERP | Production, Inventory & Sales | KaySetu",
       description:
-        "Unify production, procurement, inventory, field sales and GST accounts — BOM-driven work orders, demand-linked planning and quote-to-cash in real time.",
+        "Unify production, procurement, inventory, field sales and GST accounts: BOM-driven work orders, demand-linked planning and quote-to-cash in real time.",
       keywords: [
         "manufacturing ERP software India",
         "production management software",
@@ -1442,7 +1498,7 @@ export const industryPages: IndustryPage[] = [
       title: "From shop floor to sales order,",
       titleAccent: "one system.",
       subhead:
-        "KaySetu ties demand to capacity — connecting BOM-driven production, procurement, inventory, field sales and accounts so plans match orders and nothing is built blind.",
+        "KaySetu ties demand to capacity, connecting BOM-driven production, procurement, inventory, field sales and accounts so plans match orders and nothing is built blind.",
       stats: [
         { value: "Demand-linked", label: "production, not guesswork" },
         { value: "3-way", label: "matched procurement" },
@@ -1452,7 +1508,7 @@ export const industryPages: IndustryPage[] = [
     challenges: {
       title: "What breaks when production runs blind",
       intro:
-        "Manufacturing fails at the seams — between what sales promised, what the floor can build, and what the store actually holds. Disconnected tools hide those gaps until it's too late.",
+        "Manufacturing fails at the seams: between what sales promised, what the floor can build, and what the store actually holds. Disconnected tools hide those gaps until it's too late.",
       items: [
         { pain: "Production planned off gut feel", impact: "Shortages, overtime and constant firefighting" },
         { pain: "BOM & material needs in spreadsheets", impact: "Wrong purchases and stalled work orders" },
@@ -1464,19 +1520,19 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "The whole plant-to-customer chain, connected",
-      lead: "From the sales order to the finished good to the ledger entry — one system where demand, capacity and cash finally agree.",
+      lead: "From the sales order to the finished good to the ledger entry: one system where demand, capacity and cash finally agree.",
       cards: [
         { icon: "Factory", name: "Production & work orders", desc: "BOM-driven work orders and job cards with operation-wise tracking and quality checkpoints." },
         { icon: "ClipboardCheck", name: "Planning tied to demand", desc: "Production plans that link real sales orders to capacity, with material requests auto-created from work orders." },
         { icon: "ShoppingCart", name: "Procurement", desc: "POs raised straight from material requests, a single supplier master, and GRN three-way matching before payment." },
         { icon: "Boxes", name: "Inventory & WIP", desc: "Real-time raw-material, work-in-progress and finished-goods stock across warehouses, with a full audit trail." },
-        { icon: "Navigation", name: "Field sales & orders", desc: "Quote → order → dispatch from the field with live stock and price — so nobody over-promises." },
+        { icon: "Navigation", name: "Field sales & orders", desc: "Quote → order → dispatch from the field with live stock and price, so nobody over-promises." },
         { icon: "Landmark", name: "Costing & GST accounts", desc: "Costs, GST invoicing and ledgers post automatically, so margin and cash are visible in real time." },
       ],
     },
     workflow: {
       title: "From sales order to finished goods to invoice",
-      lead: "One connected line from demand to dispatch — every step feeding the next.",
+      lead: "One connected line from demand to dispatch, every step feeding the next.",
       steps: [
         { icon: "Contact", label: "Sales order" },
         { icon: "ClipboardCheck", label: "Production plan" },
@@ -1504,12 +1560,12 @@ export const industryPages: IndustryPage[] = [
       company: "Mid-size Manufacturer",
     },
     faqs: [
-      { q: "Does KaySetu support BOM and work orders?", a: "Yes — bills of material per finished good (with sub-assemblies), plus work orders and job cards with operation-wise tracking and quality checkpoints." },
+      { q: "Does KaySetu support BOM and work orders?", a: "Yes. Bills of material per finished good (with sub-assemblies), plus work orders and job cards with operation-wise tracking and quality checkpoints." },
       { q: "Can production planning use real sales demand?", a: "Production plans tie actual sales orders to capacity, and material requests are auto-created from work orders so purchasing matches what's actually being built." },
       { q: "Does procurement connect to production needs?", a: "POs are raised straight from material requests, with a single supplier master and GRN three-way matching before any payment is made." },
-      { q: "Can I see raw material, WIP and finished goods together?", a: "Yes — real-time stock across raw materials, work-in-progress and finished goods, in one ledger with a full audit trail." },
+      { q: "Can I see raw material, WIP and finished goods together?", a: "Yes. Real-time stock across raw materials, work-in-progress and finished goods, in one ledger with a full audit trail." },
       { q: "Is it GST-ready for manufacturers?", a: "GST invoicing, tax masters and HSN are built in, and costs and taxes post automatically to your ledgers." },
-      { q: "Does the sales team get live stock while quoting?", a: "Yes — field and inside sales quote and order against live stock and price, so you don't promise what you can't ship." },
+      { q: "Does the sales team get live stock while quoting?", a: "Yes. Field and inside sales quote and order against live stock and price, so you don't promise what you can't ship." },
     ],
     cta: { title: "See your plant and sales, unified.", body: industryCtaBody },
   },
@@ -1521,9 +1577,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Pharma & Chemicals",
     tagline: "Batch and expiry traceability from production to the stockist, with GST billing.",
     seo: {
-      title: "Pharma ERP | Batch, Expiry & Distribution — KaySetu",
+      title: "Pharma ERP | Batch, Expiry & Distribution | KaySetu",
       description:
-        "Run pharma and chemicals on one platform — batch & expiry tracking, FEFO stock, distributor network, field reps, production QC and GST accounts.",
+        "Run pharma and chemicals on one platform: batch & expiry tracking, FEFO stock, distributor network, field reps, production QC and GST accounts.",
       keywords: [
         "pharma ERP software",
         "pharmaceutical distribution software",
@@ -1541,7 +1597,7 @@ export const industryPages: IndustryPage[] = [
       title: "Pharma & chemicals,",
       titleAccent: "batch-perfect and connected.",
       subhead:
-        "KaySetu tracks every batch and expiry from production to the distributor's shelf — connecting field reps, channel, inventory and GST accounts in one compliant, real-time system.",
+        "KaySetu tracks every batch and expiry from production to the distributor's shelf, connecting field reps, channel, inventory and GST accounts in one compliant, real-time system.",
       stats: [
         { value: "Batch-wise", label: "traceability end to end" },
         { value: "FEFO", label: "picking & near-expiry alerts" },
@@ -1551,7 +1607,7 @@ export const industryPages: IndustryPage[] = [
     challenges: {
       title: "Where pharma & chemical operations get exposed",
       intro:
-        "In pharma and chemicals, a lost batch number or a missed expiry isn't just margin — it's compliance and safety. Disconnected systems make traceability nearly impossible.",
+        "In pharma and chemicals, a lost batch number or a missed expiry isn't just margin; it's compliance and safety. Disconnected systems make traceability nearly impossible.",
       items: [
         { pain: "Batch & expiry tracked manually", impact: "Expired stock, recalls and compliance risk" },
         { pain: "Rep visits & sampling unverified", impact: "No proof of coverage or sample accountability" },
@@ -1563,19 +1619,19 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "Compliance-grade control, end to end",
-      lead: "Every unit traceable by batch and expiry — from the production floor to the stockist's shelf to the GST invoice.",
+      lead: "Every unit traceable by batch and expiry, from the production floor to the stockist's shelf to the GST invoice.",
       cards: [
         { icon: "ShieldCheck", name: "Batch & expiry tracking", desc: "Every lot tracked by batch and expiry from production to dispatch, with FEFO picking and near-expiry alerts." },
         { icon: "Navigation", name: "Field & medical reps", desc: "Plan rep visits, verify with GPS + selfie, and record sampling and orders right from the visit screen." },
-        { icon: "Share2", name: "Distributor & stockist network", desc: "Manage stockists as first-class accounts — batch-wise stock, returns, claims and ledgers in one workflow." },
+        { icon: "Share2", name: "Distributor & stockist network", desc: "Manage stockists as first-class accounts, with batch-wise stock, returns, claims and ledgers in one workflow." },
         { icon: "Factory", name: "Production & QC", desc: "BOM-driven work orders with quality checkpoints and full batch traceability for audits." },
         { icon: "Boxes", name: "Inventory & FEFO", desc: "Real-time, batch-wise stock across warehouses with first-expiry-first-out picking and returns handling." },
-        { icon: "Landmark", name: "GST billing with batch & HSN", desc: "Invoices carry batch, expiry and HSN automatically — GST-ready, with no re-keying." },
+        { icon: "Landmark", name: "GST billing with batch & HSN", desc: "Invoices carry batch, expiry and HSN automatically: GST-ready, with no re-keying." },
       ],
     },
     workflow: {
       title: "From production batch to compliant invoice",
-      lead: "The traceable path every unit takes — batch intact at every step.",
+      lead: "The traceable path every unit takes, with the batch intact at every step.",
       steps: [
         { icon: "Factory", label: "Batch produced" },
         { icon: "ClipboardCheck", label: "QC passed" },
@@ -1603,12 +1659,12 @@ export const industryPages: IndustryPage[] = [
       company: "Pharma Distribution",
     },
     faqs: [
-      { q: "Does KaySetu track batch numbers and expiry?", a: "Yes — every lot is tracked by batch and expiry from production through dispatch, with FEFO (first-expiry-first-out) picking and near-expiry alerts to cut write-offs." },
+      { q: "Does KaySetu track batch numbers and expiry?", a: "Yes. Every lot is tracked by batch and expiry from production through dispatch, with FEFO (first-expiry-first-out) picking and near-expiry alerts to cut write-offs." },
       { q: "Can invoices carry batch, expiry and HSN?", a: "GST invoices automatically include batch, expiry and HSN details, so compliance data is never re-keyed or missed." },
-      { q: "Does it support medical and field rep workflows?", a: "Reps plan visits, check in with GPS and a selfie, and record sampling and orders from the visit screen — with real-time sync to the office." },
+      { q: "Does it support medical and field rep workflows?", a: "Reps plan visits, check in with GPS and a selfie, and record sampling and orders from the visit screen, with real-time sync to the office." },
       { q: "How are stockist returns and near-expiry handled?", a: "Stockists are managed as first-class accounts with batch-wise stock, returns and claims in one workflow, so near-expiry stock is visible and actionable." },
       { q: "Is production traceable for audits?", a: "BOM-driven work orders carry quality checkpoints and full batch traceability, so you can trace any unit back through QC and materials." },
-      { q: "Is it suitable for chemical distribution too?", a: "Yes — the same batch, inventory, channel and GST controls apply to chemical manufacturing and distribution." },
+      { q: "Is it suitable for chemical distribution too?", a: "Yes. The same batch, inventory, channel and GST controls apply to chemical manufacturing and distribution." },
     ],
     cta: { title: "See your pharma business, unified.", body: industryCtaBody },
   },
@@ -1620,9 +1676,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Cosmetics & Personal Care",
     tagline: "Omni-channel sell-through, shelf-life control and retail execution in one system.",
     seo: {
-      title: "Cosmetics ERP + CRM | Retail & Distribution — KaySetu",
+      title: "Cosmetics ERP + CRM | Retail & Distribution | KaySetu",
       description:
-        "Unify cosmetics and personal-care sales — omni-channel distribution, retail execution, batch & shelf-life, field sales and GST accounts in real time.",
+        "Unify cosmetics and personal-care sales: omni-channel distribution, retail execution, batch & shelf-life, field sales and GST accounts in real time.",
       keywords: [
         "cosmetics ERP software",
         "personal care distribution software",
@@ -1640,7 +1696,7 @@ export const industryPages: IndustryPage[] = [
       title: "Beauty brands that",
       titleAccent: "sell through, not just in.",
       subhead:
-        "KaySetu connects your retail counters, distributors, modern trade and field team on one platform — with batch and shelf-life control, live sell-through and GST accounts in real time.",
+        "KaySetu connects your retail counters, distributors, modern trade and field team on one platform, with batch and shelf-life control, live sell-through and GST accounts in real time.",
       stats: [
         { value: "Verified", label: "counter & merchandising visits" },
         { value: "Omni-channel", label: "sell-through visibility" },
@@ -1662,14 +1718,14 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "One platform for every counter and channel",
-      lead: "From the merchandiser's shelf photo to the GST invoice — every channel and every batch in one connected system.",
+      lead: "From the merchandiser's shelf photo to the GST invoice, every channel and every batch in one connected system.",
       cards: [
-        { icon: "MapPin", name: "Retail & counter execution", desc: "GPS-verified merchandiser visits with shelf and planogram photos — proof of presence at every counter." },
+        { icon: "MapPin", name: "Retail & counter execution", desc: "GPS-verified merchandiser visits with shelf and planogram photos: proof of presence at every counter." },
         { icon: "ShieldCheck", name: "Batch & shelf-life", desc: "Batch-wise stock with FEFO picking and near-expiry alerts on shelf-life-sensitive SKUs." },
         { icon: "BarChart3", name: "Omni-channel sell-through", desc: "See sell-in vs. sell-through across general trade, modern trade, distributors and D2C in one view." },
-        { icon: "Share2", name: "Distributor & MT network", desc: "Distributors and modern-trade accounts on one system — pricing, claims, returns and ledgers." },
+        { icon: "Share2", name: "Distributor & MT network", desc: "Distributors and modern-trade accounts on one system, with pricing, claims, returns and ledgers." },
         { icon: "ReceiptText", name: "Schemes, gifting & returns", desc: "Configure trade schemes and gift-with-purchase, and handle returns cleanly with approvals." },
-        { icon: "Landmark", name: "GST invoicing & accounts", desc: "GST invoices and ledgers post automatically from orders — zero double-entry." },
+        { icon: "Landmark", name: "GST invoicing & accounts", desc: "GST invoices and ledgers post automatically from orders, with zero double-entry." },
       ],
     },
     workflow: {
@@ -1702,9 +1758,9 @@ export const industryPages: IndustryPage[] = [
       company: "Personal Care Brand",
     },
     faqs: [
-      { q: "Can KaySetu verify merchandiser and counter visits?", a: "Yes — merchandiser check-ins carry GPS, a selfie and shelf/planogram photos, so counter presence is provable, not self-reported." },
+      { q: "Can KaySetu verify merchandiser and counter visits?", a: "Yes. Merchandiser check-ins carry GPS, a selfie and shelf/planogram photos, so counter presence is provable, not self-reported." },
       { q: "Does it manage shelf-life and batch for sensitive SKUs?", a: "Batch-wise stock with FEFO picking and near-expiry alerts helps you move shelf-life-sensitive products before they expire." },
-      { q: "Can I see sell-through across all channels?", a: "Yes — sell-in vs. sell-through across general trade, modern trade, distributors and D2C in a single view, by SKU and territory." },
+      { q: "Can I see sell-through across all channels?", a: "Yes. Sell-in vs. sell-through across general trade, modern trade, distributors and D2C in a single view, by SKU and territory." },
       { q: "Does it handle schemes, gifting and returns?", a: "Configure trade schemes and gift-with-purchase, and process returns through an approval workflow to protect margin." },
       { q: "Is billing GST-ready?", a: "GST invoices and ledgers generate automatically from orders, so nothing is re-keyed into a separate accounting tool." },
       { q: "Is there a mobile app for the field team?", a: "Native Android and iOS apps let merchandisers and field reps check in, capture orders and photos, and sync in real time." },
@@ -1719,9 +1775,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Textiles & Apparel",
     tagline: "Style-size-colour matrix inventory across production, wholesale and retail.",
     seo: {
-      title: "Textiles & Apparel ERP | Production to Retail — KaySetu",
+      title: "Textiles & Apparel ERP | Production to Retail | KaySetu",
       description:
-        "Unify textiles and apparel — style/size/colour matrix inventory, production & job-work, wholesale and retail distribution, field sales and GST accounts.",
+        "Unify textiles and apparel: style/size/colour matrix inventory, production & job-work, wholesale and retail distribution, field sales and GST accounts.",
       keywords: [
         "textile ERP software",
         "apparel ERP India",
@@ -1739,7 +1795,7 @@ export const industryPages: IndustryPage[] = [
       title: "Textiles & apparel,",
       titleAccent: "thread to retail.",
       subhead:
-        "KaySetu handles style, size and colour variants across production, wholesale and retail — connecting field sales, inventory and GST accounts in one real-time system.",
+        "KaySetu handles style, size and colour variants across production, wholesale and retail, connecting field sales, inventory and GST accounts in one real-time system.",
       stats: [
         { value: "Matrix", label: "stock by style, size & colour" },
         { value: "Order-linked", label: "production & job-work" },
@@ -1749,7 +1805,7 @@ export const industryPages: IndustryPage[] = [
     challenges: {
       title: "Where textile & apparel businesses tangle up",
       intro:
-        "Apparel means endless SKUs — styles, sizes, colours, seasons. Spreadsheets can't hold a size-colour matrix, so stock, orders and production drift out of sync.",
+        "Apparel means endless SKUs: styles, sizes, colours, seasons. Spreadsheets can't hold a size-colour matrix, so stock, orders and production drift out of sync.",
       items: [
         { pain: "Size-colour matrix in spreadsheets", impact: "Wrong stock counts and over-selling" },
         { pain: "Season & style demand guessed", impact: "Dead stock and stockouts by size" },
@@ -1761,19 +1817,19 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "Built for style, size and colour",
-      lead: "A system that actually holds a size-colour matrix — and ties it to production, channel and accounts.",
+      lead: "A system that actually holds a size-colour matrix, and ties it to production, channel and accounts.",
       cards: [
         { icon: "Boxes", name: "Variant (matrix) inventory", desc: "Track stock by style, size and colour across warehouses with a single real-time ledger." },
         { icon: "Factory", name: "Production & job-work", desc: "BOM-driven work orders and job-work tracking with operation-wise costing and quality checks." },
-        { icon: "Navigation", name: "Wholesale field sales", desc: "Take orders by style and size from the field with live stock and price — no over-selling." },
-        { icon: "Share2", name: "Wholesale & retail channel", desc: "Distributors, wholesalers and retail counters on one system — pricing, ledgers and returns." },
+        { icon: "Navigation", name: "Wholesale field sales", desc: "Take orders by style and size from the field with live stock and price, with no over-selling." },
+        { icon: "Share2", name: "Wholesale & retail channel", desc: "Distributors, wholesalers and retail counters on one system, with pricing, ledgers and returns." },
         { icon: "ClipboardCheck", name: "Order to dispatch", desc: "Order approval, pick lists and delivery notes generated straight from the order." },
-        { icon: "Landmark", name: "GST billing & accounts", desc: "GST invoices and ledgers post automatically — one entry, from order to books." },
+        { icon: "Landmark", name: "GST billing & accounts", desc: "GST invoices and ledgers post automatically: one entry, from order to books." },
       ],
     },
     workflow: {
       title: "From style order to dispatched goods",
-      lead: "One path from a size-colour order to a GST invoice — accurate at every step.",
+      lead: "One path from a size-colour order to a GST invoice, accurate at every step.",
       steps: [
         { icon: "Contact", label: "Style order" },
         { icon: "ClipboardCheck", label: "Production / job-work" },
@@ -1795,13 +1851,13 @@ export const industryPages: IndustryPage[] = [
     },
     testimonial: {
       quote:
-        "A size-colour matrix that's actually accurate changed everything — sales stopped over-selling and production finally builds to real orders instead of last season's guess.",
+        "A size-colour matrix that's actually accurate changed everything. Sales stopped over-selling and production finally builds to real orders instead of last season's guess.",
       name: "Arjun Desai",
       role: "Director",
       company: "Apparel Wholesaler",
     },
     faqs: [
-      { q: "Does KaySetu handle size-colour (matrix) inventory?", a: "Yes — stock is tracked by style, size and colour across every warehouse in one real-time ledger, so counts stay accurate and you don't oversell." },
+      { q: "Does KaySetu handle size-colour (matrix) inventory?", a: "Yes. Stock is tracked by style, size and colour across every warehouse in one real-time ledger, so counts stay accurate and you don't oversell." },
       { q: "Can it manage job-work and outside vendors?", a: "Job-work and vendor operations are tracked with material issue/receipt and operation-wise costing, so nothing is lost and costing is clear." },
       { q: "Is production tied to real orders?", a: "BOM-driven work orders link to actual sales orders, so you build to demand rather than to a guess." },
       { q: "Can I sell wholesale and retail from one system?", a: "Distributors, wholesalers and retail counters live on the same platform, with their own pricing, ledgers and returns." },
@@ -1818,9 +1874,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Building Materials",
     tagline: "Dealer & project sales, delivery, e-way bills and credit control on one platform.",
     seo: {
-      title: "Building Materials ERP | Dealer & Project Sales — KaySetu",
+      title: "Building Materials ERP | Dealer & Project Sales | KaySetu",
       description:
-        "Unify building materials — dealer & distributor network, project sales CRM, delivery & e-way bills, multi-depot inventory, credit control and GST.",
+        "Unify building materials: dealer & distributor network, project sales CRM, delivery & e-way bills, multi-depot inventory, credit control and GST.",
       keywords: [
         "building materials ERP",
         "cement and steel distribution software",
@@ -1838,7 +1894,7 @@ export const industryPages: IndustryPage[] = [
       title: "Building materials,",
       titleAccent: "dealer to job site.",
       subhead:
-        "KaySetu connects your dealers, project sales, deliveries and accounts on one platform — with live stock, credit control, e-way bills and GST billing in real time.",
+        "KaySetu connects your dealers, project sales, deliveries and accounts on one platform, with live stock, credit control, e-way bills and GST billing in real time.",
       stats: [
         { value: "One", label: "pipeline for project & dealer sales" },
         { value: "Automated", label: "e-way bills & delivery notes" },
@@ -1860,19 +1916,19 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "From enquiry to delivered load",
-      lead: "Project pipeline, dealer network, depot stock and accounts — one system from the first enquiry to the settled ledger.",
+      lead: "Project pipeline, dealer network, depot stock and accounts: one system from the first enquiry to the settled ledger.",
       cards: [
         { icon: "Contact", name: "Project & dealer CRM", desc: "Track project enquiries and dealer leads in one pipeline with follow-ups, so nothing goes cold." },
-        { icon: "Share2", name: "Dealer & distributor network", desc: "Dealers and distributors as first-class accounts — pricing, credit terms and ledgers in one system." },
+        { icon: "Share2", name: "Dealer & distributor network", desc: "Dealers and distributors as first-class accounts, with pricing, credit terms and ledgers in one system." },
         { icon: "Truck", name: "Delivery & e-way bills", desc: "Delivery notes, dispatch tracking and e-way bills generated straight from confirmed orders." },
         { icon: "Boxes", name: "Multi-depot inventory", desc: "Real-time stock across depots and yards, with transfers and a single stock ledger." },
         { icon: "Wallet", name: "Credit control & collections", desc: "Credit limits, ageing and outstanding tracked live, with field collections and reminders." },
-        { icon: "Landmark", name: "GST billing & accounts", desc: "GST invoices post automatically to ledgers — no re-keying between order, stock and books." },
+        { icon: "Landmark", name: "GST billing & accounts", desc: "GST invoices post automatically to ledgers, with no re-keying between order, stock and books." },
       ],
     },
     workflow: {
       title: "From enquiry to delivered, invoiced load",
-      lead: "One path for every dealer and project order — approved, loaded, delivered, collected.",
+      lead: "One path for every dealer and project order: approved, loaded, delivered, collected.",
       steps: [
         { icon: "Contact", label: "Enquiry / dealer order" },
         { icon: "ClipboardCheck", label: "Approval & credit check" },
@@ -1900,11 +1956,11 @@ export const industryPages: IndustryPage[] = [
       company: "Building Materials",
     },
     faqs: [
-      { q: "Can KaySetu manage both dealer and project sales?", a: "Yes — dealer orders and project enquiries live in one pipeline with follow-ups and a full 360° view, so leads don't go cold and orders stay auditable." },
-      { q: "Are e-way bills and delivery notes automated?", a: "Delivery notes and e-way bills generate straight from confirmed orders, with dispatch tracked to delivery — important for heavy, high-value loads." },
+      { q: "Can KaySetu manage both dealer and project sales?", a: "Yes. Dealer orders and project enquiries live in one pipeline with follow-ups and a full 360° view, so leads don't go cold and orders stay auditable." },
+      { q: "Are e-way bills and delivery notes automated?", a: "Delivery notes and e-way bills generate straight from confirmed orders, with dispatch tracked to delivery, which matters for heavy, high-value loads." },
       { q: "Does it control dealer credit and outstanding?", a: "Credit limits, ageing and outstanding are tracked live per dealer, with field collections and reminders, so you don't over-expose an account." },
-      { q: "Can I see stock across multiple depots?", a: "Yes — real-time stock across every depot and yard, with transfers and a single stock ledger, so you don't over-promise heavy SKUs." },
-      { q: "Is billing GST-compliant?", a: "GST invoices post automatically to your ledgers with tax masters and HSN built in — no re-keying between order, stock and books." },
+      { q: "Can I see stock across multiple depots?", a: "Yes. Real-time stock across every depot and yard, with transfers and a single stock ledger, so you don't over-promise heavy SKUs." },
+      { q: "Is billing GST-compliant?", a: "GST invoices post automatically to your ledgers with tax masters and HSN built in, with no re-keying between order, stock and books." },
       { q: "Is there a mobile app for the field team?", a: "Native Android and iOS apps let sales and collection teams work orders, credit and payments on site, syncing in real time." },
     ],
     cta: { title: "See your building-materials business, unified.", body: industryCtaBody },
@@ -1917,9 +1973,9 @@ export const industryPages: IndustryPage[] = [
     eyebrow: "Agri-Inputs",
     tagline: "Seasonal field sales, batch & expiry and liquidation tracking on one platform.",
     seo: {
-      title: "Agri-Input ERP | Seeds, Fertilizer & Crop — KaySetu",
+      title: "Agri-Input ERP | Seeds, Fertilizer & Crop | KaySetu",
       description:
-        "Unify agri-inputs — dealer & retailer network, seasonal field sales, batch & expiry, liquidation tracking and GST accounts on one real-time platform.",
+        "Unify agri-inputs: dealer & retailer network, seasonal field sales, batch & expiry, liquidation tracking and GST accounts on one real-time platform.",
       keywords: [
         "agri input ERP software",
         "fertilizer distribution software",
@@ -1937,7 +1993,7 @@ export const industryPages: IndustryPage[] = [
       title: "Agri-inputs,",
       titleAccent: "season to soil.",
       subhead:
-        "KaySetu connects your dealers, retailers and field officers on one platform — with seasonal demand, batch and expiry, liquidation tracking and GST accounts in real time.",
+        "KaySetu connects your dealers, retailers and field officers on one platform, with seasonal demand, batch and expiry, liquidation tracking and GST accounts in real time.",
       stats: [
         { value: "Batch-wise", label: "expiry control on inputs" },
         { value: "Sell-out", label: "(liquidation) visibility" },
@@ -1959,19 +2015,19 @@ export const industryPages: IndustryPage[] = [
     },
     capabilities: {
       title: "Built for the agri-input season",
-      lead: "From the field officer's beat to the farmer's sell-out — one system that respects the season, the batch and the credit cycle.",
+      lead: "From the field officer's beat to the farmer's sell-out: one system that respects the season, the batch and the credit cycle.",
       cards: [
         { icon: "Navigation", name: "Field officer & dealer visits", desc: "Plan officer beats, verify with GPS + selfie, and take dealer orders on the visit screen." },
         { icon: "ShieldCheck", name: "Batch & expiry", desc: "Batch-wise stock with FEFO picking and near-expiry alerts on seeds, fertiliser and crop protection." },
-        { icon: "Share2", name: "Dealer & retailer network", desc: "Dealers and retailers on one system — pricing, seasonal credit, claims and ledgers." },
+        { icon: "Share2", name: "Dealer & retailer network", desc: "Dealers and retailers on one system, with pricing, seasonal credit, claims and ledgers." },
         { icon: "BarChart3", name: "Liquidation & sell-out", desc: "Track sell-in to dealers vs. liquidation to farmers, so seasonal stock doesn't get stuck." },
         { icon: "Wallet", name: "Seasonal credit & collections", desc: "Manage seasonal credit terms and outstanding live, with field collections and reminders." },
-        { icon: "Landmark", name: "GST billing & accounts", desc: "GST invoices and ledgers post automatically from orders — zero double-entry." },
+        { icon: "Landmark", name: "GST billing & accounts", desc: "GST invoices and ledgers post automatically from orders, with zero double-entry." },
       ],
     },
     workflow: {
       title: "From season plan to farmer sell-out",
-      lead: "One path from the officer's visit to the GST invoice — batch and season intact.",
+      lead: "One path from the officer's visit to the GST invoice, with batch and season intact.",
       steps: [
         { icon: "Navigation", label: "Officer visit" },
         { icon: "ReceiptText", label: "Dealer order" },
@@ -1993,20 +2049,119 @@ export const industryPages: IndustryPage[] = [
     },
     testimonial: {
       quote:
-        "We can finally see liquidation to the farmer, not just dispatch to the dealer — so peak-season stock lands where it sells. Batch and expiry alerts cut our returns.",
+        "We can finally see liquidation to the farmer, not just dispatch to the dealer, so peak-season stock lands where it sells. Batch and expiry alerts cut our returns.",
       name: "Nitin Patel",
       role: "Managing Director",
       company: "Agri-Inputs",
     },
     faqs: [
-      { q: "Does KaySetu track liquidation (retailer/farmer sell-out)?", a: "Yes — you see sell-in to dealers vs. liquidation to retailers and farmers, so seasonal stock doesn't get stuck in the channel." },
+      { q: "Does KaySetu track liquidation (retailer/farmer sell-out)?", a: "Yes. You see sell-in to dealers vs. liquidation to retailers and farmers, so seasonal stock doesn't get stuck in the channel." },
       { q: "Can it track batch and expiry on agri-chemicals?", a: "Batch-wise stock with FEFO picking and near-expiry alerts helps you move seeds, fertiliser and crop-protection stock before it expires." },
       { q: "Does it verify field officer visits?", a: "Officer check-ins carry GPS and a selfie, with dealer orders taken from the visit screen, so coverage is provable." },
       { q: "Can it manage seasonal dealer credit?", a: "Seasonal credit terms, limits and outstanding are tracked live, with field collections and reminders across the cycle." },
-      { q: "Is billing GST-ready?", a: "GST invoices and ledgers generate automatically from orders, with tax masters and HSN built in — no re-keying." },
+      { q: "Is billing GST-ready?", a: "GST invoices and ledgers generate automatically from orders, with tax masters and HSN built in, with no re-keying." },
       { q: "Is there a mobile app for field officers?", a: "Native Android and iOS apps let officers plan beats, verify visits and take orders, syncing in real time." },
     ],
     cta: { title: "See your agri-input business, unified.", body: industryCtaBody },
+  },
+
+  {
+    slug: "electronics",
+    icon: "Cpu",
+    name: "Electronics & Appliances",
+    eyebrow: "Electronics & Appliances",
+    tagline: "Serial & IMEI tracking, warranty management, channel schemes and GST invoicing in one system.",
+    seo: {
+      title: "Electronics ERP + CRM | Serial, Warranty & Distribution | KaySetu",
+      description:
+        "Unify consumer electronics, appliances & hardware distribution: serial/IMEI tracking, dealer network, warranty workflows, schemes and GST accounting on one real-time platform.",
+      keywords: [
+        "electronics ERP software",
+        "appliance distribution management system",
+        "serial number tracking software",
+        "IMEI tracking ERP",
+        "electronics distribution software India",
+        "warranty management software",
+        "dealer scheme management",
+        "consumer durables CRM",
+        "GST billing electronics",
+        "field service and sales electronics",
+      ],
+    },
+    hero: {
+      title: "Electronics & appliances,",
+      titleAccent: "tracked down to the serial.",
+      subhead:
+        "KaySetu connects your distributor network, field sales, serial/IMEI inventory, warranty claims and GST ledgers in real time — eliminating serial miscounts, scheme disputes and delayed billing.",
+      stats: [
+        { value: "100% Serial/IMEI", label: "traceability from warehouse to end user" },
+        { value: "Automated", label: "dealer schemes & price slabs" },
+        { value: "GST-ready", label: "e-invoicing & e-way bills" },
+      ],
+    },
+    challenges: {
+      title: "Why consumer electronics distribution is complex",
+      intro:
+        "Electronics and durables run on tight margins, high unit values, serial-level accountability and multi-tier channel schemes. When stock, serial numbers, sales and finance are in separate tools, margin leaks and serial disputes compound quickly.",
+      items: [
+        { pain: "Serial / IMEI numbers tracked manually", impact: "Mismatch in stock, lost warranty coverage, fake returns" },
+        { pain: "Dealer schemes & volume discounts in Excel", impact: "Margin leakage, delayed credit notes, unhappy dealers" },
+        { pain: "Secondary sales to retailers invisible", impact: "No visibility into true sell-through vs. channel stuffing" },
+        { pain: "Warranty & RMA claims chaotic", impact: "Disputed vendor claims, slow replacement cycles" },
+        { pain: "Field sales teams lack live stock view", impact: "Promising out-of-stock SKUs, lost high-value sales" },
+        { pain: "Re-keying orders into accounting", impact: "Billing bottlenecks, delayed GST compliance" },
+      ],
+    },
+    capabilities: {
+      title: "Built for electronics, appliances & durables",
+      lead: "From primary distribution to warranty management: a single connected platform for sales, channel partners and finance.",
+      cards: [
+        { icon: "Cpu", name: "Serial & IMEI tracking", desc: "Scan and track individual serial/IMEI numbers across inwards, warehouse transfers, dealer dispatches and warranty claims." },
+        { icon: "Share2", name: "Distributor & dealer portal", desc: "Manage price slabs, credit limits, schemes, claims and real-time ledgers for every channel partner." },
+        { icon: "Navigation", name: "Field sales & beat planning", desc: "GPS-verified dealer check-ins, live inventory checks and instant order placement from the mobile app." },
+        { icon: "ShieldCheck", name: "Warranty & RMA management", desc: "Validate purchase date and serial history instantly, streamlining return merchandise authorizations and vendor claims." },
+        { icon: "BarChart3", name: "Primary & secondary analytics", desc: "Monitor sell-in to distributors vs. sell-through to retail counters by region, brand and SKU." },
+        { icon: "Landmark", name: "GST billing & accounts", desc: "Instant GST invoice and e-way bill generation with HSN rates, serial attachments and zero re-keying." },
+      ],
+    },
+    workflow: {
+      title: "From serial scan to GST invoice",
+      lead: "A seamless workflow connecting warehouse inwarding, dealer sales, warranty logs and accounting.",
+      steps: [
+        { icon: "Cpu", label: "Serial scan" },
+        { icon: "Navigation", label: "Field order" },
+        { icon: "Share2", label: "Dealer dispatch" },
+        { icon: "ShieldCheck", label: "Warranty log" },
+        { icon: "BarChart3", label: "Sell-through" },
+        { icon: "FileText", label: "GST invoice" },
+      ],
+    },
+    outcomes: {
+      title: "The impact on your electronics business",
+      lead: "Measurable gains across inventory accuracy, dealer satisfaction and order velocity.",
+      metrics: [
+        { value: "Zero serial mismatch", label: "with barcodes & IMEI scanning" },
+        { value: "Real-time sell-through", label: "visibility across dealer tiers" },
+        { value: "Automated schemes", label: "credit notes & margin protection" },
+        { value: "Instant GST", label: "e-invoicing & e-way bill dispatch" },
+      ],
+    },
+    testimonial: {
+      quote:
+        "KaySetu gave us complete serial number control from our master warehouse down to dealer dispatches. Scheme calculations that used to take days in Excel now run automatically with zero disputes.",
+      name: "Rajesh Sharma",
+      role: "Director of Operations",
+      company: "Consumer Electronics & Appliances",
+    },
+    faqs: [
+      { q: "Does KaySetu support serial number and IMEI scanning?", a: "Yes. Every item can be tracked by individual serial number or IMEI from inward GRN to sales invoice and warranty service." },
+      { q: "Can it handle complex dealer trade schemes?", a: "KaySetu supports volume slabs, cashback schemes, target discounts, and automatically generates accurate credit notes upon verification." },
+      { q: "How does it help with warranty and RMA claims?", a: "When a customer or dealer requests service or return, scanning the serial number instantly retrieves sales date, warranty status, and dealer origin." },
+      { q: "Can field sales reps see live serial-level stock?", a: "Yes. Sales officers check live stock levels by warehouse or branch before taking orders on their mobile app." },
+      { q: "Is GST e-invoicing and e-way bill supported?", a: "Yes. GST e-invoices and e-way bills are generated directly from approved sales orders with full serial list attachments." },
+      { q: "Does it track secondary sales at dealer counters?", a: "Yes. You get clear side-by-side reporting of primary sales to distributors and secondary sell-through to retail outlets." },
+    ],
+    cta: { title: "See your electronics business, unified.", body: industryCtaBody },
   },
 ];
 

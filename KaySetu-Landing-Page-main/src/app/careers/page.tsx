@@ -4,7 +4,7 @@ import { PageShell, PageHeader } from "@/components/PageChrome";
 import { careersPage } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: { absolute: "Careers at Kayease — Build KaySetu ERP + CRM" },
+  title: { absolute: "Careers at Kayease | Build KaySetu ERP + CRM" },
   description:
     "Help build KaySetu, a unified ERP + CRM for Indian SMEs. Open roles in full-stack engineering, Flutter mobile, product design and success. Remote-friendly.",
   keywords: [
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/careers" },
   openGraph: {
-    title: "Careers at Kayease — Build KaySetu",
+    title: "Careers at Kayease | Build KaySetu",
     description:
       "Open roles building KaySetu, the unified ERP + CRM platform. Engineering, mobile, design and success. Remote-friendly, India.",
     type: "website",

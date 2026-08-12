@@ -73,7 +73,7 @@
 }
 
 .magic-bento-card__title {
-  font-family: inherit;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.25rem;
   margin: 0 0 1rem;

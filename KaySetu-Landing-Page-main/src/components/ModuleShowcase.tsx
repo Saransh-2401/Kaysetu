@@ -267,7 +267,7 @@ export default function ModuleShowcase() {
                         {/* Real <a> into the module page — the crawlable path
                             from the homepage to /platform/<slug>. */}
                         <Link
-                          href={`/platform/${mod.slug}`}
+                          href={`/walkthrough?module=${mod.slug}`}
                           className="group inline-flex w-fit items-center gap-1.5 text-[0.85rem] md:text-[1rem] font-semibold transition-colors"
                           style={{ color: theme.color }}
                         >

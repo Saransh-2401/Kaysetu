@@ -12,7 +12,7 @@ import { faqs } from "@/lib/content";
    ============================================================ */
 
 export function FAQ() {
-  const [open, setOpen] = useState<number | null>(null);
+  const [open, setOpen] = useState<number | null>(0);
 
   return (
     <section id="faq" className="bg-[#f2f6f9] py-20 md:py-28">
@@ -20,9 +20,10 @@ export function FAQ() {
         <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
           {/* Left — sticky header + support prompt */}
           <div className="lg:sticky lg:top-32 lg:self-start max-w-md">
-            <h2 className="font-display text-[2.2rem] font-extrabold leading-[1.1] text-[#0f172a] tracking-tight balance md:text-[2.8rem]">
-              Questions,
-              <br /> answered.
+            {/* One line at every width — the size scales with the column so it
+                never wraps and never spills into the accordion beside it. */}
+            <h2 className="font-display whitespace-nowrap text-[length:clamp(1.9rem,9vw,3rem)] font-extrabold leading-[1.1] text-[#0f172a] tracking-tight lg:text-[length:clamp(2.1rem,3.8vw,3.6rem)]">
+              Questions, answered.
             </h2>
             <p className="mt-5 max-w-sm text-[1rem] leading-relaxed text-[#475569]">
               Everything you need to know about running your business on KaySetu.
@@ -40,7 +41,7 @@ export function FAQ() {
                   <HeadphonesIcon className="h-5 w-5 text-[#3b82f6]" strokeWidth={2.2} />
                 </div>
                 <div>
-                  <h3 className="text-[1.05rem] font-bold text-white tracking-tight">Still have questions?</h3>
+                  <h3 className="font-display text-[1.05rem] font-bold text-white tracking-tight">Still have questions?</h3>
                   <p className="mt-1 text-[0.85rem] leading-relaxed text-[#8e9bae]">
                     Our support team is ready to help you.
                   </p>

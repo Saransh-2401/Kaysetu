@@ -35,8 +35,15 @@ export const ContainerScroll = ({
   // A 20deg tilt eats too much vertical room on a short phone card.
   const rotateDimensions = () => (isMobile ? [10, 0] : [20, 0]);
 
-  const rotate = useTransform(scrollYProgress, [0, 1], rotateDimensions());
-  const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
+  // The tilt has to be gone by the time the card is fully in the viewport,
+  // otherwise the mockup fills the screen while still visibly crooked and only
+  // straightens as it leaves the top. The scroll range spans the whole
+  // container, so settle the card over its leading fifth (~220px at desktop,
+  // ~150px on a phone) and leave it flat for the rest of the exit.
+  const SETTLE = 0.2;
+
+  const rotate = useTransform(scrollYProgress, [0, SETTLE], rotateDimensions());
+  const scale = useTransform(scrollYProgress, [0, SETTLE], scaleDimensions());
   const translate = useTransform(scrollYProgress, [0, 1], [0, -100]);
 
   return (

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import AnnounceBar from "@/components/AnnounceBar";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import Link from "next/link";
-import Icon from "@/components/Icon";
+import EnquiryButton from "@/components/EnquiryButton";
+import ClosingCta from "@/components/ClosingCta";
 import { HeroSection } from "@/components/blocks/hero-section-1";
 import Comparison from "@/components/Comparison";
 import ModuleShowcase from "@/components/ModuleShowcase";
@@ -44,17 +44,12 @@ export default function Home() {
         <FAQ />
         {/* 8 · "Don't take our word for it" testimonial wall (just above footer) */}
         <CardSwapDemo />
+        {/* 9 · Closing CTA band, straight into the footer */}
+        <ClosingCta />
       </main>
 
-      {/* Floating Enquiry Button */}
-      <Link 
-        href="/contact" 
-        className="fixed bottom-8 right-8 z-50 flex items-center gap-2 bg-[#009688] text-white px-5 py-3 rounded-full shadow-lg hover:bg-[#007b6f] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 font-medium tracking-wide group"
-        aria-label="Make an enquiry"
-      >
-        <Icon name="MessageSquare" className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-        <span className="hidden sm:inline">Enquiry</span>
-      </Link>
+      {/* Floating Enquiry Button — fades out once the footer is on screen */}
+      <EnquiryButton />
 
       <Footer />
     </>

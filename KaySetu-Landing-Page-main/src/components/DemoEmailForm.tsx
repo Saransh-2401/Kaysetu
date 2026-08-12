@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { LeadError, submitLead } from "@/lib/leads";
 
 /**
@@ -47,32 +47,32 @@ export default function DemoEmailForm() {
           <Check className="h-4 w-4" strokeWidth={3} />
         </span>
         <span className="text-[0.95rem] font-medium">
-          Thanks — we&apos;ll be in touch shortly.
+          Thanks, we&apos;ll be in touch shortly.
         </span>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md">
-      <form onSubmit={handleSubmit} className="relative flex w-full shadow-2xl">
+    <div className="w-full max-w-sm">
+      <form onSubmit={handleSubmit} className="flex w-full gap-2">
         <input
           type="email"
           name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email..."
+          placeholder="Enter your work email"
           required
           disabled={state === "sending"}
-          className="w-full rounded-full bg-white py-4 pl-6 pr-16 font-medium text-[0.95rem] text-black outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-accent disabled:opacity-70"
+          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/[0.07] px-4 py-3 text-[0.9rem] text-white outline-none transition-colors placeholder:text-white/40 focus:border-accent focus:bg-white/10 disabled:opacity-70"
         />
         <button
           type="submit"
           disabled={state === "sending"}
-          className="absolute bottom-1.5 right-1.5 top-1.5 flex aspect-square items-center justify-center rounded-full bg-accent text-white transition-colors hover:bg-accent/90 disabled:opacity-70"
+          className="flex w-12 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-colors hover:bg-accent-soft disabled:opacity-70"
           aria-label="Request a demo"
         >
-          <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
+          <ArrowRight className="h-5 w-5" strokeWidth={2.2} />
         </button>
       </form>
       {error && (

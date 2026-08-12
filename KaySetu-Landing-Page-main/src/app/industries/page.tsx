@@ -30,9 +30,21 @@ export default function IndustriesPage() {
   return (
     <PageShell>
       {/* ── Editorial hero ───────────────────────────────────── */}
-      <header className="relative overflow-hidden border-b border-line">
-        <div className="pointer-events-none absolute inset-0 grid-lines opacity-60" />
-        <span className="pointer-events-none absolute -right-24 -top-24 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle,rgba(0,150,136,0.16),transparent_65%)] aura-pulse" />
+      <header className="relative isolate overflow-hidden border-b border-line">
+        {/* Custom Industries Page Hero Background Artwork */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/industries-hero-bg.png"
+            alt=""
+            width={1920}
+            height={1080}
+            fetchPriority="high"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-paper/40" />
+        </div>
 
         <div className="relative mx-auto grid max-w-[1600px] gap-12 px-5 py-20 md:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16">
           <div>
@@ -114,12 +126,12 @@ export default function IndustriesPage() {
         <div className="mb-10">
           <div className="max-w-2xl">
             <h2 className="font-display text-[1.7rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.2rem]">
-              Eight verticals, one unified ERP + CRM.
+              Nine verticals, one unified ERP + CRM.
             </h2>
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {industryPages.map((ind, i) => (
             <Reveal
               key={ind.slug}
@@ -128,47 +140,63 @@ export default function IndustriesPage() {
             >
               <Link
                 href={`/industries/${ind.slug}`}
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-accent/30 hover:shadow-float"
+                className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#009688]/40 hover:shadow-xl"
               >
-                {/* accent bar reveals on hover */}
-                <span className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-accent to-accent-soft transition-transform duration-300 group-hover:scale-x-100" />
-                {/* oversized ghost icon watermark */}
-                <span className="pointer-events-none absolute -right-4 -top-3 text-ink/[0.04] transition-colors duration-300 group-hover:text-accent/[0.07]">
-                  <Icon name={ind.icon} className="h-24 w-24" strokeWidth={1.2} />
+                {/* Active top gradient accent line */}
+                <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-[#009688] via-[#26a69a] to-[#00796b] transition-transform duration-300 group-hover:scale-x-100" />
+                
+                {/* Background radial glow on hover */}
+                <div aria-hidden="true" className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 bg-[radial-gradient(80%_80%_at_50%_0%,rgba(0,150,136,0.06),transparent)] transition-opacity duration-500 group-hover:opacity-100" />
+
+                {/* Oversized ghost icon watermark */}
+                <span aria-hidden="true" className="pointer-events-none absolute -right-4 -top-3 text-slate-900/[0.03] transition-all duration-500 group-hover:rotate-6 group-hover:scale-110 group-hover:text-[#009688]/[0.08]">
+                  <Icon name={ind.icon} className="h-28 w-28" strokeWidth={1.2} />
                 </span>
 
-                <div className="relative flex items-center justify-between">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-line bg-paper text-accent transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-white">
+                {/* Top Row: Dual-Tone Icon Badge + Number Pill */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#009688]/20 bg-[#009688]/10 text-[#009688] shadow-xs transition-all duration-300 group-hover:border-[#009688] group-hover:bg-[#009688] group-hover:text-white group-hover:shadow-md">
                     <Icon name={ind.icon} className="h-6 w-6" />
                   </span>
-                  <span className="font-mono text-[0.7rem] font-semibold text-faint">
+                  <span className="rounded-full border border-slate-200/70 bg-slate-50 px-3 py-1 font-mono text-[0.7rem] font-bold text-slate-400 transition-colors group-hover:border-[#009688]/20 group-hover:bg-[#009688]/10 group-hover:text-[#009688]">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
 
-                <h3 className="relative mt-5 font-display text-lg font-bold leading-snug text-ink transition-colors group-hover:text-accent">
+                {/* Title & Tagline */}
+                <h3 className="relative z-10 mt-5 font-display text-xl font-bold leading-snug tracking-tight text-[#10234b] transition-colors duration-300 group-hover:text-[#009688]">
                   {ind.name}
                 </h3>
-                <p className="relative mt-2 flex-1 text-[0.88rem] leading-relaxed text-muted">
+                <p className="relative z-10 mt-2 flex-1 text-[0.88rem] leading-relaxed text-slate-600">
                   {ind.tagline}
                 </p>
 
-                {/* Mini connected-workflow preview */}
-                <div className="relative mt-5 flex items-center gap-1.5">
-                  {ind.workflow.steps.slice(0, 4).map((step, s) => (
-                    <span key={step.label} className="flex items-center gap-1.5">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/8 text-accent">
-                        <Icon name={step.icon} className="h-3.5 w-3.5" />
+                {/* Connected Module Workflow Chain */}
+                <div className="relative z-10 mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-2.5 transition-colors duration-300 group-hover:border-[#009688]/20 group-hover:bg-[#009688]/5">
+                  <div className="flex items-center justify-between">
+                    {ind.workflow.steps.slice(0, 4).map((step, s) => (
+                      <span key={step.label} className="flex items-center gap-1">
+                        <span
+                          title={step.label}
+                          className="flex h-7 w-7 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-[#009688] shadow-2xs transition-all group-hover:border-[#009688]/30 group-hover:shadow-xs"
+                        >
+                          <Icon name={step.icon} className="h-3.5 w-3.5" />
+                        </span>
+                        {s < 3 && <span className="h-0.5 w-2 rounded-full bg-slate-200 group-hover:bg-[#009688]/30 transition-colors" />}
                       </span>
-                      {s < 3 && <span className="h-px w-2 bg-line" />}
-                    </span>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
-                <span className="relative mt-5 inline-flex items-center gap-1.5 text-[0.84rem] font-semibold text-accent">
-                  Explore
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </span>
+                {/* Action CTA Footer */}
+                <div className="relative z-10 mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <span className="text-[0.82rem] font-bold text-[#009688] transition-colors group-hover:text-[#00796b]">
+                    Explore Vertical Solution
+                  </span>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#009688]/10 text-[#009688] transition-all duration-300 group-hover:bg-[#009688] group-hover:text-white group-hover:shadow-xs">
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </div>
               </Link>
             </Reveal>
           ))}
@@ -186,7 +214,7 @@ export default function IndustriesPage() {
               Whatever you sell, it runs on the same connected spine.
             </h2>
             <p className="mt-5 text-[1.05rem] leading-relaxed text-card/70">
-              Every industry above rides the same lead-to-ledger flow — we just tune the
+              Every industry above rides the same lead-to-ledger flow. We just tune the
               channel, the SKUs and the compliance to your vertical. Nothing re-keyed, no one
               working blind.
             </p>

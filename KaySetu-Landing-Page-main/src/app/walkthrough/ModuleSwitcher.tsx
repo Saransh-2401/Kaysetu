@@ -1,26 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { modulePages } from "@/lib/modulePages";
 import Walkthrough from "@/components/Walkthrough";
 import Icon from "@/components/Icon";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* The only part of /walkthrough that depends on useSearchParams. It lives in
-   its own component so the Suspense bailout it forces during prerender is
-   scoped to this subtree — the page's hero, module directory, nav and footer
-   still render into the static HTML. */
+/* The interactive switcher allows users to select service modules. When clicked,
+   it scrolls smoothly to the top of the service section rather than the hero. */
 export default function ModuleSwitcher() {
   const searchParams = useSearchParams();
   const moduleParam = searchParams.get("module");
   const paramSlug = modulePages.find((m) => m.slug === moduleParam)?.slug;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // The module the user clicked; null means "follow ?module=".
   const [picked, setPicked] = useState<string | null>(null);
 
-  // Adjust state during render rather than in an effect: a new ?module= clears
-  // the current pick so the URL wins, without the extra render an effect costs.
   const [seenParam, setSeenParam] = useState(moduleParam);
   if (moduleParam !== seenParam) {
     setSeenParam(moduleParam);
@@ -31,8 +29,23 @@ export default function ModuleSwitcher() {
   const activeModule =
     modulePages.find((m) => m.slug === activeSlug) || modulePages[0];
 
+  const handleSelectModule = (slug: string) => {
+    setPicked(slug);
+    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  useEffect(() => {
+    if (moduleParam) {
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [moduleParam]);
+
   return (
-    <div className="grid gap-12 lg:grid-cols-[300px_1fr] items-start">
+    <div
+      ref={containerRef}
+      id="service-section"
+      className="scroll-mt-28 grid gap-12 lg:grid-cols-[300px_1fr] items-start"
+    >
       {/* Sticky Sidebar Directory */}
       <aside className="sticky top-28 hidden lg:block">
         <h2 className="mb-6 text-[0.85rem] font-bold tracking-widest text-faint uppercase">
@@ -44,14 +57,11 @@ export default function ModuleSwitcher() {
             return (
               <button
                 key={m.slug}
-                onClick={() => {
-                  setPicked(m.slug);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
+                onClick={() => handleSelectModule(m.slug)}
                 className={`group flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-all duration-300 ${
                   isActive
                     ? "bg-accent text-card shadow-soft"
-                    : "text-muted hover:bg-surface hover:text-ink"
+                    : "text-muted hover:bg-paper hover:text-ink"
                 }`}
               >
                 <span className="font-semibold text-[0.95rem]">{m.hero.title}</span>
@@ -80,7 +90,7 @@ export default function ModuleSwitcher() {
         <select
           id="module-select"
           value={activeSlug}
-          onChange={(e) => setPicked(e.target.value)}
+          onChange={(e) => handleSelectModule(e.target.value)}
           className="w-full rounded-lg border border-line bg-card px-4 py-3 text-[1rem] font-semibold text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         >
           {modulePages.map((m) => (

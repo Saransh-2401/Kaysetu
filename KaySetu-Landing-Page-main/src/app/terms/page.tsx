@@ -3,9 +3,9 @@ import LegalDoc from "@/components/LegalDoc";
 import { legalPages } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: { absolute: "Terms of Service — KaySetu by Kayease" },
+  title: { absolute: "Terms of Service | KaySetu by Kayease" },
   description:
-    "The terms governing your use of the KaySetu website and ERP + CRM platform by Kayease — intellectual property, disclaimers and limitation of liability.",
+    "The terms governing your use of the KaySetu website and ERP + CRM platform by Kayease: intellectual property, disclaimers and limitation of liability.",
   keywords: [
     "KaySetu terms of service",
     "Kayease terms",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Terms of Service — KaySetu by Kayease",
+    title: "Terms of Service | KaySetu by Kayease",
     description:
       "Terms governing your use of the KaySetu website and ERP + CRM platform.",
     type: "website",
