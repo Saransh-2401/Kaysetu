@@ -1,6 +1,9 @@
 # Reference-only archive of the pre-SaaS platform (not part of this repo)
 Old Project/
 
+# Accidental clones of this repo into itself (cloning creates a "KaySetu" folder)
+KaySetu/
+
 # Python
 .venv/
 __pycache__/
