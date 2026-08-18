@@ -1,3 +1,4 @@
+import Amp from "@/components/Amp";
 import { PageShell, PageHeader } from "@/components/PageChrome";
 
 type LegalContent = {
@@ -24,7 +25,9 @@ export default function LegalDoc({ doc }: { doc: LegalContent }) {
                 <span className="font-mono text-sm text-faint">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                {s.heading}
+                {/* single span: the h2 is a flex row, so Amp's multiple spans
+                    would each become flex items and pick up the gap */}
+                <span><Amp text={s.heading} /></span>
               </h2>
               <p className="mt-3 text-[0.98rem] leading-relaxed text-muted">{s.body}</p>
             </section>

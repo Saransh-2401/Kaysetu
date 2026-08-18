@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import { contactPage } from "@/lib/content";
 import { LeadError, submitLead } from "@/lib/leads";
@@ -90,16 +91,10 @@ export default function ContactForm() {
 
   return (
     <div className="rounded-3xl border border-line bg-card p-7 shadow-float md:p-9">
-      {/* eyebrow pill */}
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/10 px-3 py-1 font-mono text-[0.68rem] font-semibold uppercase tracking-wider text-accent">
-        <Icon name="Headphones" className="h-3.5 w-3.5" strokeWidth={2} />
-        {f.eyebrow}
-      </span>
-
       {/* h1, not h2: the contact hero was removed, so this is the first and
           only top-level heading on the page. Styling is unchanged. */}
-      <h1 className="mt-5 font-display text-[2.1rem] font-bold leading-[1.05] tracking-tight md:text-[2.6rem]">
-        {f.titleLead} <span className="text-accent">{f.titleAccent}</span>
+      <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tight md:text-[2.6rem]">
+        <Amp text={f.titleLead} /> <span className="text-accent"><Amp text={f.titleAccent} /></span>
       </h1>
       <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-muted">{f.note}</p>
       <div className="mt-5 h-1 w-12 rounded-full bg-accent" />

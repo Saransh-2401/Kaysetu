@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import { PageShell } from "@/components/PageChrome";
 import { AutoMedia, Reveal } from "@/components/Motion";
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Book a free demo of KaySetu, the unified ERP + CRM platform by Kayease. Sales, support and office details.",
     type: "website",
+    images: ["/opengraph-image"],
     url: "/contact",
   },
 };
@@ -97,7 +99,7 @@ export default function ContactPage() {
 
                 {/* bottom caption */}
                 <div className="absolute inset-x-5 bottom-5">
-                  <h3 className="font-display text-xl font-bold text-white">{media.title}</h3>
+                  <h3 className="font-display text-xl font-bold text-white"><Amp text={media.title} /></h3>
                   <p className="mt-1.5 max-w-md text-[0.88rem] leading-relaxed text-white/70">
                     {media.caption}
                   </p>
@@ -158,7 +160,7 @@ export default function ContactPage() {
             <Reveal className="lg:sticky lg:top-32 lg:self-start">
               <span className="kicker">{faq.kicker}</span>
               <h2 className="mt-3 font-display text-[1.9rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.4rem]">
-                {faq.title}
+                <Amp text={faq.title} />
               </h2>
               <p className="mt-4 max-w-sm text-[1.02rem] leading-relaxed text-muted">{faq.lead}</p>
             </Reveal>

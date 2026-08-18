@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import { ArrowLeft, Search, HelpCircle, Compass, Home } from "lucide-react";
+import { ArrowLeft, Search, Compass, Home } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -10,11 +10,6 @@ export default function NotFound() {
 
       <main className="flex-1 flex items-center justify-center px-4 py-20">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3.5 py-1.5 text-xs font-mono font-medium text-accent mb-6">
-            <HelpCircle className="w-3.5 h-3.5" />
-            404 · PAGE NOT FOUND
-          </div>
-
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-ink mb-4">
             Lost in the workflow?
           </h1>
@@ -32,11 +27,11 @@ export default function NotFound() {
               Back to Home
             </Link>
             <Link
-              href="/walkthrough"
+              href="/packages"
               className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-white/80 px-6 py-3 text-sm font-semibold text-ink hover:bg-white transition-colors"
             >
               <Compass className="w-4 h-4 text-accent" />
-              Explore Walkthrough
+              Explore Packages
             </Link>
           </div>
 
@@ -46,7 +41,7 @@ export default function NotFound() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Link
-                href="/platform/field-sales-operations"
+                href="/modules?module=field-sales-operations"
                 className="p-3.5 rounded-xl border border-line/10 bg-white/60 hover:bg-white hover:border-accent/30 transition-all text-xs font-medium text-ink flex flex-col justify-between"
               >
                 <span className="font-semibold text-ink block mb-1">Field Sales CRM</span>
@@ -54,7 +49,7 @@ export default function NotFound() {
               </Link>
 
               <Link
-                href="/platform/leads-pipeline"
+                href="/modules?module=leads-pipeline"
                 className="p-3.5 rounded-xl border border-line/10 bg-white/60 hover:bg-white hover:border-accent/30 transition-all text-xs font-medium text-ink flex flex-col justify-between"
               >
                 <span className="font-semibold text-ink block mb-1">Leads & Quotes</span>

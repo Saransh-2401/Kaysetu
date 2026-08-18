@@ -13,7 +13,7 @@ export type SearchEntry = {
 /* Static routes under src/app. Kept here rather than derived at runtime because
    the nav is a client component and has no filesystem access. */
 const pages: SearchEntry[] = [
-  { title: "Walkthrough", href: "/walkthrough", kind: "Page", icon: "Play", keywords: "demo tour product guided" },
+  { title: "Packages", href: "/packages", kind: "Page", icon: "LayoutGrid", keywords: "pricing plans bundles modules P1 P2 P3 P4 P5 P6 P7 P8 add-ons enterprise" },
   { title: "Industries", href: "/industries", kind: "Page", icon: "Building2", keywords: "verticals sectors" },
   { title: "Contact", href: "/contact", kind: "Page", icon: "Mail", keywords: "sales enquiry support talk demo" },
   { title: "About", href: "/about", kind: "Page", icon: "Info", keywords: "company team kayease story" },
@@ -25,7 +25,7 @@ const pages: SearchEntry[] = [
 export const searchIndex: SearchEntry[] = [
   ...modules.items.map((m) => ({
     title: m.name,
-    href: `/walkthrough?module=${m.slug}`,
+    href: `/modules?module=${m.slug}`,
     kind: "Module" as const,
     icon: m.icon,
     keywords: m.desc,

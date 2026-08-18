@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import { AutoMedia, Reveal } from "@/components/Motion";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -82,7 +83,7 @@ export default function Walkthrough({
     <section id="walkthrough" className={className || "mx-auto max-w-[1600px] px-5 py-20 md:py-28"}>
       <Reveal className="mx-auto max-w-4xl text-center">
         <h2 className="font-display text-[2.1rem] font-bold leading-[1.03] tracking-tight balance md:text-[3rem]">
-          {data.title}
+          <Amp text={data.title} />
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-[1.05rem] leading-relaxed text-muted md:text-[1.15rem]">
           {data.lead}

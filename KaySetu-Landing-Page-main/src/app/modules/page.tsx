@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { modulePages } from "@/lib/modulePages";
+import Amp from "@/components/Amp";
 import { Reveal } from "@/components/Motion";
 import Icon from "@/components/Icon";
 import Nav from "@/components/Nav";
@@ -13,7 +14,7 @@ import ModuleSwitcher from "./ModuleSwitcher";
    was one client component that bailout emptied the entire static HTML (no h1,
    no copy, no links). Keeping the page a server component confines the bailout
    to <ModuleSwitcher /> so the rest is crawlable. */
-export default function WalkthroughHub() {
+export default function ModulesHub() {
   return (
     <>
       <Nav />
@@ -44,12 +45,12 @@ export default function WalkthroughHub() {
             <Reveal className="min-w-0">
               <span className="kicker">Interactive product tour</span>
               <h1 className="mt-4 mb-6 font-display text-4xl font-bold tracking-tight text-ink md:text-5xl balance">
-                Interactive ERP + CRM <span className="text-accent">Walkthroughs</span>
+                All 11 modules, <span className="text-accent">explored.</span>
               </h1>
               <p className="max-w-3xl text-lg text-muted md:text-xl balance">
-                Dive deep into every module of the KaySetu platform: field sales,
-                orders, inventory, production, procurement and GST accounts. Select
-                a module below to see exactly how it works.
+                Dive deep into all 11 modules of the KaySetu platform, from agent
+                live tracking to accounts &amp; finance. Select a module below to
+                see exactly how it works.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -89,7 +90,7 @@ export default function WalkthroughHub() {
                 <div className="flex items-center justify-between border-b border-line pb-4">
                   <span className="flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-wider text-faint">
                     <span className="flex h-2 w-2 rounded-full bg-accent" />
-                    Guided walkthrough
+                    Module tour
                   </span>
                   <span className="rounded-full border border-line bg-paper px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
                     Field → ledger
@@ -112,7 +113,7 @@ export default function WalkthroughHub() {
                       <div className="min-w-0 flex-1 rounded-xl border border-transparent px-3 py-2 transition-colors hover:border-line hover:bg-paper/60">
                         <div className="flex items-center justify-between gap-3">
                           <span className="truncate font-display text-[0.98rem] font-bold text-ink">
-                            {m.hero.title}
+                            <Amp text={m.hero.title} />
                           </span>
                           <span className="font-mono text-[0.7rem] text-faint">
                             {String(i + 1).padStart(2, "0")}

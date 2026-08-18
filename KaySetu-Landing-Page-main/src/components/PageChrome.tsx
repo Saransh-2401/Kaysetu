@@ -1,4 +1,5 @@
 import AnnounceBar from "@/components/AnnounceBar";
+import Amp from "@/components/Amp";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ClosingCta from "@/components/ClosingCta";
@@ -41,7 +42,7 @@ export function PageHeader({
       <div className="grid-lines mx-auto max-w-[1600px] px-5 py-20 md:py-28">
         <div className="max-w-3xl">
           <h1 className="font-display text-[2.1rem] font-bold leading-[1.05] tracking-tight balance md:text-[3.2rem]">
-            {title}
+            <Amp text={title} />
           </h1>
           {lead && (
             <p className="mt-6 text-[1.1rem] leading-relaxed text-muted">{lead}</p>

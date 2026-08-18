@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     description:
       "How KaySetu collects, uses and protects your information, and the choices you have.",
     type: "website",
+    images: ["/opengraph-image"],
     url: "/privacy",
   },
 };

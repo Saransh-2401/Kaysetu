@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import OptionWheel from "@/components/ui/OptionWheel";
 import CardSwap, { Card } from "@/components/ui/CardSwap";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import Image from "next/image";
 import Link from "next/link";
@@ -143,7 +144,7 @@ export default function ModuleShowcase() {
       <Reveal>
         <div className="text-center mb-6 md:mb-12 lg:mb-20">
           <h2 className="font-display text-[1.8rem] leading-tight font-medium tracking-tight text-ink md:text-[3.5rem] mb-2 md:mb-4">
-            {modules.title}
+            <Amp text={modules.title} />
           </h2>
           <p className="mx-auto max-w-3xl text-[0.95rem] md:text-[1.3rem] text-faint">
             {modules.lead}
@@ -181,7 +182,7 @@ export default function ModuleShowcase() {
                 Module {activeIdx + 1} of {n}
              </div>
              <h3 className="font-display text-2xl font-bold text-ink">
-                {shortNames[activeIdx]}
+                <Amp text={shortNames[activeIdx]} />
              </h3>
           </div>
 
@@ -253,7 +254,7 @@ export default function ModuleShowcase() {
                         </span>
 
                         <h3 className="font-display text-[1.4rem] md:text-[2rem] xl:text-[2.2rem] 2xl:text-[2.5rem] font-bold tracking-tight text-ink leading-tight pr-2">
-                          {mod.name}
+                          <Amp text={mod.name} />
                         </h3>
 
                         {/* Clamped at every breakpoint: the card is a fixed
@@ -267,7 +268,7 @@ export default function ModuleShowcase() {
                         {/* Real <a> into the module page — the crawlable path
                             from the homepage to /platform/<slug>. */}
                         <Link
-                          href={`/walkthrough?module=${mod.slug}`}
+                          href={`/modules?module=${mod.slug}`}
                           className="group inline-flex w-fit items-center gap-1.5 text-[0.85rem] md:text-[1rem] font-semibold transition-colors"
                           style={{ color: theme.color }}
                         >

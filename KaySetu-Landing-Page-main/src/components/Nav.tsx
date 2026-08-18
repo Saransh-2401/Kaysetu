@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import NavSearch from "@/components/NavSearch";
 import AuthModal, { type AuthMode } from "@/components/AuthModal";
@@ -57,7 +58,7 @@ function FeatureStrip({
 
       <div className="relative flex min-w-0 items-center gap-6">
         <div className="min-w-0">
-          <p className="font-display text-lg font-bold leading-snug">{title}</p>
+          <p className="font-display text-lg font-bold leading-snug"><Amp text={title} /></p>
           <p className="mt-0.5 truncate text-[0.82rem] leading-relaxed text-card/60">{text}</p>
         </div>
       </div>
@@ -72,35 +73,99 @@ function FeatureStrip({
   );
 }
 
-function MenuTile({ icon, label, href, onClick }: { icon: string; label: string; href: string; onClick?: () => void }) {
+function MenuTile({
+  icon,
+  label,
+  href,
+  code,
+  desc,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  href: string;
+  code?: string;
+  desc?: string;
+  onClick?: () => void;
+}) {
   return (
     <a
       href={href}
       onClick={onClick}
-      className="group/tile flex items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_16px_32px_-20px_rgba(16,35,75,0.45)]"
+      className={cn(
+        "group/tile flex min-w-0 gap-3 rounded-xl border border-line bg-card px-3.5 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/35 hover:shadow-[0_16px_32px_-20px_rgba(16,35,75,0.45)]",
+        desc ? "items-start" : "items-center"
+      )}
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-paper text-accent transition-all duration-200 group-hover/tile:border-accent group-hover/tile:bg-accent group-hover/tile:text-white group-hover/tile:shadow-[0_8px_18px_-8px_rgba(0,150,136,0.6)]">
         <Icon name={icon} className="h-[1.15rem] w-[1.15rem]" />
       </span>
-      <span className="flex-1 text-[0.88rem] font-semibold leading-tight text-ink transition-colors duration-200 group-hover/tile:text-accent">
-        {label}
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-[0.88rem] font-semibold leading-tight text-ink transition-colors duration-200 group-hover/tile:text-accent">
+            {label}
+          </span>
+          {code && (
+            <span className="shrink-0 rounded border border-accent/25 bg-accent/8 px-1.5 py-px font-mono text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-accent">
+              {code}
+            </span>
+          )}
+        </span>
+        {desc && (
+          <span className="mt-1 block text-[0.72rem] leading-snug text-faint">
+            {desc}
+          </span>
+        )}
       </span>
-      <ArrowRight className="h-4 w-4 shrink-0 -translate-x-1 text-accent opacity-0 transition-all duration-200 group-hover/tile:translate-x-0 group-hover/tile:opacity-100" />
+      <ArrowRight
+        className={cn(
+          "h-4 w-4 shrink-0 -translate-x-1 text-accent opacity-0 transition-all duration-200 group-hover/tile:translate-x-0 group-hover/tile:opacity-100",
+          desc && "mt-0.5"
+        )}
+      />
     </a>
   );
 }
 
-function MobileSubLink({ icon, label, href, onClick }: { icon: string; label: string; href: string; onClick?: () => void }) {
+function MobileSubLink({
+  icon,
+  label,
+  href,
+  code,
+  desc,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  href: string;
+  code?: string;
+  desc?: string;
+  onClick?: () => void;
+}) {
   return (
     <a
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-[0.88rem] font-medium text-ink/85 transition-colors active:bg-paper"
+      className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2.5 text-[0.88rem] font-medium text-ink/85 transition-colors active:bg-paper"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-paper text-accent">
         <Icon name={icon} className="h-4 w-4" />
       </span>
-      <span className="min-w-0 flex-1 leading-tight">{label}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 leading-tight">
+          <span className="truncate">{label}</span>
+          {code && (
+            <span className="shrink-0 rounded border border-accent/25 bg-accent/8 px-1 py-px font-mono text-[0.55rem] font-semibold uppercase tracking-[0.08em] text-accent">
+              {code}
+            </span>
+          )}
+        </span>
+        {desc && (
+          <span className="mt-0.5 block truncate text-[0.7rem] font-normal leading-snug text-faint">
+            {desc}
+          </span>
+        )}
+      </span>
     </a>
   );
 }
@@ -109,30 +174,79 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<null | "platform" | "industries">(null);
   const [menu, setMenu] = useState<null | "platform" | "industries">(null);
+  // `shown` lags `menu` on close so the panel can play its exit animation
+  // instead of unmounting mid-frame; `closing` picks which animation runs.
+  const [shown, setShown] = useState<null | "platform" | "industries">(null);
+  const [closing, setClosing] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [auth, setAuth] = useState<AuthMode | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const openTimer = useRef<NodeJS.Timeout | null>(null);
+  const closeTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const clearTimers = () => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    openTimer.current = null;
+    closeTimer.current = null;
+  };
 
   const openAuth = (mode: AuthMode) => {
     setOpen(false);
+    clearTimers();
     setMenu(null);
     setAuth(mode);
   };
 
-  const handleMouseEnter = (menuItem?: "platform" | "industries" | null) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (menuItem !== undefined) setMenu(menuItem);
+  // Hover intent: brushing past a trigger on the way to Search or the CTAs
+  // shouldn't flash the menu — the first open waits a beat. Once a panel is
+  // already up (or still animating out), switching is instant.
+  const openMenu = (menuItem: "platform" | "industries") => {
+    clearTimers();
+    if (menu || shown) setMenu(menuItem);
+    else openTimer.current = setTimeout(() => setMenu(menuItem), 80);
   };
+
+  // Re-entering the flyout (or a trigger) cancels a pending close.
+  const cancelClose = () => clearTimers();
 
   const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setMenu(null);
-    }, 150);
+    clearTimers();
+    closeTimer.current = setTimeout(() => setMenu(null), 150);
   };
 
-  // Anything that isn't a dropdown trigger (logo, CTAs, the empty space
-  // between them) closes the flyout the moment the cursor reaches it.
-  const closeMenu = () => handleMouseEnter(null);
+  // Symmetric hover intent for the bar's own items: a plain link (Packages,
+  // Search) sits a few pixels from a trigger, so an instant close there let a
+  // trembling cursor on the boundary flap the flyout open/shut — the whole
+  // bar chrome flashed with it. Closing waits the same beat leaving does,
+  // and re-entering a trigger cancels it.
+  const scheduleClose = handleMouseLeave;
+
+  // Regions far from the triggers (logo, CTAs) still close the flyout the
+  // moment the cursor reaches them.
+  const closeMenu = () => {
+    clearTimers();
+    setMenu(null);
+  };
+
+  // Sync the rendered panel with the desired one: opening (or switching)
+  // updates it immediately; closing waits out the exit animation.
+  useEffect(() => {
+    if (menu) {
+      setShown(menu);
+      setClosing(false);
+      return;
+    }
+    if (!shown) return;
+    setClosing(true);
+    const t = setTimeout(() => {
+      setShown(null);
+      setClosing(false);
+    }, 180);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menu]);
+
+  useEffect(() => clearTimers, []);
 
   // Entering the bar itself closes the flyout — unless the cursor landed
   // straight on a Services/Industries trigger, which owns the open state.
@@ -211,8 +325,11 @@ export default function Nav() {
               <button
                 key={item.label}
                 data-nav-trigger
-                onMouseEnter={() => handleMouseEnter(item.menu!)}
-                onClick={() => setMenu((m) => (m === item.menu ? null : item.menu!))}
+                onMouseEnter={() => openMenu(item.menu!)}
+                onClick={() => {
+                  clearTimers();
+                  setMenu((m) => (m === item.menu ? null : item.menu!));
+                }}
                 className={`flex items-center gap-1 rounded-md px-3 py-2 text-[0.9rem] font-medium transition-colors ${
                   menu === item.menu ? "text-accent" : "text-ink/75 hover:text-ink"
                 }`}
@@ -226,7 +343,7 @@ export default function Nav() {
               <a
                 key={item.label}
                 href={item.href}
-                onMouseEnter={() => handleMouseEnter(null)}
+                onMouseEnter={scheduleClose}
                 className="rounded-md px-3 py-2 text-[0.9rem] font-medium text-ink/75 transition-colors hover:text-ink"
               >
                 {item.label}
@@ -234,7 +351,7 @@ export default function Nav() {
             )
           )}
 
-          <span onMouseEnter={closeMenu} className="ml-2 flex items-center">
+          <span onMouseEnter={scheduleClose} className="ml-2 flex items-center">
             <NavSearch variant="icon" />
           </span>
         </nav>
@@ -259,7 +376,7 @@ export default function Nav() {
       </div>
 
       {/* desktop floating flyout */}
-      {menu && (
+      {shown && (
         <div className="absolute inset-x-0 top-full hidden px-2 lg:block pointer-events-none">
           {/* pt-2 is the visual gap under the bar, but it lives *inside* the
               hover region — an invisible bridge so crossing it doesn't count
@@ -268,17 +385,27 @@ export default function Nav() {
             className={cn(
               // Same curve and duration as the bar, so an open flyout narrows
               // in step with it instead of snapping to the new width.
-              "pointer-events-auto mx-auto pt-2 transition-[max-width] duration-500 ease-nav motion-reduce:transition-none",
+              "mx-auto pt-2 transition-[max-width] duration-500 ease-nav motion-reduce:transition-none",
+              // A closing panel is a ghost — it must not catch the cursor and
+              // block clicks on whatever is underneath it.
+              closing ? "pointer-events-none" : "pointer-events-auto",
               scrolled ? "max-w-5xl" : "max-w-6xl"
             )}
-            onMouseEnter={() => handleMouseEnter()}
+            onMouseEnter={cancelClose}
             onMouseLeave={handleMouseLeave}
           >
-            <div className="animate-dropdown overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl transition-all duration-300">
+            <div
+              className={cn(
+                "overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl",
+                closing ? "animate-dropdown-out" : "animate-dropdown"
+              )}
+            >
             {/* thin accent hairline across the top */}
             <span className="block h-0.5 w-full bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-            <div className="p-7">
-              {menu === "platform" ? (
+            {/* Keyed by menu so switching Modules ↔ Industries cross-fades the
+                content instead of hard-swapping it. */}
+            <div key={shown} className="animate-menu-swap p-7">
+              {shown === "platform" ? (
                 <>
                   <div className="grid grid-cols-3 gap-x-8">
                     {platformMenu.groups.map((g, i) => (
@@ -331,7 +458,7 @@ export default function Nav() {
       {/* mobile floating menu */}
       {open && (
         <div className="absolute left-2 right-2 top-full mt-2 lg:hidden">
-          <div className="overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl">
+          <div className="animate-dropdown overflow-hidden rounded-2xl border border-line bg-card/95 shadow-xl backdrop-blur-xl">
             <div className="border-b border-line-2 px-5 py-3">
               <NavSearch onNavigate={() => setOpen(false)} />
             </div>

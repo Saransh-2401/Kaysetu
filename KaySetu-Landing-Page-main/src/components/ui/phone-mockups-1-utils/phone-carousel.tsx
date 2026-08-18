@@ -28,6 +28,28 @@ const FAN = [
   { x: 142, scale: 0.68, rotate: 24, z: 10, opacity: 0.5 },
 ];
 
+/* On phones the full fan is wider than the viewport, so the side screens get
+   sliced off at the section edge. This tighter fan (closer, smaller
+   neighbours) keeps the whole spread inside a 375px screen. */
+const FAN_COMPACT = [
+  { x: 0, scale: 1, rotate: 0, z: 30, opacity: 1 },
+  { x: 56, scale: 0.64, rotate: 22, z: 20, opacity: 0.9 },
+  { x: 96, scale: 0.5, rotate: 26, z: 10, opacity: 0.4 },
+];
+
+/** True below Tailwind's `sm` breakpoint; false during SSR (desktop-first). */
+function useCompact() {
+  const [compact, setCompact] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setCompact(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return compact;
+}
+
 export function PhoneCarousel({
   images,
   className,
@@ -36,6 +58,8 @@ export function PhoneCarousel({
   const count = images.length;
   const [active, setActive] = React.useState(0);
   const rootRef = React.useRef<HTMLDivElement>(null);
+  const compact = useCompact();
+  const fanSet = compact ? FAN_COMPACT : FAN;
 
   const go = React.useCallback(
     (dir: number) => setActive((i) => (i + dir + count) % count),
@@ -81,7 +105,7 @@ export function PhoneCarousel({
       aria-label="App screens"
     >
       <div
-        className="relative h-[470px] xs:h-[525px] sm:h-[620px] lg:h-[660px] [perspective:1800px]"
+        className="relative h-[400px] xs:h-[440px] sm:h-[620px] lg:h-[660px] [perspective:1800px]"
         onKeyDown={(e) => {
           if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
           if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
@@ -90,7 +114,7 @@ export function PhoneCarousel({
         {images.map((item, i) => {
           const offset = offsetOf(i);
           const depth = Math.abs(offset);
-          const fan = FAN[Math.min(depth, maxDepth)];
+          const fan = fanSet[Math.min(depth, maxDepth)];
           const dir = Math.sign(offset);
           const isActive = offset === 0;
 
@@ -107,11 +131,11 @@ export function PhoneCarousel({
                 opacity: depth > maxDepth ? 0 : fan.opacity,
                 pointerEvents: depth > maxDepth ? "none" : undefined,
               }}
-              className="absolute left-1/2 top-1/2 w-[210px] xs:w-[236px] sm:w-[280px] lg:w-[296px] transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform-style:preserve-3d]"
+              className="absolute left-1/2 top-1/2 w-[176px] xs:w-[196px] sm:w-[280px] lg:w-[296px] transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform-style:preserve-3d]"
             >
               <div className="relative aspect-[9/19] w-full overflow-hidden rounded-[2.2rem] border-[7px] border-slate-900 bg-white shadow-[0_30px_70px_rgba(15,23,42,0.18)] sm:rounded-[2.5rem] sm:border-[8px]">
                 {/* notch */}
-                <div className="absolute inset-x-0 top-0 z-30 mx-14 h-5 rounded-b-2xl bg-slate-900 sm:h-6 sm:rounded-b-3xl" />
+                <div className="absolute inset-x-0 top-0 z-30 mx-11 h-4 rounded-b-2xl bg-slate-900 sm:mx-14 sm:h-6 sm:rounded-b-3xl" />
                 {item.content ? (
                   <div className="h-full w-full overflow-hidden">{item.content}</div>
                 ) : (

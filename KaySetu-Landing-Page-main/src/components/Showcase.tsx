@@ -1,4 +1,5 @@
 import { ArrowRight, Check, Contact, Navigation, ShoppingCart } from "lucide-react";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import AppDownloadButton from "@/components/AppDownloadButton";
 import { Reveal, Counter } from "@/components/Motion";
@@ -18,12 +19,12 @@ export function ProblemShift() {
     <section className="mx-auto max-w-4xl px-5 py-24 text-center md:py-32">
       <Reveal delay={60}>
         <p className="font-display text-2xl font-semibold leading-snug text-faint balance md:text-[2.1rem]">
-          {problemShift.old}
+          <Amp text={problemShift.old} />
         </p>
       </Reveal>
       <Reveal delay={140}>
         <p className="mt-4 font-display text-2xl font-bold leading-snug text-ink balance md:text-[2.1rem]">
-          {problemShift.new}
+          <Amp text={problemShift.new} />
         </p>
       </Reveal>
     </section>
@@ -111,12 +112,6 @@ export function ProductReveal() {
               alt="KaySetu"
               className="mb-6 h-8 w-auto drop-shadow-sm md:h-11"
             />
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                Native iOS &amp; Android
-              </span>
-            </div>
           </Reveal>
 
           <Reveal delay={100}>
@@ -176,7 +171,7 @@ export function BuiltFor() {
     <section id="built-for" className="mx-auto max-w-[1600px] px-5 py-20 md:py-28">
       <Reveal className="max-w-3xl">
         <h2 className="font-display text-[1.9rem] font-bold leading-[1.08] tracking-tight balance md:text-[2.7rem]">
-          {builtFor.title}
+          <Amp text={builtFor.title} />
         </h2>
       </Reveal>
 
@@ -193,7 +188,7 @@ export function BuiltFor() {
             <span className="mt-5 font-mono text-[0.62rem] uppercase tracking-wider text-accent">
               {tile.tag}
             </span>
-            <h3 className="mt-1 font-display text-xl font-bold leading-tight">{tile.title}</h3>
+            <h3 className="mt-1 font-display text-xl font-bold leading-tight"><Amp text={tile.title} /></h3>
             <ul className="mt-4 space-y-2">
               {tile.points.map((p) => (
                 <li key={p} className="flex items-start gap-2 text-[0.9rem] text-muted">
@@ -216,7 +211,7 @@ export function Toolbox() {
       <div className="mx-auto max-w-[1600px] px-5">
         <Reveal className="text-center">
           <h2 className="font-display text-[1.6rem] font-bold tracking-tight balance md:text-[2rem]">
-            {toolbox.title}
+            <Amp text={toolbox.title} />
           </h2>
         </Reveal>
         <Reveal delay={80} className="mt-8 flex flex-wrap items-center justify-center gap-2.5">

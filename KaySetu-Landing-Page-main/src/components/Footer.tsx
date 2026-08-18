@@ -4,7 +4,7 @@ import { footer } from "@/lib/content";
 export default function Footer() {
   return (
     <footer className="mt-auto bg-[#071738] font-sans text-white border-t border-white/10">
-      <div className="mx-auto max-w-[1600px] px-5 pt-16 pb-12">
+      <div className="mx-auto max-w-[1600px] px-5 pt-10 pb-6">
         <div className="grid gap-8 lg:grid-cols-6 xl:gap-8">
           
           {/* Brand Column with Right Divider */}
@@ -47,11 +47,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-14 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[0.78rem] text-white/60">
+        <div className="mt-8 border-t border-white/10 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[0.78rem] text-white/60">
           <div>{footer.copyright}</div>
-          <div className="flex items-center gap-2">
-            <span>{footer.contact.badge}</span>
-          </div>
         </div>
       </div>
     </footer>

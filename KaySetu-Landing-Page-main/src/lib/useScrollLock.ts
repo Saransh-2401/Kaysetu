@@ -22,12 +22,16 @@ function lockScroll() {
   const prevOverflowY = root.style.overflowY;
   const prevPaddingRight = root.style.paddingRight;
 
-  // Measure across the change: `scrollbar-gutter: stable` already reserves the
-  // gutter on modern browsers, so the delta is 0 there and we add nothing.
-  // Where it isn't supported the scrollbar vanishes and we backfill its width.
-  const widthBefore = root.clientWidth;
+  // Measure the *layout* width (body's rect) across the change — NOT
+  // `clientWidth`. With `scrollbar-gutter: stable` Chrome keeps the gutter
+  // reserved under `overflow: hidden` but still reports a 15px-wider
+  // clientWidth, so a clientWidth delta double-compensates: the page slid
+  // ~7px left on every lock, the nav slid under a stationary cursor, and
+  // the hover re-fired — an open/close flap of the flyout. Body's rect
+  // tracks the real content box, so the delta is 0 when the gutter holds.
+  const widthBefore = document.body.getBoundingClientRect().width;
   root.style.overflowY = "hidden";
-  const gutter = root.clientWidth - widthBefore;
+  const gutter = document.body.getBoundingClientRect().width - widthBefore;
 
   if (gutter > 0) {
     const basePadding = parseFloat(getComputedStyle(root).paddingRight) || 0;

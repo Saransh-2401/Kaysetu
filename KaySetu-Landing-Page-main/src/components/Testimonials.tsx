@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import { Reveal } from "@/components/Motion";
 import { testimonials } from "@/lib/content";
@@ -31,7 +32,7 @@ export default function Testimonials() {
           {/* LEFT — header + role picker */}
           <Reveal>
             <h2 className="font-display text-[1.9rem] font-bold leading-[1.1] tracking-tight text-card balance md:text-[2.6rem]">
-              {testimonials.title}
+              <Amp text={testimonials.title} />
             </h2>
             <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-card/55">
               {testimonials.note}
@@ -62,7 +63,7 @@ export default function Testimonials() {
                 key={i}
                 className="reveal is-in font-display text-[1.45rem] font-medium leading-snug text-card balance md:text-[2rem]"
               >
-                {t.quote}
+                <Amp text={t.quote} />
               </blockquote>
               <figcaption className="mt-8 flex items-center justify-between border-t border-card/10 pt-6">
                 <div className="flex items-center gap-3">

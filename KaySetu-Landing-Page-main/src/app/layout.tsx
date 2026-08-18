@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   Inter,
   JetBrains_Mono,
@@ -100,6 +101,11 @@ export const metadata: Metadata = {
   },
 };
 
+// GA4 is gated on the env var so dev/preview builds stay untracked: set
+// NEXT_PUBLIC_GA_ID (a G-XXXXXXX measurement ID) in the production
+// environment and analytics goes live with no code change.
+const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -159,6 +165,20 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <PageLoader />
         {children}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}');`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

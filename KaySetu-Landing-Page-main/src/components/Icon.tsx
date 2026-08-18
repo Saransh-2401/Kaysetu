@@ -66,6 +66,14 @@ import {
   Percent,
   Scan,
   Receipt,
+  Calendar,
+  CheckSquare,
+  Target,
+  TrendingUp,
+  ArrowRightLeft,
+  ChevronRight,
+  ChevronDown,
+  Check,
   type LucideIcon,
 } from "lucide-react";
 
@@ -140,6 +148,18 @@ const map: Record<string, LucideIcon> = {
   Percent,
   Scan,
   Receipt,
+  // Module walkthrough step icons — these were referenced by modulePages.ts
+  // but never mapped, so they silently fell back to the Layers glyph.
+  Calendar,
+  CheckSquare,
+  Target,
+  TrendingUp,
+  ArrowRightLeft,
+  // Used by the walkthrough module switcher — was falling back to Layers.
+  ChevronRight,
+  // Used by the mobile module dropdown.
+  ChevronDown,
+  Check,
 };
 
 export default function Icon({

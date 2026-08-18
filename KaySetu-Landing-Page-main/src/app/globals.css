@@ -194,7 +194,7 @@ body {
 details > summary { list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 
-/* Nav mega-menu entrance */
+/* Nav mega-menu entrance / exit */
 @keyframes dropdownIn {
   from { opacity: 0; transform: translateY(-8px) scale(0.99); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -203,8 +203,24 @@ details > summary::-webkit-details-marker { display: none; }
   animation: dropdownIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: top center;
 }
+@keyframes dropdownOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.99); }
+}
+.animate-dropdown-out {
+  animation: dropdownOut 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  transform-origin: top center;
+}
+/* Cross-fade when the open panel swaps between menus */
+@keyframes menuSwap {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-menu-swap { animation: menuSwap 0.2s ease both; }
 @media (prefers-reduced-motion: reduce) {
-  .animate-dropdown { animation: none; }
+  .animate-dropdown,
+  .animate-dropdown-out,
+  .animate-menu-swap { animation: none; }
 }
 
 /* ============================================================
@@ -320,6 +336,18 @@ html.js .word-reveal.is-in .word-reveal-word {
 .group:hover .marquee-track,
 .marquee-track:hover {
   animation-play-state: paused;
+}
+
+/* Hero atmosphere — slow drifting glow blobs behind the home hero */
+@keyframes hero-blob-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(2.5rem, -1.5rem, 0) scale(1.07); }
+}
+.hero-blob { animation: hero-blob-drift 16s ease-in-out infinite; }
+.hero-blob-slow { animation: hero-blob-drift 24s ease-in-out infinite reverse; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-blob,
+  .hero-blob-slow { animation: none; }
 }
 
 /* Live-data shimmer used inside coded product mockups */

@@ -12,15 +12,15 @@ export const brand = {
 
 export const announce = {
   text: "KaySetu unifies field sales, distribution and accounts in one real-time platform",
-  linkLabel: "See the walkthrough",
-  href: "/#walkthrough",
+  linkLabel: "Explore the packages",
+  href: "/packages",
 };
 
 export const nav = {
   primary: [
-    { label: "Services", menu: "platform" as const },
+    { label: "Modules", menu: "platform" as const },
     { label: "Industries", menu: "industries" as const },
-    { label: "Walkthrough", href: "/walkthrough" },
+    { label: "Packages", href: "/packages" },
     { label: "Contact", href: "/contact" },
   ],
   // Auth lives on the product hosts, not the marketing site: `signup` is the
@@ -33,42 +33,44 @@ export const nav = {
   brochure: { label: "Brochure", href: "/brochure/kaysetu-brochure.pdf" },
 };
 
+// The Modules menu mirrors the platform registry 1:1 — all 11 modules with
+// their registry codes and coverage. `desc` is the module's "what it covers"
+// line; keep codes and coverage in sync with packages.base / modulePages.ts.
 export const platformMenu = {
   groups: [
     {
       title: "Sales & Field",
       links: [
-        { icon: "MapPin", label: "Agent Live Tracking", href: "/walkthrough?module=agent-live-tracking" },
-        { icon: "Navigation", label: "Field Sales Operations", href: "/walkthrough?module=field-sales-operations" },
-        { icon: "Contact", label: "Leads & Pipeline", href: "/walkthrough?module=leads-pipeline" },
-        { icon: "ReceiptText", label: "Sales Orders & Dispatch", href: "/walkthrough?module=sales-orders-dispatch" },
+        { code: "TRACK", icon: "MapPin", label: "Agent Live Tracking", desc: "GPS attendance, live map, route replay, tracking health", href: "/modules?module=agent-live-tracking" },
+        { code: "FIELD", icon: "Navigation", label: "Field Sales Operations", desc: "Beat plans, visits, field orders, collections, expenses, targets", href: "/modules?module=field-sales-operations" },
+        { code: "CRM", icon: "Contact", label: "Leads & Pipeline", desc: "Leads, opportunities, funnel, follow-ups", href: "/modules?module=leads-pipeline" },
+        { code: "ORDERS", icon: "ReceiptText", label: "Sales Orders & Dispatch", desc: "Order approval chain, pick lists, delivery notes, invoicing", href: "/modules?module=sales-orders-dispatch" },
       ],
     },
     {
       title: "Operations",
       links: [
-        { icon: "Boxes", label: "Inventory & Warehouse", href: "/walkthrough?module=inventory-warehouse" },
-        { icon: "Factory", label: "Production", href: "/walkthrough?module=production" },
-        { icon: "ShoppingCart", label: "Procurement", href: "/walkthrough?module=procurement" },
-        { icon: "Landmark", label: "Accounts & Finance", href: "/walkthrough?module=accounts-finance" },
+        { code: "INV", icon: "Boxes", label: "Inventory & Warehouse", desc: "Warehouses, stock ledger, adjustments, transfers", href: "/modules?module=inventory-warehouse" },
+        { code: "PROD", icon: "Factory", label: "Production", desc: "BOM, work orders, job cards, production planning", href: "/modules?module=production" },
+        { code: "PURCH", icon: "ShoppingCart", label: "Procurement", desc: "Suppliers, material requests, purchase orders, GRN", href: "/modules?module=procurement" },
+        { code: "BOOKS", icon: "Landmark", label: "Accounts & Finance", desc: "Ledgers, invoices, bills, payments, GST hub, banking", href: "/modules?module=accounts-finance" },
       ],
     },
     {
       title: "Channel & Team",
       links: [
-        { icon: "Share2", label: "Distribution Network", href: "/walkthrough?module=distribution-network" },
-        { icon: "CalendarCheck", label: "Attendance & Leave", href: "/walkthrough?module=attendance-leave" },
-        { icon: "Plane", label: "Travel Allowance", href: "/walkthrough?module=travel-allowance" },
-        { icon: "BarChart3", label: "Insights & Reports", href: "/walkthrough?module=insights-reports" },
+        { code: "DIST", icon: "Share2", label: "Distribution Network", desc: "Distributors, allocation, stock requests, distributor invoices", href: "/modules?module=distribution-network" },
+        { code: "ATT", icon: "CalendarCheck", label: "Attendance & Leave", desc: "Office attendance, leave management, holidays", href: "/modules?module=attendance-leave" },
+        { code: "TA", icon: "Plane", label: "Travel Allowance", desc: "TA claims with GPS-auto distance and approval chain", href: "/modules?module=travel-allowance" },
       ],
     },
   ],
   promo: {
     kicker: "Overview",
-    title: "See the whole connected workflow",
+    title: "All 11 modules, one connected workflow",
     text: "Lead → visit → order → dispatch → invoice → ledger. One system.",
-    cta: "Explore the workspace",
-    href: "/walkthrough",
+    cta: "See the packages",
+    href: "/packages",
   },
 };
 
@@ -162,14 +164,14 @@ export const modules = {
   // crawlable links into the module pages from the homepage, so keep them in
   // sync with modulePages.ts.
   items: [
-    { icon: "MapPin", slug: "agent-live-tracking", name: "Agent Live Tracking", desc: "Real-time field force monitoring with GPS attendance, live map, and route replay." },
-    { icon: "Navigation", slug: "field-sales-operations", name: "Field Sales Operations", desc: "Tools for beat planning, visit logging, field orders, collections, and expense management." },
+    { icon: "MapPin", slug: "agent-live-tracking", name: "Agent Live Tracking", desc: "Real-time field force monitoring with GPS attendance, live map, route replay, and tracking health." },
+    { icon: "Navigation", slug: "field-sales-operations", name: "Field Sales Operations", desc: "Beat plans, visit logging, field orders, collections, expenses, and targets in one field toolkit." },
     { icon: "ReceiptText", slug: "sales-orders-dispatch", name: "Sales Orders & Dispatch", desc: "Manage fulfillment with order approval chains, warehouse pick lists, delivery notes, and invoicing." },
     { icon: "Share2", slug: "distribution-network", name: "Distribution Network", desc: "Handle distributor profiles, product allocations, stock requests, and invoicing for external partners." },
     { icon: "Boxes", slug: "inventory-warehouse", name: "Inventory & Warehouse", desc: "Track physical stock across locations with a real-time ledger, adjustments, and seamless transfers." },
     { icon: "Factory", slug: "production", name: "Production", desc: "Streamline manufacturing with Bills of Materials (BOM), work orders, job cards, and planning." },
-    { icon: "ShoppingCart", slug: "procurement", name: "Procurement", desc: "Manage raw material purchasing, supplier databases, purchase orders (POs), and GRNs." },
-    { icon: "Landmark", slug: "accounts-finance", name: "Accounts & Finance", desc: "Track ledgers, handle invoices and vendor bills, record payments, and manage GST compliance." },
+    { icon: "ShoppingCart", slug: "procurement", name: "Procurement", desc: "Manage suppliers, material requests, purchase orders (POs), and GRN-based receiving." },
+    { icon: "Landmark", slug: "accounts-finance", name: "Accounts & Finance", desc: "Ledgers, invoices, bills and payments, with a built-in GST hub and banking." },
     { icon: "Contact", slug: "leads-pipeline", name: "Leads & Pipeline", desc: "Capture and track leads, monitor opportunities through the sales funnel, and manage automated follow-ups." },
     { icon: "CalendarCheck", slug: "attendance-leave", name: "Attendance & Leave", desc: "Manage office attendance, process leave requests, and maintain the company holiday calendar." },
     { icon: "Plane", slug: "travel-allowance", name: "Travel Allowance", desc: "Automate travel expense claims using GPS-auto distance calculations and approval chains." },
@@ -500,28 +502,28 @@ export const footer = {
     {
       title: "Sales & Field",
       links: [
-        { label: "Agent Live Tracking", href: "/walkthrough?module=agent-live-tracking" },
-        { label: "Field Sales Operations", href: "/walkthrough?module=field-sales-operations" },
-        { label: "Leads & Pipeline", href: "/walkthrough?module=leads-pipeline" },
-        { label: "Sales Orders & Dispatch", href: "/walkthrough?module=sales-orders-dispatch" },
+        { label: "Agent Live Tracking", href: "/modules?module=agent-live-tracking" },
+        { label: "Field Sales Operations", href: "/modules?module=field-sales-operations" },
+        { label: "Leads & Pipeline", href: "/modules?module=leads-pipeline" },
+        { label: "Sales Orders & Dispatch", href: "/modules?module=sales-orders-dispatch" },
       ],
     },
     {
       title: "Operations",
       links: [
-        { label: "Inventory & Warehouse", href: "/walkthrough?module=inventory-warehouse" },
-        { label: "Production", href: "/walkthrough?module=production" },
-        { label: "Procurement", href: "/walkthrough?module=procurement" },
-        { label: "Accounts & Finance", href: "/walkthrough?module=accounts-finance" },
+        { label: "Inventory & Warehouse", href: "/modules?module=inventory-warehouse" },
+        { label: "Production", href: "/modules?module=production" },
+        { label: "Procurement", href: "/modules?module=procurement" },
+        { label: "Accounts & Finance", href: "/modules?module=accounts-finance" },
       ],
     },
     {
       title: "Channel & Team",
       links: [
-        { label: "Distribution Network", href: "/walkthrough?module=distribution-network" },
-        { label: "Attendance & Leave", href: "/walkthrough?module=attendance-leave" },
-        { label: "Travel Allowance", href: "/walkthrough?module=travel-allowance" },
-        { label: "Insights & Reports", href: "/walkthrough?module=insights-reports" },
+        { label: "Distribution Network", href: "/modules?module=distribution-network" },
+        { label: "Attendance & Leave", href: "/modules?module=attendance-leave" },
+        { label: "Travel Allowance", href: "/modules?module=travel-allowance" },
+        { label: "All 11 modules", href: "/modules" },
       ],
     },
     {
@@ -842,8 +844,8 @@ export const showcaseHero = {
   titleAccent: "one screen.",
   subhead:
     "KaySetu turns scattered spreadsheets, WhatsApp threads and five disconnected tools into a single, real-time workflow, from the first lead to the ledger entry.",
-  primary: { label: "Explore the portal", href: "#walkthrough" },
-  secondary: { label: "Watch the walkthrough", href: "#walkthrough" },
+  primary: { label: "Explore the portal", href: "/packages" },
+  secondary: { label: "See the packages", href: "/packages" },
   trustLabel: "Built for fast-moving businesses across",
   trust: [
     "FMCG",
@@ -871,7 +873,7 @@ export const homeHero = {
   titleAccent: "Stronger Growth.",
   subhead:
     "KaySetu unifies your sales, distribution, operations, finance and workforce on one intelligent platform built for growing businesses.",
-  primary: { label: "Explore Packages", href: "/#packages" },
+  primary: { label: "Explore Packages", href: "/packages" },
   // Editable banner illustration (left/foreground scene). Swap the file
   // in /public to change it. Set `src` to "" to hide the image.
   banner: {

@@ -1,4 +1,5 @@
 import { ArrowRight, ArrowUpRight, Check, Circle, X, Minus } from "lucide-react";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import MagicBento from "@/components/MagicBento";
 import {
@@ -63,7 +64,7 @@ function SectionHead({
           dark ? "text-card" : "text-ink"
         }`}
       >
-        {title}
+        {typeof title === "string" ? <Amp text={title} /> : title}
       </h2>
       {lead && (
         <p
@@ -150,9 +151,9 @@ export function Hero() {
             </span>
           </div>
           <h1 className="animate-fade-up delay-1 font-display text-[3rem] font-extrabold leading-[1.08] tracking-tight md:text-[4.4rem]">
-            {hero.titleLead}
+            <Amp text={hero.titleLead} />
             <br />
-            <span className="accent-box">{hero.titleAccent}</span>
+            <span className="accent-box"><Amp text={hero.titleAccent} /></span>
           </h1>
           <p className="animate-fade-up delay-2 mt-6 max-w-xl text-[1.1rem] leading-relaxed text-muted">
             {hero.subhead}
@@ -236,7 +237,7 @@ export function Problem() {
                 </span>
               </div>
               <p className="font-display text-[1.1rem] font-bold leading-snug text-ink transition-colors group-hover:text-accent">
-                {p.pain}
+                <Amp text={p.pain} />
               </p>
             </div>
 
@@ -248,7 +249,7 @@ export function Problem() {
         ))}
       </div>
       <p className="mt-10 max-w-2xl font-display text-xl font-semibold text-ink md:text-2xl">
-        {problem.closing}
+        <Amp text={problem.closing} />
       </p>
     </Section>
   );
@@ -300,7 +301,7 @@ export function Modules() {
                     {(m as any).code}
                   </span>
                 )}
-                <h3 className="font-display font-semibold leading-snug text-ink">{m.name}</h3>
+                <h3 className="font-display font-semibold leading-snug text-ink"><Amp text={m.name} /></h3>
               </div>
               <p className="mt-1.5 text-[0.86rem] leading-relaxed text-muted">{m.desc}</p>
             </div>
@@ -339,7 +340,7 @@ export function Spotlights() {
                   </span>
                 </div>
                 <h2 className="font-display text-[1.8rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.4rem]">
-                  {s.title}
+                  <Amp text={s.title} />
                 </h2>
                 <div className="mt-6 flex flex-wrap gap-2">
                   {s.roles.map((r) => (
@@ -427,7 +428,7 @@ export function Distributor() {
               </span>
             </div>
             <h2 className="font-display text-[1.8rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.3rem]">
-              {distributor.title}
+              <Amp text={distributor.title} />
             </h2>
             <p className="mt-5 text-[1.02rem] leading-relaxed text-muted">{distributor.body}</p>
           </div>
@@ -485,7 +486,7 @@ export function Insights() {
               <span className={iconTile}>
                 <Icon name={d.icon} className="h-5 w-5" />
               </span>
-              <h3 className="font-display font-semibold text-ink">{d.name}</h3>
+              <h3 className="font-display font-semibold text-ink"><Amp text={d.name} /></h3>
             </div>
             <ul className="mt-5 space-y-2.5">
               {d.points.map((p) => (
@@ -499,7 +500,7 @@ export function Insights() {
         ))}
       </div>
       <p className="mt-10 max-w-2xl border-l-2 border-accent pl-4 font-display text-lg font-medium italic text-ink">
-        {insights.quote}
+        <Amp text={insights.quote} />
       </p>
     </Section>
   );
@@ -537,7 +538,7 @@ export function SocialProof() {
       <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-16">
         <div>
           <h2 className="font-display text-[1.8rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.3rem]">
-            {socialProof.title}
+            <Amp text={socialProof.title} />
           </h2>
           <p className="mt-5 text-[1.02rem] leading-relaxed text-muted">{socialProof.lead}</p>
         </div>
@@ -687,7 +688,7 @@ export function Competitive() {
       </div>
       <blockquote className="mx-auto mt-12 max-w-3xl text-center font-display text-xl font-semibold leading-snug text-ink md:text-2xl">
         <span className="text-accent">“</span>
-        {competitive.quote}
+        <Amp text={competitive.quote} />
         <span className="text-accent">”</span>
       </blockquote>
     </Section>
@@ -743,7 +744,7 @@ export function Packages() {
                 )}
               </div>
               <h3 className={`mt-2 font-display text-lg font-bold ${featured ? "text-card" : "text-ink"}`}>
-                {p.name}
+                <Amp text={p.name} />
               </h3>
               <ModuleChips codes={p.modules} />
             </div>
@@ -761,7 +762,7 @@ export function Packages() {
         {packages.addons.map((a) => (
           <div key={a.code} className="rounded-2xl border border-dashed border-line bg-paper/40 p-6">
             <span className="font-mono text-[0.7rem] font-medium tracking-wider text-accent">{a.code}</span>
-            <h3 className="mt-2 font-display text-lg font-bold text-ink">{a.name}</h3>
+            <h3 className="mt-2 font-display text-lg font-bold text-ink"><Amp text={a.name} /></h3>
             <ModuleChips codes={a.modules} />
           </div>
         ))}
@@ -815,7 +816,7 @@ export function FinalCta() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-accent/12 to-transparent" />
         <div className="relative">
           <h2 className="mx-auto max-w-2xl font-display text-3xl font-bold leading-tight text-card balance md:text-5xl">
-            {finalCta.title}
+            <Amp text={finalCta.title} />
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-[1.05rem] leading-relaxed text-card/65">
             {finalCta.body}

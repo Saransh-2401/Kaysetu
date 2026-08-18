@@ -16,5 +16,5 @@ export default async function ModulePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  redirect(`/walkthrough?module=${slug}`);
+  redirect(`/modules?module=${slug}`);
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import { PageShell, PageHeader } from "@/components/PageChrome";
 import { aboutPage } from "@/lib/content";
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "Why Kayease built KaySetu: one connected system for sales, field operations, inventory, production, procurement and accounts.",
     type: "website",
+    images: ["/opengraph-image"],
     url: "/about",
   },
 };
@@ -48,7 +50,7 @@ export default function AboutPage() {
       <section className="mx-auto max-w-[1600px] px-5 py-20 md:py-28">
         <div className="grid gap-10 md:grid-cols-[0.9fr_1.1fr]">
           <h2 className="font-display text-[1.9rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.4rem]">
-            {p.story.title}
+            <Amp text={p.story.title} />
           </h2>
           <div className="space-y-5 text-[1.02rem] leading-relaxed text-muted">
             {p.story.paragraphs.map((para, i) => (
@@ -67,7 +69,7 @@ export default function AboutPage() {
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-card text-accent">
                   <Icon name={v.icon} className="h-5 w-5" />
                 </span>
-                <h3 className="mt-4 font-display text-lg font-bold">{v.title}</h3>
+                <h3 className="mt-4 font-display text-lg font-bold"><Amp text={v.title} /></h3>
                 <p className="mt-2 text-[0.92rem] leading-relaxed text-muted">{v.text}</p>
               </div>
             ))}

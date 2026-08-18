@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
+import Amp from "@/components/Amp";
 import Icon from "@/components/Icon";
 import { PageShell } from "@/components/PageChrome";
 import { Reveal } from "@/components/Motion";
@@ -283,6 +284,7 @@ export async function generateMetadata({
       title: ind.seo.title,
       description: ind.seo.description,
       type: "website",
+      images: ["/opengraph-image"],
       url,
       siteName: "KaySetu",
       locale: "en_IN",
@@ -328,7 +330,7 @@ function HeroPanel({ ind }: { ind: IndustryPage }) {
 
         <div className="p-6 sm:p-7">
           {/* Stat Tiles Row */}
-          <div className="grid grid-cols-3 gap-3.5">
+          <div className="grid gap-2.5 sm:grid-cols-3 sm:gap-3.5">
             {ind.hero.stats.map((s, idx) => (
               <div
                 key={s.label}
@@ -343,7 +345,7 @@ function HeroPanel({ ind }: { ind: IndustryPage }) {
                     LIVE
                   </span>
                 </div>
-                <div className="mt-2 font-display text-[1.15rem] sm:text-[1.35rem] font-bold leading-none text-ink transition-transform duration-300 group-hover:scale-105 group-hover:text-accent-ink">
+                <div className="mt-2 min-w-0 break-words font-display text-[1.15rem] sm:text-[1.35rem] font-bold leading-tight text-ink transition-transform duration-300 group-hover:scale-105 group-hover:text-accent-ink">
                   {s.value}
                 </div>
                 <div className="mt-1.5 text-[0.7rem] font-medium leading-tight text-muted">
@@ -460,21 +462,10 @@ export default async function IndustryPage({
               <span className="text-accent font-semibold">{ind.name}</span>
             </nav>
 
-            <span className="group inline-flex items-center gap-2.5 rounded-full border border-accent/25 bg-card/90 backdrop-blur px-4 py-1.5 text-[0.82rem] font-semibold text-ink shadow-soft transition-all duration-300 hover:border-accent hover:shadow-float">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-75 animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-              </span>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:bg-accent group-hover:text-white">
-                <Icon name={ind.icon} className="h-3.5 w-3.5" />
-              </span>
-              {ind.eyebrow}
-            </span>
-
-            <h1 className="mt-6 font-display text-[2.4rem] sm:text-[3.2rem] lg:text-[3.8rem] font-bold leading-[1.03] tracking-tight balance text-ink">
-              {ind.hero.title}{" "}
+            <h1 className="font-display text-[2.4rem] sm:text-[3.2rem] lg:text-[3.8rem] font-bold leading-[1.03] tracking-tight balance text-ink">
+              <Amp text={ind.hero.title} />{" "}
               <span className="bg-gradient-to-r from-accent via-accent-soft to-accent-ink bg-clip-text text-transparent">
-                {ind.hero.titleAccent}
+                <Amp text={ind.hero.titleAccent} />
               </span>
             </h1>
 
@@ -491,10 +482,10 @@ export default async function IndustryPage({
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
               <Link
-                href="/#walkthrough"
+                href="/packages"
                 className="group inline-flex items-center gap-2 rounded-xl border border-line bg-card/90 backdrop-blur px-6 py-3.5 text-[0.98rem] font-semibold text-ink transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent hover:shadow-float"
               >
-                See the walkthrough
+                Explore the packages
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
             </div>
@@ -530,7 +521,7 @@ export default async function IndustryPage({
               The Operational Gap
             </span>
             <h2 className="mt-3 font-display text-[2.1rem] font-bold leading-[1.08] tracking-tight balance text-ink md:text-[2.9rem]">
-              {ind.challenges.title}
+              <Amp text={ind.challenges.title} />
             </h2>
             <p className="mt-4 text-[1.05rem] leading-relaxed text-muted">
               {ind.challenges.intro}
@@ -538,14 +529,14 @@ export default async function IndustryPage({
           </Reveal>
 
           {/* 3x2 Grid Cards */}
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
             {ind.challenges.items.map((it, i) => {
               const isFeaturedDark = i === 3;
               return (
                 <Reveal
                   key={it.pain}
                   delay={(i % 3) * 70}
-                  className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-[20px] p-6.5 sm:p-7 transition-all duration-300 hover:-translate-y-1 ${
+                  className={`group relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[20px] p-4 sm:p-7 transition-all duration-300 hover:-translate-y-1 ${
                     isFeaturedDark
                       ? "bg-[#0b1938] text-white shadow-float border border-[#0b1938] hover:shadow-2xl hover:border-teal-400/40"
                       : "bg-card text-ink shadow-soft border border-line/80 hover:border-accent/40 hover:shadow-float"
@@ -566,7 +557,7 @@ export default async function IndustryPage({
 
                     {/* Pain Heading */}
                     <h3
-                      className={`mt-4 font-sans text-[1.12rem] font-bold leading-snug ${
+                      className={`mt-4 font-sans text-[0.92rem] sm:text-[1.12rem] font-bold leading-snug ${
                         isFeaturedDark ? "text-white" : "text-ink group-hover:text-accent-ink"
                       }`}
                     >
@@ -582,7 +573,7 @@ export default async function IndustryPage({
 
                     {/* Impact Text */}
                     <p
-                      className={`text-[0.88rem] leading-relaxed ${
+                      className={`text-[0.78rem] sm:text-[0.88rem] leading-relaxed ${
                         isFeaturedDark ? "text-slate-300" : "text-muted"
                       }`}
                     >
@@ -618,7 +609,7 @@ export default async function IndustryPage({
                   System Capabilities
                 </span>
                 <h2 className="font-display text-[2.1rem] font-bold leading-[1.08] tracking-tight balance text-ink md:text-[2.9rem]">
-                  {ind.capabilities.title}
+                  <Amp text={ind.capabilities.title} />
                 </h2>
                 <p className="mt-4 text-[1.05rem] leading-relaxed text-muted max-w-xl">
                   {ind.capabilities.lead}
@@ -638,7 +629,7 @@ export default async function IndustryPage({
                   </div>
 
                   <h3 className="mt-5 font-display text-2xl font-bold leading-tight text-ink transition-colors duration-300 group-hover:text-accent">
-                    {featCap.name}
+                    <Amp text={featCap.name} />
                   </h3>
                   <p className="mt-3 text-[0.94rem] leading-relaxed text-muted">
                     {featCap.desc}
@@ -691,7 +682,7 @@ export default async function IndustryPage({
                           </span>
                           <div>
                             <h3 className="font-display text-[1.08rem] font-bold text-ink transition-colors duration-300 group-hover/card:text-accent-ink">
-                              {c.name}
+                              <Amp text={c.name} />
                             </h3>
                             <p className="mt-1 text-[0.88rem] leading-relaxed text-muted">
                               {c.desc}
@@ -724,7 +715,7 @@ export default async function IndustryPage({
         <div className="mx-auto max-w-[1600px] px-5">
           <Reveal className="max-w-3xl">
             <h2 className="font-display text-[2.1rem] font-bold leading-[1.08] tracking-tight balance text-ink md:text-[3rem]">
-              {ind.workflow.title}
+              <Amp text={ind.workflow.title} />
             </h2>
             <p className="mt-4 text-[1.05rem] leading-relaxed text-muted">
               {ind.workflow.lead}
@@ -857,7 +848,7 @@ export default async function IndustryPage({
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
             <Reveal className="lg:sticky lg:top-32 lg:self-start max-w-md">
               <h2 className="font-display text-[1.9rem] font-bold leading-[1.1] tracking-tight balance md:text-[2.4rem]">
-                {ind.name} questions, answered.
+                <Amp text={ind.name} /> questions, answered.
               </h2>
               <p className="mt-5 text-[1.02rem] leading-relaxed text-muted">
                 Everything teams ask before a demo.

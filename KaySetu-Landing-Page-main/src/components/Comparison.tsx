@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Minus, X } from "lucide-react";
 import { Reveal } from "@/components/Motion";
+import Amp from "@/components/Amp";
 import BrandMark from "@/components/BrandMark";
 import { comparison } from "@/lib/content";
 
@@ -147,7 +148,11 @@ export default function Comparison() {
     onMouseLeave: () => setHoverRow((v) => (v === r ? null : v)),
   });
 
-  const GRID = "grid-cols-[minmax(7rem,1.5fr)_repeat(3,minmax(4rem,1.15fr))]";
+  /* On phones the label column gives up some of its minimum so the three
+     value columns are wide enough for their header names to wrap instead of
+     cropping at the cell edge. */
+  const GRID =
+    "grid-cols-[minmax(6rem,1.5fr)_repeat(3,minmax(4rem,1.15fr))] sm:grid-cols-[minmax(7rem,1.5fr)_repeat(3,minmax(4rem,1.15fr))]";
 
   return (
     <section id="why" className="relative overflow-hidden py-20 md:py-24">
@@ -168,7 +173,7 @@ export default function Comparison() {
       <div className="relative mx-auto max-w-[1600px] px-5">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-[2rem] font-bold leading-[1.08] tracking-tight text-white balance md:text-[2.9rem]">
-            {comparison.title}
+            <Amp text={comparison.title} />
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-[1.05rem] leading-relaxed text-white/65">
             {comparison.lead}
@@ -217,26 +222,29 @@ export default function Comparison() {
                 <div
                   key={c.name}
                   style={cellStyle(i + 1)}
-                  className="relative z-10 flex flex-col items-center gap-2 px-2 pb-4 pt-5 text-center"
+                  className="relative z-10 flex min-w-0 flex-col items-center gap-2 px-1 pb-4 pt-5 text-center sm:px-2"
                 >
-                  <span className="rounded-full bg-accent px-2.5 py-[3px] text-[0.5rem] font-bold uppercase tracking-[0.16em] text-white shadow-[0_6px_14px_-4px_rgba(0,150,136,0.8)]">
+                  <span className="whitespace-nowrap rounded-full bg-accent px-2 py-[3px] text-[0.5rem] font-bold uppercase tracking-[0.1em] text-white shadow-[0_6px_14px_-4px_rgba(0,150,136,0.8)] sm:px-2.5 sm:tracking-[0.16em]">
                     Recommended
                   </span>
                   {/* The mark here was a teal square with a white dot in it,
                       which reads as a broken-image placeholder next to the
-                      name. This is the actual brand mark. */}
-                  <span className="flex items-center gap-2">
+                      name. This is the actual brand mark. Mark and name stack
+                      on phones — side by side they overflow the column. */}
+                  <span className="flex flex-col items-center gap-1 sm:flex-row sm:gap-2">
                     <BrandMark className="h-[0.95rem] w-auto text-ink" />
-                    <span className="text-[0.85rem] font-bold text-ink">{c.name}</span>
+                    <span className="text-[0.72rem] font-bold text-ink sm:text-[0.85rem]">{c.name}</span>
                   </span>
                 </div>
               ) : (
                 <div
                   key={c.name}
                   style={cellStyle(i + 1)}
-                  className="relative z-10 flex items-center justify-center px-2 pb-4 pt-6 text-center"
+                  className="relative z-10 flex min-w-0 items-center justify-center px-1 pb-4 pt-6 text-center sm:px-2"
                 >
-                  <span className="text-[0.85rem] font-bold text-white/80">{c.name}</span>
+                  <span className="break-words text-[0.72rem] font-bold leading-tight text-white/80 sm:text-[0.85rem]">
+                    {c.name}
+                  </span>
                 </div>
               )
             )}
@@ -247,7 +255,7 @@ export default function Comparison() {
                 <div
                   {...rowHandlers(r)}
                   style={cellStyle(0)}
-                  className={`relative z-10 flex items-center py-3.5 pl-4 pr-3 text-[0.92rem] ${
+                  className={`relative z-10 flex items-center py-3.5 pl-2 pr-2 text-[0.8rem] leading-snug sm:pl-4 sm:pr-3 sm:text-[0.92rem] ${
                     hoverRow === r ? "text-white" : "text-white/70"
                   } ${hoverBg(r, true)}`}
                 >
@@ -276,16 +284,18 @@ export default function Comparison() {
             {/* ── Cost row ───────────────────────────────────────── */}
             <div
               style={cellStyle(0)}
-              className="relative z-10 mt-2 flex flex-col justify-center py-3.5 pl-3 pr-3"
+              className="relative z-10 mt-2 flex flex-col justify-center py-3.5 pl-2 pr-2 sm:pl-3 sm:pr-3"
             >
-              <span className="text-[0.92rem] font-bold text-white">{cost.label}</span>
-              <span className="text-[0.72rem] text-white/40">{cost.note}</span>
+              <span className="text-[0.8rem] font-bold leading-snug text-white sm:text-[0.92rem]">
+                {cost.label}
+              </span>
+              <span className="text-[0.68rem] text-white/40 sm:text-[0.72rem]">{cost.note}</span>
             </div>
             {cost.values.map((v, i) => (
               <div
                 key={i}
                 style={cellStyle(i + 1)}
-                className={`relative z-10 mt-2 flex items-center justify-center px-2 py-3.5 text-center text-[0.82rem] font-bold ${
+                className={`relative z-10 mt-2 flex min-w-0 items-center justify-center px-1 py-3.5 text-center text-[0.72rem] font-bold leading-snug sm:px-2 sm:text-[0.82rem] ${
                   isHi(i) ? "text-accent" : "text-white/55"
                 }`}
               >

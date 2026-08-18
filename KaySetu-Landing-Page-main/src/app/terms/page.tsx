@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     description:
       "Terms governing your use of the KaySetu website and ERP + CRM platform.",
     type: "website",
+    images: ["/opengraph-image"],
     url: "/terms",
   },
 };

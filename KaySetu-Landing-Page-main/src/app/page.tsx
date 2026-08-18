@@ -7,7 +7,6 @@ import ClosingCta from "@/components/ClosingCta";
 import { HeroSection } from "@/components/blocks/hero-section-1";
 import Comparison from "@/components/Comparison";
 import ModuleShowcase from "@/components/ModuleShowcase";
-import Walkthrough from "@/components/Walkthrough";
 import { CardSwapDemo } from "@/components/CardSwapDemo";
 import {
   StatBar,
@@ -32,8 +31,6 @@ export default function Home() {
         <HeroSection />
         {/* 4 · The 11 modules — auto-playing, explained one by one */}
         <ModuleShowcase />
-        {/* 4 · Guided step-by-step walkthrough (the core) */}
-        <Walkthrough />
         {/* 5 · The full-workspace reveal + numbered legend */}
         <ProductReveal />
         {/* 6 · Operations backbone (product depth) */}
@@ -42,7 +39,8 @@ export default function Home() {
         <Comparison />
         {/* 7 · FAQ accordion */}
         <FAQ />
-        {/* 8 · "Don't take our word for it" testimonial wall (just above footer) */}
+        {/* 8 · Outcomes-by-role wall (just above footer) — no attributed quotes
+            until we have real customers to name */}
         <CardSwapDemo />
         {/* 9 · Closing CTA band, straight into the footer */}
         <ClosingCta />
