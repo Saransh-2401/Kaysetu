@@ -114,7 +114,10 @@ export function HeroSection() {
                         unbreakable token, so it has to fit at every width in between. */}
                     <h1 className="animate-fade-up font-display text-[clamp(2.1rem,5.4vw,3.6rem)] font-bold leading-[1.08] tracking-tight text-ink">
                         Run Your Entire Business
-                        <span className="mt-1 block font-display text-[1.02em] font-medium italic leading-[1.15] text-accent sm:mt-2">
+                        {/* Own fluid clamp, not a flat 1.02em: at phone widths the
+                            longest phrase ("from factory to ledger") is wider than
+                            the screen and the letter spans wrap mid-word. */}
+                        <span className="mt-1 block whitespace-nowrap font-display text-[clamp(1.3rem,7.2vw,1.02em)] font-medium italic leading-[1.15] text-accent sm:mt-2">
                             <RotatingWords words={HERO_ROLL_WORDS} interval={3400} />
                         </span>
                     </h1>

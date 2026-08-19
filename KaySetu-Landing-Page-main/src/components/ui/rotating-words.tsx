@@ -101,7 +101,7 @@ export function RotatingWords({
   return (
     <span className={`relative inline-block text-left align-top ${className}`}>
       {/* Width/height reservation - never painted, never read aloud. */}
-      <span aria-hidden className="invisible block">
+      <span aria-hidden className="invisible block whitespace-nowrap">
         {longest}
       </span>
 
@@ -112,7 +112,7 @@ export function RotatingWords({
           initial="hidden"
           animate="show"
           exit="exit"
-          className="absolute inset-0 block text-center"
+          className="absolute inset-0 block whitespace-nowrap text-center"
           aria-hidden
         >
           {[...word].map((char, i) => (
