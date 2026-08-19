@@ -152,7 +152,7 @@ export default function Comparison() {
      value columns are wide enough for their header names to wrap instead of
      cropping at the cell edge. */
   const GRID =
-    "grid-cols-[minmax(6rem,1.5fr)_repeat(3,minmax(4rem,1.15fr))] sm:grid-cols-[minmax(7rem,1.5fr)_repeat(3,minmax(4rem,1.15fr))]";
+    "grid-cols-[minmax(5.25rem,1.15fr)_repeat(3,minmax(4.5rem,1.2fr))] sm:grid-cols-[minmax(7rem,1.5fr)_repeat(3,minmax(4rem,1.15fr))]";
 
   return (
     <section id="why" className="relative overflow-hidden py-20 md:py-24">
@@ -229,11 +229,14 @@ export default function Comparison() {
                   </span>
                   {/* The mark here was a teal square with a white dot in it,
                       which reads as a broken-image placeholder next to the
-                      name. This is the actual brand mark. Mark and name stack
-                      on phones - side by side they overflow the column. */}
-                  <span className="flex flex-col items-center gap-1 sm:flex-row sm:gap-2">
-                    <BrandMark className="h-[0.95rem] w-auto text-ink" />
-                    <span className="text-[0.72rem] font-bold text-ink sm:text-[0.85rem]">{c.name}</span>
+                      name. This is the actual brand mark. On phones the mark is
+                      dropped - mark plus name overflow the narrow column, and
+                      stacked they read as a broken glyph over tiny text. */}
+                  <span className="flex items-center gap-2">
+                    <BrandMark className="hidden h-[0.95rem] w-auto text-ink sm:block" />
+                    <span className="text-[0.78rem] font-bold leading-tight text-ink sm:text-[0.85rem]">
+                      {c.name}
+                    </span>
                   </span>
                 </div>
               ) : (
@@ -242,7 +245,10 @@ export default function Comparison() {
                   style={cellStyle(i + 1)}
                   className="relative z-10 flex min-w-0 items-center justify-center px-1 pb-4 pt-6 text-center sm:px-2"
                 >
-                  <span className="break-words text-[0.72rem] font-bold leading-tight text-white/80 sm:text-[0.85rem]">
+                  <span
+                    lang="en"
+                    className="hyphens-auto break-words text-[0.7rem] font-bold leading-tight text-white/80 sm:text-[0.85rem]"
+                  >
                     {c.name}
                   </span>
                 </div>

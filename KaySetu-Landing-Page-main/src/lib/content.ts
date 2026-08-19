@@ -463,7 +463,6 @@ export const competitive = {
 
 export const faqs = [
   { q: "Does KaySetu work on both web and mobile?", a: "Yes. Native Android & iOS apps plus a full web app, with single sign-on and one user identity everywhere." },
-  { q: "How quickly does data sync across the team?", a: "In real time. Updates propagate instantly across web and mobile via Socket.IO, so managers see new leads, orders and approvals the moment they happen." },
   { q: "Is it GST-ready?", a: "Yes. GST-compliant invoicing with tax masters, HSN mapping and configurable invoice templates out of the box." },
   { q: "How do you prevent fake field visits?", a: "Check-ins are verified with GPS, a selfie and a shop photo, with anti-spoof checks, so attendance and visits can't be faked." },
   { q: "Can I bring my distributors onto the platform?", a: "Yes. The distributor network module manages each distributor as a first-class entity with their own inventory, pricing and ledger." },
