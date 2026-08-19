@@ -33,7 +33,7 @@ export default function ClosingCta() {
             </h2>
 
             <p className="mt-5 text-[1.08rem] leading-relaxed text-muted sm:text-[1.12rem]">
-              Sales, distribution, inventory, finance and workforce—unified on one intelligent platform.
+              Sales, distribution, inventory, finance and workforce - unified on one intelligent platform.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -58,7 +58,7 @@ export default function ClosingCta() {
           <Reveal delay={120} className="relative w-full max-w-[560px] justify-self-center lg:max-w-none lg:justify-self-end">
             <div id="closing-cta-card" className="rounded-3xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-xl transition-all duration-300 hover:shadow-2xl">
               
-              {/* Dashboard Top Header — two blocks only (logo | title) so it
+              {/* Dashboard Top Header - two blocks only (logo | title) so it
                   never wraps into an orphaned row; the date picker lives on
                   the map itself like a real dashboard control. */}
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5 border-b border-slate-100 pb-3">
@@ -140,7 +140,7 @@ export default function ClosingCta() {
                   />
                 </svg>
 
-                {/* Stop pins — circular markers, no stretch distortion */}
+                {/* Stop pins - circular markers, no stretch distortion */}
                 {[
                   { icon: Flag, cls: "bg-[#0f2147]", left: "13.3%", top: "70%" },
                   { icon: Bell, cls: "bg-[#8c5a53]", left: "28.3%", top: "40%" },
@@ -160,7 +160,7 @@ export default function ClosingCta() {
                   <span className="live-dot absolute -translate-x-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-[#009688]/15" />
                 </span>
 
-                {/* Floating period picker — top-left corner stays clear of
+                {/* Floating period picker - top-left corner stays clear of
                     the route pins and mirrors the legend bottom-right. */}
                 <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/95 px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600 shadow-md backdrop-blur-md">
                   <Calendar className="h-3.5 w-3.5 text-slate-500" />

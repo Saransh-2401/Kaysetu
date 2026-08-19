@@ -76,7 +76,7 @@ export default function IndustriesPage() {
             </div>
           </div>
 
-          {/* Signature "directory" panel — a magazine table-of-contents
+          {/* Signature "directory" panel - a magazine table-of-contents
               that doubles as navigation into each vertical. */}
           <Reveal className="relative" delay={120}>
             <div className="absolute -inset-5 -z-10 rounded-[32px] bg-[radial-gradient(65%_60%_at_75%_15%,rgba(0,150,136,0.16),transparent_72%)]" />
@@ -116,7 +116,7 @@ export default function IndustriesPage() {
         </div>
       </header>
 
-      {/* ── Vertical cards — rich, interactive, workflow-previewed ── */}
+      {/* ── Vertical cards - rich, interactive, workflow-previewed ── */}
       <section className="mx-auto max-w-[1600px] px-5 py-16 md:py-24">
         <div className="mb-10">
           <div className="max-w-2xl">
@@ -201,7 +201,7 @@ export default function IndustriesPage() {
         </div>
       </section>
 
-      {/* ── The shared spine — one core, tuned per vertical ──── */}
+      {/* ── The shared spine - one core, tuned per vertical ──── */}
       <section className="border-y border-line bg-espresso text-card">
         <div className="mx-auto max-w-[1600px] px-5 py-20 md:py-24">
           <div className="max-w-3xl">

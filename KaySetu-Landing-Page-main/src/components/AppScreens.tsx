@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 /* ==================================================================
-   Coded KaySetu UI mockups — realistic product screens rendered in code.
+   Coded KaySetu UI mockups - realistic product screens rendered in code.
    Formatted for laptop-sized desktop frames & sleek iPhone mobile frame.
    ================================================================== */
 
@@ -77,7 +77,7 @@ export function LeadsBoard() {
   ];
   return (
     <Frame title="Lead & CRM · Pipeline" path="/crm/pipeline">
-      {/* Four kanban columns are ~60px each in a narrow frame — pair them up
+      {/* Four kanban columns are ~60px each in a narrow frame - pair them up
           until the frame itself is wide enough to read all four. */}
       <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-2.5 @xs:gap-3 @md:gap-4 @3xl:gap-5">
         {cols.map((c) => (
@@ -107,7 +107,7 @@ export function LeadsBoard() {
   );
 }
 
-/* -- 2 · Field visit — live map + verified check-in --------------- */
+/* -- 2 · Field visit - live map + verified check-in --------------- */
 
 /* Streets, route and pins all live in one 500×300 space, stretched to the
    frame with preserveAspectRatio="none". Pin coordinates are taken straight
@@ -225,7 +225,7 @@ export function QuoteToCash() {
         ))}
       </div>
       <div className="overflow-hidden rounded-2xl border border-line shadow-sm">
-        {/* Fixed qty/amount tracks — justify-between would let the middle
+        {/* Fixed qty/amount tracks - justify-between would let the middle
             column drift with each product name's width. */}
         {lines.map(([n, q, amt], i) => (
           <div
@@ -313,7 +313,7 @@ export function Dashboard() {
               <Icon name={icon as string} className="h-5 w-5" />
             </span>
             {/* Sans + tabular: these are product-UI KPI values, not editorial
-                headings — the serif's old-style figures read as misaligned. */}
+                headings - the serif's old-style figures read as misaligned. */}
             <div className="text-xl @3xl:text-2xl font-bold tabular-nums tracking-tight text-ink">{val}</div>
             <div className="text-[0.72rem] @3xl:text-[0.78rem] font-medium text-muted truncate">{label}</div>
           </div>
@@ -396,7 +396,7 @@ const TABS = [
 export function MobileApp() {
   return (
     <div className="relative mx-auto my-2 w-[268px] xs:w-[300px] sm:w-[340px] md:w-[360px] max-w-full">
-      {/* Side buttons — small realism cue on the bezel */}
+      {/* Side buttons - small realism cue on the bezel */}
       <span className="absolute -left-[4px] top-[104px] h-7 w-[6px] rounded-l-md bg-slate-700" />
       <span className="absolute -left-[4px] top-[140px] h-12 w-[6px] rounded-l-md bg-slate-700" />
       <span className="absolute -right-[4px] top-[124px] h-16 w-[6px] rounded-r-md bg-slate-700" />
@@ -408,7 +408,7 @@ export function MobileApp() {
         </div>
 
         <div className="overflow-hidden rounded-[36px] bg-paper">
-          {/* Header — status bar, rep identity and the day's progress */}
+          {/* Header - status bar, rep identity and the day's progress */}
           <div className="bg-[linear-gradient(155deg,#0b1c3d_0%,#12294f_45%,#00695f_100%)] px-3 xs:px-4 pt-3 pb-7 text-card">
             <div className="flex items-center justify-between text-[0.68rem] font-bold tracking-wide">
               <span>9:41</span>
@@ -461,7 +461,7 @@ export function MobileApp() {
             </div>
           </div>
 
-          {/* Route sheet — lifted over the header for depth */}
+          {/* Route sheet - lifted over the header for depth */}
           <div className="-mt-4 rounded-t-3xl bg-paper px-3 xs:px-3.5 pb-3 pt-4">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[0.7rem] xs:text-[0.72rem] font-bold text-ink">Next stops</span>
@@ -524,7 +524,7 @@ export function MobileApp() {
                         </span>
                       </div>
 
-                      {/* Only the live stop carries actions — keeps the hierarchy readable */}
+                      {/* Only the live stop carries actions - keeps the hierarchy readable */}
                       {now && (
                         <div className="mt-2 flex items-center gap-1.5 border-t border-line/70 pt-2">
                           <span className="rounded-md bg-paper px-1.5 py-0.5 text-[0.55rem] font-bold text-muted">

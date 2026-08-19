@@ -4,7 +4,9 @@ import { footer } from "@/lib/content";
 export default function Footer() {
   return (
     <footer className="mt-auto bg-[#071738] font-sans text-white border-t border-white/10">
-      <div className="mx-auto max-w-[1600px] px-5 pt-10 pb-6">
+      {/* Full-bleed with fixed gutters - a centered max-w container left big
+          dead margins on wide screens. */}
+      <div className="w-full px-5 pt-10 pb-6 sm:px-8 lg:px-14">
         <div className="grid gap-8 lg:grid-cols-6 xl:gap-8">
           
           {/* Brand Column with Right Divider */}

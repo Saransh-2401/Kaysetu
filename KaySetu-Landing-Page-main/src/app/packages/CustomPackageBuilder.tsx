@@ -27,7 +27,7 @@ export default function CustomPackageBuilder() {
             None of the eight fit exactly? Compose your own.
           </h2>
           <p className="mt-1.5 text-[0.9rem] leading-relaxed text-muted">
-            Tap the modules you actually run — we&rsquo;ll price just those, on
+            Tap the modules you actually run - we&rsquo;ll price just those, on
             the same platform, upgradeable any time.
           </p>
         </div>

@@ -18,7 +18,7 @@ import CustomPackageBuilder from "./CustomPackageBuilder";
 export const metadata: Metadata = {
   title: { absolute: "Packages & Pricing | KaySetu ERP + CRM Modules" },
   description:
-    "Eight ready-made KaySetu packages — from a single module to the full enterprise suite — plus two add-ons you can attach to any of them. Pay only for the modules you use.",
+    "Eight ready-made KaySetu packages - from a single module to the full enterprise suite - plus two add-ons you can attach to any of them. Pay only for the modules you use.",
   keywords: ["KaySetu packages", "ERP pricing", "CRM packages", "modular ERP", "field sales software pricing"],
   alternates: { canonical: "/packages" },
   openGraph: {
@@ -47,7 +47,7 @@ function codesFor(pkg: { modules: string[] }): string[] {
 
 
 /* Each card's thumbnail is the coded product screen closest to that package's
-   daily use — the same mockups the modules walkthrough renders. */
+   daily use - the same mockups the modules walkthrough renders. */
 const SCREENS: Record<string, () => React.ReactElement> = {
   P1: FieldMap,
   P2: MobileApp,
@@ -59,7 +59,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   P8: Dashboard,
 };
 
-/* Hero ladder — the first four packages in order, so the sequence reads as a
+/* Hero ladder - the first four packages in order, so the sequence reads as a
    ladder with no skipped rungs. P3 carries the highlight (the popular pick).
    Notes stay under ~40 chars so the row never wraps. */
 const LADDER: { code: string; note: string; featured?: boolean }[] = [
@@ -70,10 +70,10 @@ const LADDER: { code: string; note: string; featured?: boolean }[] = [
 ];
 
 const blurbs: Record<string, string> = {
-  P1: "GPS attendance, live map and route replay — see the whole field force, live.",
+  P1: "GPS attendance, live map and route replay - see the whole field force, live.",
   P2: "Beat plans, visits, orders, collections and targets, captured on the phone.",
   P3: "Tracking + field ops + CRM pipeline: lead to visit to order in one motion.",
-  P4: "Orders, warehouse stock and distributors on one live ledger — no overpromising.",
+  P4: "Orders, warehouse stock and distributors on one live ledger - no overpromising.",
   P5: "BOMs, work orders and job cards wired straight into live inventory.",
   P6: "Suppliers, POs and GRN receiving with three-way matching before payment.",
   P7: "Ledgers, invoices, payments and a GST hub that never needs re-keying.",
@@ -135,7 +135,7 @@ export default function PackagesPage() {
               </h1>
               <p className="mt-6 max-w-xl text-[1.05rem] leading-relaxed text-muted md:text-[1.12rem]">
                 {packages.lead}{" "}No seats you don&rsquo;t need, no migration
-                when you outgrow one — the next package is the same platform
+                when you outgrow one - the next package is the same platform
                 with more switched on.
               </p>
 
@@ -168,7 +168,7 @@ export default function PackagesPage() {
               </ul>
             </div>
 
-            {/* Package ladder — four rungs from a single module to the full
+            {/* Package ladder - four rungs from a single module to the full
                 suite, each showing the modules it bundles. Mirrors the flow
                 preview card on the /modules hero so the two pages rhyme. */}
             <div className="min-w-0">
@@ -255,7 +255,7 @@ export default function PackagesPage() {
               Eight ready-made packages
             </h2>
             <p className="text-[0.9rem] text-muted">
-              Every card lists the exact modules inside — click one to explore it.
+              Every card lists the exact modules inside - click one to explore it.
             </p>
           </div>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -319,7 +319,7 @@ export default function PackagesPage() {
                           <Link
                             key={c}
                             href={byCode[c].href}
-                            title={`${byCode[c].label} — ${byCode[c].desc}`}
+                            title={`${byCode[c].label} - ${byCode[c].desc}`}
                             className="inline-flex items-center gap-1.5 rounded-md border border-line bg-paper px-2 py-1 font-mono text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted transition-colors hover:border-accent/50 hover:text-accent"
                           >
                             <Icon name={byCode[c].icon} className="h-3 w-3 text-accent" />

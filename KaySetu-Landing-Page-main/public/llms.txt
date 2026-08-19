@@ -1,4 +1,4 @@
-# KaySetu — Enterprise ERP & CRM Platform
+# KaySetu - Enterprise ERP & CRM Platform
 
 > KaySetu is a unified ERP + CRM platform designed for fast-moving SME businesses, distributors, manufacturers, and field sales teams in India. It integrates sales, field operations, inventory, production, procurement, and accounts into one real-time, GST-ready workflow.
 

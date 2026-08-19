@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * A screen in the carousel. `src` renders an image; `content` renders live JSX
- * inside the phone frame instead — which is what the KaySetu screens use, since
+ * inside the phone frame instead - which is what the KaySetu screens use, since
  * there are no app screenshots in /public to point at.
  */
 export type ImageItem = {

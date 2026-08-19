@@ -28,12 +28,12 @@ export const nav = {
   // See Caddyfile / docker-compose.prod.yml for the host mapping.
   login: { label: "Log in", href: "https://app.kaysetu.in/login" },
   signup: { label: "Sign up", href: "https://ops.kaysetu.in/signup" },
-  // Drop the PDF at public/brochure/kaysetu-brochure.pdf — until it exists this
+  // Drop the PDF at public/brochure/kaysetu-brochure.pdf - until it exists this
   // link 404s.
   brochure: { label: "Brochure", href: "/brochure/kaysetu-brochure.pdf" },
 };
 
-// The Modules menu mirrors the platform registry 1:1 — all 11 modules with
+// The Modules menu mirrors the platform registry 1:1 - all 11 modules with
 // their registry codes and coverage. `desc` is the module's "what it covers"
 // line; keep codes and coverage in sync with packages.base / modulePages.ts.
 export const platformMenu = {
@@ -160,7 +160,7 @@ export const modules = {
   // panel, and a third line of lead pushes the heading up behind the nav on a
   // 768px-tall laptop.
   lead: "Book an order on a phone. Stock updates, dispatch begins, the ledger posts. One record, no re-entry, no waiting on a report.",
-  // `slug` maps each card to its /platform/<slug> page — these are the only
+  // `slug` maps each card to its /platform/<slug> page - these are the only
   // crawlable links into the module pages from the homepage, so keep them in
   // sync with modulePages.ts.
   items: [
@@ -179,7 +179,7 @@ export const modules = {
 };
 
 // ============================================================
-// COMPARISON — "KaySetu vs. the alternative" (fully editable)
+// COMPARISON - "KaySetu vs. the alternative" (fully editable)
 // `values` in each row / cost line map 1:1 to `columns` order.
 // Cell value: "yes" (✓), "partial" (limited), "no" (absent).
 // ============================================================
@@ -411,7 +411,7 @@ export const industries = {
 };
 
 export const socialProof = {
-  // NOTE: logo tiles and customer stories below are placeholders — swap in real ones.
+  // NOTE: logo tiles and customer stories below are placeholders - swap in real ones.
   title: "One platform instead of five.",
   lead: "Teams move to KaySetu to stop stitching a CRM, an SFA app, an inventory tool and an accounting package together.",
   results: [
@@ -481,7 +481,7 @@ export const finalCta = {
 };
 
 // Footer modeled on dock.cool: a brand block + link columns, closed by a
-// giant brand wordmark on a brand-tinted horizon band — opened by a navy
+// giant brand wordmark on a brand-tinted horizon band - opened by a navy
 // CTA ribbon so the footer anchors the page instead of trailing off.
 export const footer = {
   tagline: "Your business. Unified.",
@@ -615,7 +615,7 @@ export const aboutPage = {
 
 export const contactPage = {
   kicker: "Contact",
-  // Rendered as one headline — `titleAccent` is the teal tail of the line.
+  // Rendered as one headline - `titleAccent` is the teal tail of the line.
   title: "Talk to the team behind",
   titleAccent: "KaySetu.",
   lead:
@@ -673,7 +673,7 @@ export const contactPage = {
 
   // ── Office location (used by the Head Office quick card, the
   //    map section and the directions button) ──────────────────
-  // Placeholder head-office details — edit to your real address.
+  // Placeholder head-office details - edit to your real address.
   office: {
     kicker: "Visit us",
     heading: "Come say hello in Jaipur.",
@@ -696,7 +696,7 @@ export const contactPage = {
   },
 
   // ── Quick-contact cards (below the form / map) ──────────────
-  // Phone is a placeholder — swap in your real sales line.
+  // Phone is a placeholder - swap in your real sales line.
   quick: [
     { icon: "Headphones", label: "Talk to Sales", value: "+919887664666", href: "tel:+919887664666" },
     { icon: "Mail", label: "Email Us", value: "sales@kayease.com", href: "mailto:sales@kayease.com" },
@@ -712,7 +712,7 @@ export const contactPage = {
     items: [
       {
         q: "Is the demo really free?",
-        a: "Yes. It's a free, no-obligation walkthrough with a member of our team — no card, no trial clock, no pressure to decide on the call.",
+        a: "Yes. It's a free, no-obligation walkthrough with a member of our team - no card, no trial clock, no pressure to decide on the call.",
       },
       {
         q: "How long does a demo take?",
@@ -724,11 +724,11 @@ export const contactPage = {
       },
       {
         q: "Can you work with our existing data?",
-        a: "In most cases, yes. We migrate customers, items, opening stock and outstanding balances from spreadsheets or your current system — bring a sample and we'll tell you honestly what's possible.",
+        a: "In most cases, yes. We migrate customers, items, opening stock and outstanding balances from spreadsheets or your current system - bring a sample and we'll tell you honestly what's possible.",
       },
       {
         q: "What if I just have a support question?",
-        a: "Write to support@kayease.com, or use the form and mention your company name — existing customers get routed straight to the support team.",
+        a: "Write to support@kayease.com, or use the form and mention your company name - existing customers get routed straight to the support team.",
       },
     ],
   },
@@ -831,7 +831,7 @@ export const legalPages = {
 };
 
 /* ============================================================
-   Interactive showcase — scroll-driven product demo narrative
+   Interactive showcase - scroll-driven product demo narrative
    (home page). Section order mirrors onboarding → daily use.
    `screen` keys map to coded mockups in src/components/AppScreens.tsx.
    `video` is an optional /public/media path; when present it plays
@@ -860,7 +860,7 @@ export const showcaseHero = {
 };
 
 // ============================================================
-// HOME HERO / BANNER — fully editable
+// HOME HERO / BANNER - fully editable
 // Change any copy below to update the home page banner. Swap the
 // banner illustration by editing `banner.src` (drop your file in
 // /public and point to it, e.g. "/hero-distribution.svg" or a .png).
@@ -868,7 +868,7 @@ export const showcaseHero = {
 export const homeHero = {
   // Small pill above the headline
   badge: "8 Packages. 11 Modules. 1 Platform.",
-  // Headline — `titleLines` render in navy, `titleAccent` in orange
+  // Headline - `titleLines` render in navy, `titleAccent` in orange
   titleLines: ["Smarter Operations."],
   titleAccent: "Stronger Growth.",
   subhead:
@@ -1127,9 +1127,9 @@ export const testimonials = {
   ],
 };
 
-// "Don't take our word for it" — testimonial wall (marquee of quote cards),
+// "Don't take our word for it" - testimonial wall (marquee of quote cards),
 // modeled on the Stokt layout. Placeholder people/companies with real KaySetu
-// outcomes as the quotes — swap `items` for named customer stories once live.
+// outcomes as the quotes - swap `items` for named customer stories once live.
 export const proofWall = {
   kicker: "Testimonials",
   title: "Don't take our word for it",
@@ -1203,7 +1203,7 @@ export const closing = {
 };
 
 /* ============================================================
-   INDUSTRY PAGES — /industries and /industries/[slug]
+   INDUSTRY PAGES - /industries and /industries/[slug]
    One entry per vertical, each a full landing page with its own
    SEO metadata, hero, challenges, capabilities, workflow, outcomes,
    testimonial, FAQ and CTA. Icons are Lucide keys (see Icon.tsx).
@@ -2094,7 +2094,7 @@ export const industryPages: IndustryPage[] = [
       title: "Electronics & appliances,",
       titleAccent: "tracked down to the serial.",
       subhead:
-        "KaySetu connects your distributor network, field sales, serial/IMEI inventory, warranty claims and GST ledgers in real time — eliminating serial miscounts, scheme disputes and delayed billing.",
+        "KaySetu connects your distributor network, field sales, serial/IMEI inventory, warranty claims and GST ledgers in real time - eliminating serial miscounts, scheme disputes and delayed billing.",
       stats: [
         { value: "100% Serial/IMEI", label: "traceability from warehouse to end user" },
         { value: "Automated", label: "dealer schemes & price slabs" },

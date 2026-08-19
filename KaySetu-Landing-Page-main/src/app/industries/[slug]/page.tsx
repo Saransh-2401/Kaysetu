@@ -297,7 +297,7 @@ export async function generateMetadata({
   };
 }
 
-/* ── Signature hero panel — a live "workflow snapshot" for the vertical ── */
+/* ── Signature hero panel - a live "workflow snapshot" for the vertical ── */
 function HeroPanel({ ind }: { ind: IndustryPage }) {
   return (
     <Reveal className="relative" delay={140}>
@@ -511,8 +511,8 @@ export default async function IndustryPage({
         </div>
       </header>
 
-      {/* ── Challenges — the "cold" cost ledger (desaturated on purpose) ── */}
-      {/* ── Challenges — The Operational Gap (Bento Layout) ── */}
+      {/* ── Challenges - the "cold" cost ledger (desaturated on purpose) ── */}
+      {/* ── Challenges - The Operational Gap (Bento Layout) ── */}
       <section className="border-b border-line bg-paper/40 py-20 md:py-24">
         <div className="mx-auto max-w-[1600px] px-5">
           {/* Header row with kicker, title & intro */}
@@ -598,7 +598,7 @@ export default async function IndustryPage({
         </div>
       </section>
 
-      {/* ── Capabilities — Vertical Stepper Backbone Timeline ── */}
+      {/* ── Capabilities - Vertical Stepper Backbone Timeline ── */}
       <section className="border-b border-line bg-paper/30 py-20 md:py-28">
         <div className="mx-auto max-w-[1600px] px-5">
           <div className="grid gap-10 lg:grid-cols-[0.92fr_1.08fr] xl:grid-cols-[0.9fr_1.1fr] lg:items-start">
@@ -701,7 +701,7 @@ export default async function IndustryPage({
         </div>
       </section>
 
-      {/* ── Workflow — Connected Roadmap Pipeline ──── */}
+      {/* ── Workflow - Connected Roadmap Pipeline ──── */}
       <section className="relative overflow-hidden border-b border-line bg-gradient-to-b from-paper/30 via-card/40 to-paper/30 py-20 md:py-28">
         {/* Background decorative watermark graphics */}
         <span aria-hidden="true" className="pointer-events-none absolute -right-10 top-1/2 -translate-y-1/2 text-accent/10 opacity-40 hidden xl:block">

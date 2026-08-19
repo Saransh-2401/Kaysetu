@@ -14,7 +14,7 @@ export default function NavSearch({
   variant = "input",
 }: {
   className?: string;
-  /** Called after a result is picked — lets the mobile sheet close itself. */
+  /** Called after a result is picked - lets the mobile sheet close itself. */
   onNavigate?: () => void;
   autoFocus?: boolean;
   /** "icon" collapses the field to a single button that opens the field in a popover. */
@@ -219,8 +219,8 @@ export default function NavSearch({
         <div
           id="nav-search-results"
           role="listbox"
-          // Matches the input in the mobile sheet, but from lg — where the bar's
-          // input is too narrow to show a module name without truncating — it
+          // Matches the input in the mobile sheet, but from lg - where the bar's
+          // input is too narrow to show a module name without truncating - it
           // anchors right and grows past it.
           className="absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-line bg-card/97 shadow-xl backdrop-blur-xl lg:w-[min(24rem,calc(100vw-2rem))]"
         >

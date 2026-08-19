@@ -7,7 +7,7 @@ import { LeadError, submitLead } from "@/lib/leads";
 /**
  * Footer "Request a Demo" email capture.
  *
- * Previously this was `<form action="/contact">` — a plain GET that navigated
+ * Previously this was `<form action="/contact">` - a plain GET that navigated
  * away and threw the typed address on the floor, forcing the visitor to type it
  * again on the contact page. Now the email is captured immediately as a lead.
  */

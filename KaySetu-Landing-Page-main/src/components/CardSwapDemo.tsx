@@ -13,7 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-/* Outcomes by role — NOT customer quotes. We had fabricated testimonials here
+/* Outcomes by role - NOT customer quotes. We had fabricated testimonials here
    (invented names + stock-photo faces); that's a credibility and ASCI/FTC
    risk. Keep this role-framed until there are real, named customer stories,
    then swap the data for attributed quotes. Same rule as
@@ -61,7 +61,7 @@ const outcomes: Outcome[] = [
     tag: 'Distribution',
     title: 'Channel stock stops being a guess',
     body:
-      'Distributors work in the same system you do, so channel stock and sell-through are visible in real time — no more month-end phone calls.',
+      'Distributors work in the same system you do, so channel stock and sell-through are visible in real time - no more month-end phone calls.',
     audience: 'For channel & distribution heads',
   },
   {
@@ -79,7 +79,7 @@ const outcomes: Outcome[] = [
     tag: 'Finance',
     title: 'GST invoicing that just works',
     body:
-      'GST-ready invoicing out of the box. Procurement, accounts and the field team speak to each other — no exports, no reconciliation nights.',
+      'GST-ready invoicing out of the box. Procurement, accounts and the field team speak to each other - no exports, no reconciliation nights.',
     audience: 'For finance controllers',
   },
 ];
@@ -120,7 +120,7 @@ export function CardSwapDemo() {
         >
           {/* ── Navy panel ── */}
           <div className="relative isolate min-w-0 overflow-hidden bg-espresso px-8 py-12 text-center sm:px-12 md:px-16 md:py-20 lg:rounded-r-[2.75rem] lg:text-left">
-            {/* dot field, top-left — decorative */}
+            {/* dot field, top-left - decorative */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -left-6 -top-6 h-40 w-40 opacity-[0.18] [background-image:radial-gradient(rgba(255,255,255,0.9)_1.4px,transparent_1.4px)] [background-size:14px_14px]"
@@ -147,7 +147,7 @@ export function CardSwapDemo() {
             </p>
 
             <p className="relative mx-auto mt-6 max-w-sm text-[0.8rem] leading-relaxed text-white/45 lg:mx-0">
-              Outcomes by role — we&apos;ll publish named customer stories as we onboard our first teams.
+              Outcomes by role - we&apos;ll publish named customer stories as we onboard our first teams.
             </p>
           </div>
 
@@ -162,7 +162,7 @@ export function CardSwapDemo() {
               </p>
             </div>
 
-            {/* role picker — the active chip grows and takes a teal ring */}
+            {/* role picker - the active chip grows and takes a teal ring */}
             <div className="mt-10 flex items-center justify-center gap-3 sm:gap-4">
               {outcomes.map((item, i) => {
                 const isActive = i === active;

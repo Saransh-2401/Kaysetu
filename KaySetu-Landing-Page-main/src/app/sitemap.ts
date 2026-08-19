@@ -6,7 +6,7 @@ const BASE = "https://kaysetu.kayease.com";
 // Stamped at build time so it can't go stale the way a hardcoded date does.
 const lastModified = new Date();
 
-// NOTE: /platform/<slug> routes are deliberately NOT listed — they are bare
+// NOTE: /platform/<slug> routes are deliberately NOT listed - they are bare
 // redirects to /modules?module=<slug>, and Search Console flags every
 // sitemap URL that answers with a redirect ("Page with redirect").
 export default function sitemap(): MetadataRoute.Sitemap {

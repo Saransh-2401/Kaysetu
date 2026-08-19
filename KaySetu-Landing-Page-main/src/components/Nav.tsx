@@ -198,7 +198,7 @@ export default function Nav() {
   };
 
   // Hover intent: brushing past a trigger on the way to Search or the CTAs
-  // shouldn't flash the menu — the first open waits a beat. Once a panel is
+  // shouldn't flash the menu - the first open waits a beat. Once a panel is
   // already up (or still animating out), switching is instant.
   const openMenu = (menuItem: "platform" | "industries") => {
     clearTimers();
@@ -216,7 +216,7 @@ export default function Nav() {
 
   // Symmetric hover intent for the bar's own items: a plain link (Packages,
   // Search) sits a few pixels from a trigger, so an instant close there let a
-  // trembling cursor on the boundary flap the flyout open/shut — the whole
+  // trembling cursor on the boundary flap the flyout open/shut - the whole
   // bar chrome flashed with it. Closing waits the same beat leaving does,
   // and re-entering a trigger cancels it.
   const scheduleClose = handleMouseLeave;
@@ -248,7 +248,7 @@ export default function Nav() {
 
   useEffect(() => clearTimers, []);
 
-  // Entering the bar itself closes the flyout — unless the cursor landed
+  // Entering the bar itself closes the flyout - unless the cursor landed
   // straight on a Services/Industries trigger, which owns the open state.
   const handleBarEnter = (e: MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest?.("[data-nav-trigger]")) return;
@@ -256,7 +256,7 @@ export default function Nav() {
   };
 
   // While a menu is down, the page underneath stays put. The bar itself can't
-  // reflow either — `scrollbar-gutter: stable` keeps the gutter reserved, so
+  // reflow either - `scrollbar-gutter: stable` keeps the gutter reserved, so
   // the triggers don't slide under a stationary cursor and re-fire the hover.
   useScrollLock(menu !== null || open);
 
@@ -281,7 +281,7 @@ export default function Nav() {
     <header
       className={cn(
         "sticky top-0 z-50 w-full",
-        // Named properties, not `transition-all` — the shorthand also tried to
+        // Named properties, not `transition-all` - the shorthand also tried to
         // tween backdrop-filter, which can't interpolate from `none` and so
         // snapped in a frame ahead of everything else.
         "transition-[padding] duration-500 ease-nav motion-reduce:transition-none",
@@ -298,7 +298,7 @@ export default function Nav() {
           "transition-[max-width,padding,border-radius] duration-500 ease-nav motion-reduce:transition-none",
           // Width tracks scroll only. If the open menu also resized the bar,
           // the logo/nav would slide under a stationary cursor and re-trigger
-          // the hover — an open/close oscillation.
+          // the hover - an open/close oscillation.
           scrolled ? "max-w-5xl rounded-full px-5 py-2.5" : "max-w-full rounded-none px-5 py-3.5 lg:px-10"
         )}
       >
@@ -318,7 +318,7 @@ export default function Nav() {
           <Logo />
         </span>
 
-        {/* desktop nav — centred, search sits at its tail */}
+        {/* desktop nav - centred, search sits at its tail */}
         <nav className="hidden items-center justify-center gap-1 lg:flex" onMouseLeave={handleMouseLeave}>
           {nav.primary.map((item) =>
             "menu" in item && item.menu ? (
@@ -379,14 +379,14 @@ export default function Nav() {
       {shown && (
         <div className="absolute inset-x-0 top-full hidden px-2 lg:block pointer-events-none">
           {/* pt-2 is the visual gap under the bar, but it lives *inside* the
-              hover region — an invisible bridge so crossing it doesn't count
+              hover region - an invisible bridge so crossing it doesn't count
               as leaving the flyout. */}
           <div
             className={cn(
               // Same curve and duration as the bar, so an open flyout narrows
               // in step with it instead of snapping to the new width.
               "mx-auto pt-2 transition-[max-width] duration-500 ease-nav motion-reduce:transition-none",
-              // A closing panel is a ghost — it must not catch the cursor and
+              // A closing panel is a ghost - it must not catch the cursor and
               // block clicks on whatever is underneath it.
               closing ? "pointer-events-none" : "pointer-events-auto",
               scrolled ? "max-w-5xl" : "max-w-6xl"
@@ -462,7 +462,7 @@ export default function Nav() {
             <div className="border-b border-line-2 px-5 py-3">
               <NavSearch onNavigate={() => setOpen(false)} />
             </div>
-            {/* Same source as the desktop bar — the two must never drift apart.
+            {/* Same source as the desktop bar - the two must never drift apart.
                 Dropdown triggers become accordions instead of flyouts. */}
             <div className="max-h-[70vh] overflow-y-auto overscroll-contain px-5 py-2">
               <div className="flex flex-col divide-y divide-line-2">

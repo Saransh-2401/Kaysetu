@@ -9,7 +9,7 @@ import { LeadError, submitLead } from "@/lib/leads";
 
 const f = contactPage.form;
 
-/* Shared field shell — a leading Lucide icon sits inside the control. */
+/* Shared field shell - a leading Lucide icon sits inside the control. */
 const inputBase =
   "w-full rounded-xl border border-line bg-paper/70 py-3 pl-11 pr-4 text-[0.92rem] text-ink placeholder:text-faint outline-none transition focus:border-accent/60 focus:bg-card focus:ring-4 focus:ring-accent/10";
 
@@ -32,7 +32,7 @@ export default function ContactForm() {
   /**
    * Send the enquiry to the API. This form used to call preventDefault() and
    * flip straight to the success screen, so every lead was silently thrown
-   * away — only ever show success after the server has actually accepted it.
+   * away - only ever show success after the server has actually accepted it.
    */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

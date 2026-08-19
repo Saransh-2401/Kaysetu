@@ -10,7 +10,7 @@ import {
 } from "react";
 
 /* ------------------------------------------------------------------
-   Reveal — fade/slide up when scrolled into view (staggerable)
+   Reveal - fade/slide up when scrolled into view (staggerable)
 ------------------------------------------------------------------ */
 export function Reveal({
   children,
@@ -58,7 +58,7 @@ export function Reveal({
 }
 
 /* ------------------------------------------------------------------
-   WordReveal — masked, word-by-word slide-up. Plays on mount (for
+   WordReveal - masked, word-by-word slide-up. Plays on mount (for
    above-the-fold hero) or when scrolled into view (whenVisible).
    Each word rides up from behind a clip so the entrance reads as a
    smooth cascade rather than a single block fade.
@@ -86,7 +86,7 @@ export function WordReveal({
   useEffect(() => {
     if (!whenVisible) {
       // Kick off on the next frame so the initial (hidden) state paints
-      // first — avoids a flash of already-revealed text.
+      // first - avoids a flash of already-revealed text.
       const id = requestAnimationFrame(() => setPlay(true));
       return () => cancelAnimationFrame(id);
     }
@@ -110,7 +110,7 @@ export function WordReveal({
   return (
     <Tag ref={ref} className={`word-reveal ${play ? "is-in" : ""} ${className}`}>
       {words.map((word, i) => (
-        // The inter-word space must sit BETWEEN the masks, not inside one —
+        // The inter-word space must sit BETWEEN the masks, not inside one - 
         // a trailing space inside an overflow-hidden inline-block is trimmed,
         // which would collide adjacent words on the same line.
         <Fragment key={`${word}-${i}`}>
@@ -130,7 +130,7 @@ export function WordReveal({
 }
 
 /* ------------------------------------------------------------------
-   Counter — animate a number from 0 → value on scroll into view
+   Counter - animate a number from 0 → value on scroll into view
 ------------------------------------------------------------------ */
 export function Counter({
   value,
@@ -192,7 +192,7 @@ export function Counter({
 }
 
 /* ------------------------------------------------------------------
-   Marquee — seamless infinite horizontal strip (pauses on hover)
+   Marquee - seamless infinite horizontal strip (pauses on hover)
 ------------------------------------------------------------------ */
 export function Marquee({
   children,
@@ -224,7 +224,7 @@ export function Marquee({
 }
 
 /* ------------------------------------------------------------------
-   AutoMedia — plays a muted looping video when in view, pauses when
+   AutoMedia - plays a muted looping video when in view, pauses when
    out. Falls back to a coded mockup (children) if no src / on error.
 ------------------------------------------------------------------ */
 export function AutoMedia({

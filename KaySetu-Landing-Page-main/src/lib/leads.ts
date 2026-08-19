@@ -1,5 +1,5 @@
 /**
- * Lead capture — posts marketing enquiries to the KaySetu API.
+ * Lead capture - posts marketing enquiries to the KaySetu API.
  *
  * Everything submitted on this site (contact form, footer demo request) lands
  * in the ops console's Leads queue. Before this existed the forms only *looked*
@@ -24,7 +24,7 @@ export interface LeadInput {
   message?: string;
   source: LeadSource;
   attachment?: File | null;
-  /** Honeypot — must stay empty; real users never see the field. */
+  /** Honeypot - must stay empty; real users never see the field. */
   website?: string;
 }
 
@@ -67,7 +67,7 @@ export async function submitLead(input: LeadInput): Promise<void> {
   try {
     response = await fetch(`${API_BASE}/public/leads`, { method: "POST", body });
   } catch {
-    // Network/DNS/CORS failure — never pretend this succeeded.
+    // Network/DNS/CORS failure - never pretend this succeeded.
     throw new LeadError(
       "We couldn't reach our servers. Please check your connection or email us directly."
     );

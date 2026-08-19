@@ -18,7 +18,7 @@ import {
   PhoneCarousel,
 } from "@/components/ui/phone-mockups-1-utils/phone-carousel";
 
-/* The screens are rendered rather than screenshotted — there are no captures of
+/* The screens are rendered rather than screenshotted - there are no captures of
    the agent app in /public, and live markup stays crisp at every scale the
    carousel fans the phones to. */
 

@@ -9,7 +9,7 @@ import { comparison } from "@/lib/content";
 
 /* The three states content.ts can put in a cell. They used to be drawn as
    check / bare dash / the word "ABSENT", which encoded "limited" and "not at
-   all" as two things a reader can't tell apart and can't decode — a dash reads
+   all" as two things a reader can't tell apart and can't decode - a dash reads
    as "nothing" just as much as the word does. Each state now has its own
    glyph, its own weight, and a name in the legend under the table. */
 const STATES = {
@@ -33,7 +33,7 @@ function Mark({
   delay?: number;
 }) {
   const state = stateOf(value);
-  /* Every cell is an icon, so the value has to be spoken for screen readers —
+  /* Every cell is an icon, so the value has to be spoken for screen readers - 
      before this the whole table was checks and dashes with no text at all. */
   const label = <span className="sr-only">{STATES[state].label}</span>;
 
@@ -75,7 +75,7 @@ function Mark({
   );
 }
 
-/* Same three marks at legend size — the table is unreadable without it. */
+/* Same three marks at legend size - the table is unreadable without it. */
 function Legend() {
   return (
     /* mt-14, not mt-8: the winner card overhangs the grid by `-inset-y-6`, so
@@ -188,7 +188,7 @@ export default function Comparison() {
               className="pointer-events-none absolute -inset-x-8 -inset-y-10 -z-[1] bg-[radial-gradient(60%_60%_at_72%_40%,rgba(0,150,136,0.16),transparent_70%)]"
             />
 
-            {/* winner column — floating cream hero card, reveals with its column */}
+            {/* winner column - floating cream hero card, reveals with its column */}
             <div
               aria-hidden
               className={`pointer-events-none absolute inset-x-0 -inset-y-6 z-0 grid ${GRID}`}
@@ -230,7 +230,7 @@ export default function Comparison() {
                   {/* The mark here was a teal square with a white dot in it,
                       which reads as a broken-image placeholder next to the
                       name. This is the actual brand mark. Mark and name stack
-                      on phones — side by side they overflow the column. */}
+                      on phones - side by side they overflow the column. */}
                   <span className="flex flex-col items-center gap-1 sm:flex-row sm:gap-2">
                     <BrandMark className="h-[0.95rem] w-auto text-ink" />
                     <span className="text-[0.72rem] font-bold text-ink sm:text-[0.85rem]">{c.name}</span>

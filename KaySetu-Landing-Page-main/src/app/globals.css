@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-/* Modern Romance — self-hosted display face for every heading.
+/* Modern Romance - self-hosted display face for every heading.
    Not on Google Fonts, so the files live in /public/fonts. The src list is
    tried in order, which means dropping in any one of these formats works and
    the earlier 404s are recoverable misses, not failures. If none of the files
    are present the whole @font-face is inert and headings quietly fall back to
-   Cormorant Garamond — the page never breaks over a missing font. */
+   Cormorant Garamond - the page never breaks over a missing font. */
 @font-face {
   font-family: "Modern Romance";
   src:
@@ -22,22 +22,22 @@
   /* Extra breakpoint for small phones (iPhone SE / 360-412px Android) */
   --breakpoint-xs: 25rem;        /* 400px */
 
-  /* Brand theme — deep navy (#10234B) + teal accent (#009688) */
+  /* Brand theme - deep navy (#10234B) + teal accent (#009688) */
   --color-paper: #eef2f5;        /* soft, airy page background */
   --color-paper-2: #e3e9ee;
   --color-card: #ffffff;         /* floating white cards */
-  --color-ink: #10234b;          /* deep navy — headlines & body */
+  --color-ink: #10234b;          /* deep navy - headlines & body */
   --color-ink-2: #1c3461;
   --color-muted: #56607a;        /* secondary text (navy-gray) */
   --color-faint: #94a0b4;
-  --color-accent: #009688;       /* teal — CTAs, links, highlights */
-  --color-accent-soft: #26a69a;  /* lighter teal — hover, gradients */
-  --color-accent-ink: #00796b;   /* darker teal — pressed */
-  --color-espresso: #10234b;     /* deep navy — dark sections (Mobile, CTA) */
+  --color-accent: #009688;       /* teal - CTAs, links, highlights */
+  --color-accent-soft: #26a69a;  /* lighter teal - hover, gradients */
+  --color-accent-ink: #00796b;   /* darker teal - pressed */
+  --color-espresso: #10234b;     /* deep navy - dark sections (Mobile, CTA) */
   --color-line: rgba(16, 35, 75, 0.1);
   --color-line-2: rgba(16, 35, 75, 0.055);
 
-  /* Nav condense/expand curve — decelerates hard, so the bar settles into
+  /* Nav condense/expand curve - decelerates hard, so the bar settles into
      its pill instead of coasting to a stop. */
   --ease-nav: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -56,7 +56,7 @@ html {
 }
 
 /* Backstop against sideways scroll on phones. `clip` (not `hidden`) is
-   deliberate — `hidden` would turn the root into a scroll container and
+   deliberate - `hidden` would turn the root into a scroll container and
    break every `position: sticky` on the page (Nav, ModuleShowcase). */
 html,
 body {
@@ -97,13 +97,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Display headings — Modern Romance, falling back to Cormorant Garamond.
+/* Display headings - Modern Romance, falling back to Cormorant Garamond.
    Bold weights use tight letter-spacing; lighter display leads stay open and refined. */
 .font-display {
   font-family: var(--font-display);
   font-feature-settings: "liga", "kern";
   /* Cormorant defaults to old-style figures, so digits ride at different
-     heights and dip below the baseline — fine in running prose, wrong for
+     heights and dip below the baseline - fine in running prose, wrong for
      stat values and headline numbers. Force lining figures everywhere. */
   font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
@@ -224,7 +224,7 @@ details > summary::-webkit-details-marker { display: none; }
 }
 
 /* ============================================================
-   Hero backdrop — stacked paper panels
+   Hero backdrop - stacked paper panels
    ============================================================
    Light-on-light: an off-white wash under the panel artwork
    (/hero-custom-bg-1.webp), which carries the stacked sheets. The
@@ -241,7 +241,7 @@ details > summary::-webkit-details-marker { display: none; }
   );
 }
 
-/* Light pooling behind the headline — lifts the copy off the panels */
+/* Light pooling behind the headline - lifts the copy off the panels */
 .hero-spot {
   background: radial-gradient(
     46% 46% at 50% 26%,
@@ -252,7 +252,7 @@ details > summary::-webkit-details-marker { display: none; }
 }
 
 /* ============================================================
-   Scroll-driven showcase — motion system
+   Scroll-driven showcase - motion system
    ============================================================ */
 
 /* Scroll-reveal: only hide when JS is active (html.js), so content is
@@ -270,7 +270,7 @@ html.js .reveal.is-in {
   transform: none;
 }
 
-/* Word-by-word masked reveal — each word rides up from behind a clip */
+/* Word-by-word masked reveal - each word rides up from behind a clip */
 .word-reveal-mask {
   display: inline-block;
   overflow: hidden;
@@ -307,7 +307,7 @@ html.js .word-reveal.is-in .word-reveal-word {
   color: transparent;
 }
 
-/* Ghosted wordmark for the dark footer — light fading into the teal glow */
+/* Ghosted wordmark for the dark footer - light fading into the teal glow */
 .wordmark-ghost {
   background: linear-gradient(
     180deg,
@@ -331,14 +331,14 @@ html.js .word-reveal.is-in .word-reveal-word {
   animation: marquee-x var(--marquee-duration, 32s) linear infinite;
 }
 .marquee-mask {
-  /* edge fade removed — cards are clipped cleanly by overflow-hidden */
+  /* edge fade removed - cards are clipped cleanly by overflow-hidden */
 }
 .group:hover .marquee-track,
 .marquee-track:hover {
   animation-play-state: paused;
 }
 
-/* Hero atmosphere — slow drifting glow blobs behind the home hero */
+/* Hero atmosphere - slow drifting glow blobs behind the home hero */
 @keyframes hero-blob-drift {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
   50% { transform: translate3d(2.5rem, -1.5rem, 0) scale(1.07); }
@@ -364,7 +364,7 @@ html.js .word-reveal.is-in .word-reveal-word {
 }
 .live-dot { animation: soft-blink 1.8s ease-in-out infinite; }
 
-/* Module showcase — focal card + arc that draws to the active node */
+/* Module showcase - focal card + arc that draws to the active node */
 @keyframes module-pop {
   0% { opacity: 0; transform: translateY(12px) scale(0.97); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -405,10 +405,10 @@ html.js .word-reveal.is-in .word-reveal-word {
 .node-float { animation: node-float var(--float, 3.6s) ease-in-out infinite; }
 
 /* ============================================================
-   Industry pages — connected-pipeline & signature motion
+   Industry pages - connected-pipeline & signature motion
    ============================================================ */
 
-/* A dashed "current flowing through a pipe" rail — the animated
+/* A dashed "current flowing through a pipe" rail - the animated
    connector behind the industry workflow nodes. */
 @keyframes pipe-flow {
   to { background-position: -200px 0; }
@@ -465,7 +465,7 @@ html.js .word-reveal.is-in .word-reveal-word {
 }
 
 /* ============================================================
-   FOOTER — link underlines, breathing rings, drifting artwork
+   FOOTER - link underlines, breathing rings, drifting artwork
    ============================================================ */
 
 /* Nav-style link: label nudges right while an underline wipes in from
@@ -500,7 +500,7 @@ html.js .word-reveal.is-in .word-reveal-word {
   transform-origin: left center;
 }
 
-/* Diagonal left edge on the dark panel (desktop only — on stacked
+/* Diagonal left edge on the dark panel (desktop only - on stacked
    layouts the cut would slice the artwork). Cutting the panel itself
    lets the footer's white background show through the notch. */
 @media (min-width: 80rem) {
@@ -535,7 +535,7 @@ html.js .word-reveal.is-in .word-reveal-word {
 }
 
 /* ============================================================
-   CLOSING CTA — mint band that hands the page to the footer
+   CLOSING CTA - mint band that hands the page to the footer
    ============================================================ */
 
 .cta-band {
@@ -546,7 +546,7 @@ html.js .word-reveal.is-in .word-reveal-word {
 }
 
 /* The chain runs on one continuous rail that the node cards sit on, rather
-   than a separate connector between each pair — the row then reads as a single
+   than a separate connector between each pair - the row then reads as a single
    flow instead of five loose boxes. Dashes travel hub → operation, hence the
    reversed left half. The tile is one dash period, so the loop is seamless. */
 .cta-rail {

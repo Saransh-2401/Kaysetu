@@ -6,7 +6,7 @@ import { Reveal } from "@/components/Motion";
 import { faqs } from "@/lib/content";
 
 /* ============================================================
-   12 · FAQ — dock.cool-style: sticky heading on the left, a
+   12 · FAQ - dock.cool-style: sticky heading on the left, a
    card-based accordion on the right that reveals smoothly and
    keeps a single answer open at a time.
    ============================================================ */
@@ -18,9 +18,9 @@ export function FAQ() {
     <section id="faq" className="bg-[#f2f6f9] py-20 md:py-28">
       <div className="w-full px-8 md:px-16 lg:px-24 xl:px-32">
         <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
-          {/* Left — sticky header + support prompt */}
+          {/* Left - sticky header + support prompt */}
           <div className="lg:sticky lg:top-32 lg:self-start max-w-md">
-            {/* One line at every width — the size scales with the column so it
+            {/* One line at every width - the size scales with the column so it
                 never wraps and never spills into the accordion beside it. */}
             <h2 className="font-display whitespace-nowrap text-[length:clamp(1.9rem,9vw,3rem)] font-extrabold leading-[1.1] text-[#0f172a] tracking-tight lg:text-[length:clamp(2.1rem,3.8vw,3.6rem)]">
               Questions, answered.
@@ -57,7 +57,7 @@ export function FAQ() {
             </div>
           </div>
 
-          {/* Right — accordion */}
+          {/* Right - accordion */}
           <div className="flex flex-col gap-3">
             {faqs.map((f, i) => {
               const isOpen = open === i;

@@ -6,7 +6,7 @@ export type ModulePage = {
   icon: string;
   // Per-module search targeting. Module pages own *feature* intent
   // ("BOM software", "beat plan software"); the /industries pages own
-  // *vertical* intent — keep the two sets from overlapping.
+  // *vertical* intent - keep the two sets from overlapping.
   seo: { title: string; description: string; keywords: string[] };
   hero: {
     kicker: string;
@@ -29,7 +29,7 @@ export type ModulePage = {
 };
 
 // The 11 platform-registry modules, in registry order (TRACK → TA). Each
-// walkthrough's steps must cover the module's full registry scope — the same
+// walkthrough's steps must cover the module's full registry scope - the same
 // coverage lines shown in the Modules nav menu (content.ts `platformMenu`).
 export const modulePages: ModulePage[] = [
   {
@@ -208,7 +208,7 @@ export const modulePages: ModulePage[] = [
           icon: "Receipt",
           kicker: "Invoicing",
           title: "Invoice without re-keying",
-          body: "Dispatch closes into a GST-ready invoice generated straight from the order — nothing typed twice, every status pushed live.",
+          body: "Dispatch closes into a GST-ready invoice generated straight from the order - nothing typed twice, every status pushed live.",
           points: ["GST invoices from orders", "Zero re-entry", "Credit notes", "Real-time order statuses"],
           screen: "dashboard",
         },
@@ -245,7 +245,7 @@ export const modulePages: ModulePage[] = [
           icon: "Share2",
           kicker: "Distributors",
           title: "Distributor self-service portal",
-          body: "Distributors log in, view their specific pricing, and place stock requests directly — each one a first-class entity with its own ledger.",
+          body: "Distributors log in, view their specific pricing, and place stock requests directly - each one a first-class entity with its own ledger.",
           points: ["Custom price lists", "Live stock view", "Order history", "Ledger statements"],
           screen: "mobile",
         },
@@ -465,7 +465,7 @@ export const modulePages: ModulePage[] = [
           icon: "Landmark",
           kicker: "Ledgers",
           title: "Books that write themselves",
-          body: "Customer, supplier and general ledgers post automatically from sales, purchases and dispatches — always current, never re-keyed.",
+          body: "Customer, supplier and general ledgers post automatically from sales, purchases and dispatches - always current, never re-keyed.",
           points: ["Customer & supplier ledgers", "Auto-posting from operations", "Drill-down to every voucher", "Always up to date"],
           screen: "dashboard",
         },

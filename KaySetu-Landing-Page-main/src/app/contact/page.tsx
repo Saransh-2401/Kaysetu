@@ -36,7 +36,7 @@ export default function ContactPage() {
 
   return (
     <PageShell cta={false}>
-      {/* Hero removed — the page opens on the enquiry form, whose heading is
+      {/* Hero removed - the page opens on the enquiry form, whose heading is
           now the page's h1 (see ContactForm). */}
       {/* The section itself is full-bleed so the decorative backdrop runs edge
           to edge; the content inside is capped, still narrower than the 1600px
@@ -44,7 +44,7 @@ export default function ContactPage() {
           length. Previously the backdrop was pinned to the capped box, so the
           SVG's grid lines ended in a hard rectangle mid-page. */}
       <section id="enquiry" className="relative isolate scroll-mt-28 overflow-hidden">
-        {/* KaySetu "Setu" bridge + connected-workflow backdrop — decorative */}
+        {/* KaySetu "Setu" bridge + connected-workflow backdrop - decorative */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-70 [mask-image:linear-gradient(to_bottom,#000_60%,transparent_100%)]"
@@ -153,7 +153,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* ── Contact FAQ — no client JS, native details/summary ── */}
+      {/* ── Contact FAQ - no client JS, native details/summary ── */}
       <section className="border-t border-line bg-card/40">
         <div className="mx-auto max-w-[1600px] px-5 py-16 md:py-20">
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">

@@ -140,7 +140,7 @@ const map: Record<string, LucideIcon> = {
   Inbox,
   MonitorPlay,
   Plus,
-  // Used by the contact form's error banner — was falling back to Layers.
+  // Used by the contact form's error banner - was falling back to Layers.
   AlertCircle,
   Barcode,
   Calculator,
@@ -148,14 +148,14 @@ const map: Record<string, LucideIcon> = {
   Percent,
   Scan,
   Receipt,
-  // Module walkthrough step icons — these were referenced by modulePages.ts
+  // Module walkthrough step icons - these were referenced by modulePages.ts
   // but never mapped, so they silently fell back to the Layers glyph.
   Calendar,
   CheckSquare,
   Target,
   TrendingUp,
   ArrowRightLeft,
-  // Used by the walkthrough module switcher — was falling back to Layers.
+  // Used by the walkthrough module switcher - was falling back to Layers.
   ChevronRight,
   // Used by the mobile module dropdown.
   ChevronDown,

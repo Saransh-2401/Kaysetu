@@ -30,7 +30,7 @@ function Media({ step }: { step: Step }) {
   const Screen = SCREENS[step.screen] ?? LeadsBoard;
   return (
     <div className="relative">
-      {/* soft teal glow behind the media — inset stays small on phones so the
+      {/* soft teal glow behind the media - inset stays small on phones so the
           decoration never reaches past the viewport edge */}
       <div className="absolute -inset-2 -z-10 rounded-[34px] bg-[radial-gradient(60%_60%_at_60%_30%,rgba(0,150,136,0.07),transparent_70%)] sm:-inset-6" />
       <AutoMedia
@@ -140,14 +140,14 @@ export default function Walkthrough({
                   </div>
                 </div>
 
-                {/* Left Text Block — min-w-0 stops the grid track from being
+                {/* Left Text Block - min-w-0 stops the grid track from being
                     widened past the viewport by its own min-content size. */}
                 <div className="min-w-0 pl-[58px] sm:pl-[66px] md:pl-[70px] pt-1">
                   <Reveal>
                     {/* Jakarta at 600, not font-display: the section title above
                         is the serif voice, so a second editorial headline here
                         competes with it. Jakarta's wider counters let the line
-                        stay legible at semibold — going heavier just made it
+                        stay legible at semibold - going heavier just made it
                         shouty. The kicker is tinted and set a notch lighter so
                         the eye lands on it without it out-weighing the line. */}
                     <h3 className="font-heading text-[1.7rem] font-semibold leading-[1.2] tracking-[-0.02em] text-ink md:text-[2rem] lg:text-[2.2rem]">

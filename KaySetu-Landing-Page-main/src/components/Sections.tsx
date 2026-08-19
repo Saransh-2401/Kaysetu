@@ -373,7 +373,7 @@ export function Operations() {
     <Section id="operations">
       <SectionHead index="04" kicker="Operations Backbone" title={operations.title} lead={operations.lead} center />
 
-      {/* Pipeline rail — the four stages moving in lock-step. `w-max` + auto
+      {/* Pipeline rail - the four stages moving in lock-step. `w-max` + auto
           margins centres the row while it fits and lets it scroll from the
           left edge once it doesn't (flex `justify-center` would strand the
           first stage outside the scrollable area). */}
@@ -552,7 +552,7 @@ export function SocialProof() {
         </div>
       </div>
 
-      {/* Customer stories — replace bracketed text with real quotes */}
+      {/* Customer stories - replace bracketed text with real quotes */}
       <div className="mt-14 grid gap-4 md:grid-cols-3">
         {socialProof.testimonials.map((t) => (
           <figure key={t.tag} className="flex flex-col rounded-2xl border border-line bg-card p-6">

@@ -111,7 +111,7 @@ export default async function Image() {
               margin: 0,
             }}
           >
-            Sales, distribution, inventory, finance & workforce — unified on one intelligent GST-ready platform.
+            Sales, distribution, inventory, finance & workforce - unified on one intelligent GST-ready platform.
           </p>
         </div>
 

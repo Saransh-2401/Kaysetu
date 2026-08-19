@@ -189,7 +189,7 @@ export default function ModuleShowcase() {
           {/* RIGHT: Module Details */}
           {/* lg height is 470, not 420: the OptionWheel beside it is already
               h-[500px] and the row is items-center, so anything up to 500px is
-              free — and the card needs it or the centred content overflows and
+              free - and the card needs it or the centred content overflows and
               gets sheared at both ends (badge off the top, footer off the
               bottom). */}
           <div className="w-full lg:w-3/5 max-w-5xl pr-0 lg:pr-12 xl:pr-20 flex flex-col justify-center items-start text-left h-[390px] md:h-[410px] lg:h-[470px] 2xl:h-[490px] shrink-0">
@@ -265,7 +265,7 @@ export default function ModuleShowcase() {
                           {mod.desc}
                         </p>
 
-                        {/* Real <a> into the module page — the crawlable path
+                        {/* Real <a> into the module page - the crawlable path
                             from the homepage to /platform/<slug>. */}
                         <Link
                           href={`/modules?module=${mod.slug}`}

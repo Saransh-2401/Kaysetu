@@ -8,7 +8,7 @@ type Platform = "ios" | "android";
 
 function detectPlatform(): Platform {
   const ua = navigator.userAgent;
-  // iPadOS 13+ reports itself as a Mac — touch points give it away.
+  // iPadOS 13+ reports itself as a Mac - touch points give it away.
   const isIOS =
     /iPad|iPhone|iPod/.test(ua) ||
     (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);

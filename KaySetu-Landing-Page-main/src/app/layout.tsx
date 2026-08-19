@@ -32,7 +32,7 @@ const fraunces = Fraunces({
 });
 
 // Section/step headings. Inter is the UI voice and Cormorant the editorial
-// one; Jakarta sits between them — geometric and warmer than Inter, with
+// one; Jakarta sits between them - geometric and warmer than Inter, with
 // enough character to carry a heading at semibold instead of needing 800.
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     default: "KaySetu: Your Business. Unified. | ERP + CRM by Kayease",
     template: "%s | KaySetu",
   },
-  // Keep meta descriptions under ~160 chars — Google truncates past that and
+  // Keep meta descriptions under ~160 chars - Google truncates past that and
   // rewrites the snippet itself, so the tail is wasted either way.
   description:
     "A unified ERP + CRM that runs sales, field ops, inventory, production, procurement and accounts in one real-time workflow. Web + mobile, GST-ready.",
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
   publisher: "Kayease",
   // NOTE: deliberately no `alternates.canonical` here. Metadata is inherited,
   // so a canonical set on the root layout would stamp "/" onto every page that
-  // doesn't override it — telling Google those pages are duplicates of the
+  // doesn't override it - telling Google those pages are duplicates of the
   // homepage. Each route declares its own canonical instead.
   robots: {
     index: true,

@@ -13,7 +13,7 @@ export const ContainerScroll = ({
   // "end start" (rather than the default "end end") makes the scroll range equal
   // to the container's own height instead of height-minus-viewport. That range
   // stays valid on tall phones, where a fixed-height container is shorter than
-  // the viewport and the default offset collapses to nothing — which is why the
+  // the viewport and the default offset collapses to nothing - which is why the
   // container below can be sized to its content rather than padded out to 80rem.
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -30,7 +30,7 @@ export const ContainerScroll = ({
   }, []);
 
   // Both ranges top out at 1 so the card can never render wider than its
-  // track — a >1 scale used to push the mockup off-screen at ~1024px.
+  // track - a >1 scale used to push the mockup off-screen at ~1024px.
   const scaleDimensions = () => (isMobile ? [0.95, 1] : [0.96, 1]);
   // A 20deg tilt eats too much vertical room on a short phone card.
   const rotateDimensions = () => (isMobile ? [10, 0] : [20, 0]);

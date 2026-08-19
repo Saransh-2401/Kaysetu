@@ -27,9 +27,9 @@ export default function Home() {
       <AnnounceBar />
       <Nav />
       <main>
-        {/* 1 · Hero banner — Tailark Integration */}
+        {/* 1 · Hero banner - Tailark Integration */}
         <HeroSection />
-        {/* 4 · The 11 modules — auto-playing, explained one by one */}
+        {/* 4 · The 11 modules - auto-playing, explained one by one */}
         <ModuleShowcase />
         {/* 5 · The full-workspace reveal + numbered legend */}
         <ProductReveal />
@@ -39,14 +39,14 @@ export default function Home() {
         <Comparison />
         {/* 7 · FAQ accordion */}
         <FAQ />
-        {/* 8 · Outcomes-by-role wall (just above footer) — no attributed quotes
+        {/* 8 · Outcomes-by-role wall (just above footer) - no attributed quotes
             until we have real customers to name */}
         <CardSwapDemo />
         {/* 9 · Closing CTA band, straight into the footer */}
         <ClosingCta />
       </main>
 
-      {/* Floating Enquiry Button — fades out once the footer is on screen */}
+      {/* Floating Enquiry Button - fades out once the footer is on screen */}
       <EnquiryButton />
 
       <Footer />

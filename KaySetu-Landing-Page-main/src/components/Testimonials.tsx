@@ -29,7 +29,7 @@ export default function Testimonials() {
         onMouseLeave={() => setPaused(false)}
       >
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
-          {/* LEFT — header + role picker */}
+          {/* LEFT - header + role picker */}
           <Reveal>
             <h2 className="font-display text-[1.9rem] font-bold leading-[1.1] tracking-tight text-card balance md:text-[2.6rem]">
               <Amp text={testimonials.title} />
@@ -56,7 +56,7 @@ export default function Testimonials() {
             </div>
           </Reveal>
 
-          {/* RIGHT — featured outcome */}
+          {/* RIGHT - featured outcome */}
           <Reveal delay={90}>
             <figure className="flex h-full flex-col justify-between rounded-2xl border border-card/12 bg-card/[0.03] p-8 md:p-10">
               <blockquote

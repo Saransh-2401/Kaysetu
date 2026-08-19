@@ -84,7 +84,7 @@ const CardSwap = ({
   const order = useRef(Array.from({ length: childArr.length }, (_, i) => i));
 
   // ---------------------------------------------------------------------
-  // Autoplay mode — one self-chaining timeline, never two at once.
+  // Autoplay mode - one self-chaining timeline, never two at once.
   // ---------------------------------------------------------------------
   useEffect(() => {
     if (progress !== undefined) return;
@@ -190,7 +190,7 @@ const CardSwap = ({
       });
 
       // 3. Once invisible, the dropped card is teleported to the back of the
-      //    deck and eases in — no visible jump, no relative-value drift.
+      //    deck and eases in - no visible jump, no relative-value drift.
       timeline.set(
         elFront,
         {
@@ -213,7 +213,7 @@ const CardSwap = ({
 
     schedule(cadence);
 
-    // Don't animate what nobody is looking at — avoids the catch-up lurch when
+    // Don't animate what nobody is looking at - avoids the catch-up lurch when
     // the section scrolls back into view or the tab regains focus.
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -255,7 +255,7 @@ const CardSwap = ({
   }, [progress, cardDistance, verticalDistance, delay, pauseOnHover, skewAmount, easing, refs]);
 
   // ---------------------------------------------------------------------
-  // Controlled mode — scroll-driven, interpolated from a float progress.
+  // Controlled mode - scroll-driven, interpolated from a float progress.
   // quickTo setters are reused so a scroll frame retargets the existing
   // tween instead of allocating a new one per card per frame.
   // ---------------------------------------------------------------------
@@ -306,7 +306,7 @@ const CardSwap = ({
 
       if (d < 0) {
         // Dropping away. The container is `preserve-3d`, so paint order comes
-        // from translateZ and NOT from z-index — leaving this card at z:0 put it
+        // from translateZ and NOT from z-index - leaving this card at z:0 put it
         // in front of the incoming card (which sits at a fractional -z while
         // progress is between two indices) and ghosted its text through that
         // card's white background. Park it behind the whole stack instead.
@@ -314,7 +314,7 @@ const CardSwap = ({
         // It also must not translate: the incoming card is offset from this one
         // by a single slot, so any y-drop slides a strip of this card's content
         // out from under it and reads as duplicated rows. Receding in z alone
-        // reads as the card sinking into the deck — perspective shrinks it as
+        // reads as the card sinking into the deck - perspective shrinks it as
         // it fades.
         const dropProgress = -d;
         z = -(MAX_VISIBLE + 1) * cardDistance * 1.5;

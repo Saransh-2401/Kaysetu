@@ -10,7 +10,7 @@ import ClosingCta from "@/components/ClosingCta";
 import ModuleSwitcher from "./ModuleSwitcher";
 
 /* Server component on purpose. The interactive switcher reads useSearchParams,
-   which bails out to client rendering during prerender — when the whole page
+   which bails out to client rendering during prerender - when the whole page
    was one client component that bailout emptied the entire static HTML (no h1,
    no copy, no links). Keeping the page a server component confines the bailout
    to <ModuleSwitcher /> so the rest is crawlable. */
@@ -22,7 +22,7 @@ export default function ModulesHub() {
           over to the navy footer. Any padding here shows as a paper-coloured
           strip between the two bands. */}
       <main className="min-h-screen bg-paper">
-        {/* Hero Section — the copy used to sit alone on a half-empty band, so
+        {/* Hero Section - the copy used to sit alone on a half-empty band, so
             it now shares the row with a preview of the field-to-ledger flow and
             carries its own entry points into the page. */}
         <section className="relative isolate overflow-hidden pt-32 pb-16 md:pt-40 md:pb-24">
@@ -82,7 +82,7 @@ export default function ModulesHub() {
               </ul>
             </Reveal>
 
-            {/* Flow preview — the first four modules in the order a real order
+            {/* Flow preview - the first four modules in the order a real order
                 travels through them, so the hero shows the point of the tour
                 instead of leaving half the row empty. */}
             <Reveal delay={140} className="min-w-0">

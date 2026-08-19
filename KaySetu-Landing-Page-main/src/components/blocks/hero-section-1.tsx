@@ -6,11 +6,11 @@ import { ArrowRight, ChevronRight, Command, Activity, Box, Users, Search, Bell, 
 import { Button } from '@/components/ui/button'
 import { RotatingWords } from '@/components/ui/rotating-words'
 
-// The rolling half of the headline. Lower-case on purpose — it renders in the
+// The rolling half of the headline. Lower-case on purpose - it renders in the
 // display serif italic, where caps read as shouting rather than editorial.
 // Each entry is the WHOLE second line ("from …"): RotatingWords reserves the
 // longest phrase's width and centres the current one inside it, so rotating
-// full lines keeps every phrase optically centred — a static "from" prefix
+// full lines keeps every phrase optically centred - a static "from" prefix
 // next to the reserved box left a hole beside short phrases.
 // 'from one place' leads so the settled line is the brand statement before
 // the roll starts telling the flow stories.
@@ -22,7 +22,7 @@ const HERO_ROLL_WORDS = [
     'from lead to loyalty',
 ];
 
-// Industries strip under the CTAs — same list the showcase hero trusts.
+// Industries strip under the CTAs - same list the showcase hero trusts.
 const HERO_TRUST = [
     'FMCG',
     'Distribution',
@@ -51,7 +51,7 @@ export function HeroSection() {
     // Full-viewport hero: on desktop the section targets the space left under
     // the announce bar + nav (~6.75rem) and the device mockup flex-fits the
     // room below the copy, so the WHOLE dashboard frame is visible on one
-    // screen. Inside the mockup only the decorative image zones shrink —
+    // screen. Inside the mockup only the decorative image zones shrink - 
     // titles, prices and buttons never crop. On cramped laptops the section
     // grows past the fold instead of hiding the frame; the min() cap stops
     // ultra-tall monitors from stretching the band.
@@ -89,13 +89,13 @@ export function HeroSection() {
                 {/* Extended paper panel wash extending till the bottom of the card background */}
                 <div className="absolute inset-x-4 top-16 bottom-6 mx-auto max-w-[1440px] rounded-[2.5rem] bg-gradient-to-b from-white/70 via-white/50 to-transparent" />
 
-                {/* drifting glow blobs — slow, compositor-only atmosphere */}
+                {/* drifting glow blobs - slow, compositor-only atmosphere */}
                 <div className="hero-blob absolute -left-40 top-16 h-[24rem] w-[24rem] rounded-full bg-accent/12 blur-3xl" />
                 <div className="hero-blob-slow absolute -right-32 top-56 h-[28rem] w-[28rem] rounded-full bg-[#10234b]/8 blur-3xl" />
 
                 <div className="hero-spot absolute inset-0" />
 
-                {/* film grain — keeps the big flat washes from banding */}
+                {/* film grain - keeps the big flat washes from banding */}
                 <div
                     className="absolute inset-0 opacity-[0.05] mix-blend-multiply"
                     style={{
@@ -120,7 +120,7 @@ export function HeroSection() {
                     </h1>
 
                     <p className="animate-fade-up delay-1 mx-auto mt-4 max-w-2xl text-[0.98rem] leading-relaxed text-muted sm:mt-5 sm:text-[1.05rem]">
-                        KaySetu brings your sales, orders, distribution, inventory, workforce, and finances together—helping you stay in control and grow with confidence.
+                        KaySetu brings your sales, orders, distribution, inventory, workforce, and finances together - helping you stay in control and grow with confidence.
                     </p>
 
                     <div className="animate-fade-up delay-2 mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:mt-7 sm:gap-3">
@@ -142,7 +142,7 @@ export function HeroSection() {
                         </Link>
                     </div>
 
-                    {/* Industries marquee — quiet social proof, in motion */}
+                    {/* Industries marquee - quiet social proof, in motion */}
                     <div className="animate-fade-up delay-3 mx-auto mt-8 max-w-xl sm:mt-9">
                         <p className="text-center text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-faint">
                             Built for fast-moving businesses across
@@ -184,7 +184,7 @@ export function HeroSection() {
                         className="relative will-change-transform lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
                     >
 
-                    {/* bezel — closed on all four sides now that the whole frame
+                    {/* bezel - closed on all four sides now that the whole frame
                         lives inside the hero instead of running off the fold */}
                     <div className="rounded-[1.25rem] border border-white/10 bg-ink p-1.5 shadow-[0_-8px_50px_-24px_rgba(16,35,75,0.5),0_44px_90px_-34px_rgba(16,35,75,0.55)] sm:rounded-[1.85rem] sm:p-2.5 lg:flex lg:min-h-0 lg:max-h-[39.5rem] lg:flex-1 lg:flex-col">
                         <div className="h-[23rem] overflow-hidden rounded-[0.85rem] bg-white xs:h-[26rem] sm:h-[32rem] sm:rounded-[1.3rem] md:h-[36rem] lg:h-auto lg:min-h-0 lg:flex-1">

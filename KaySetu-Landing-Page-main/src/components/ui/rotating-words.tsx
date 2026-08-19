@@ -8,7 +8,7 @@ import {
   type Variants,
 } from 'framer-motion';
 
-/* Shared expo-out curve — the same one the rest of the site reveals on. */
+/* Shared expo-out curve - the same one the rest of the site reveals on. */
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 type RotatingWordsProps = {
@@ -19,7 +19,7 @@ type RotatingWordsProps = {
 };
 
 /* ------------------------------------------------------------------
-   RotatingWords — one phrase swaps for the next, letter by letter.
+   RotatingWords - one phrase swaps for the next, letter by letter.
 
    The old phrase rolls up and out while the new one rolls in from
    below, so the two never sit on top of each other as a double image.
@@ -100,7 +100,7 @@ export function RotatingWords({
 
   return (
     <span className={`relative inline-block text-left align-top ${className}`}>
-      {/* Width/height reservation — never painted, never read aloud. */}
+      {/* Width/height reservation - never painted, never read aloud. */}
       <span aria-hidden className="invisible block">
         {longest}
       </span>

@@ -4,9 +4,9 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ClosingCta from "@/components/ClosingCta";
 
-/* Shared shell for every sub-page — keeps the nav / footer / spacing
+/* Shared shell for every sub-page - keeps the nav / footer / spacing
    identical to the home page so routes feel like one site.
-   `cta` opts a page out of the closing band — the contact page is
+   `cta` opts a page out of the closing band - the contact page is
    already one long "book a demo", so repeating it there is noise. */
 export function PageShell({
   children,

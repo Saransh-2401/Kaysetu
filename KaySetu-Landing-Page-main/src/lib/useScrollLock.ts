@@ -7,7 +7,7 @@ import { useEffect } from "react";
  *
  * The lock has to land on <html>, not <body>: globals.css puts `overflow-x: clip`
  * on the root, so the root is no longer `overflow: visible` and body's overflow
- * never propagates to the viewport — `body { overflow: hidden }` scrolls on
+ * never propagates to the viewport - `body { overflow: hidden }` scrolls on
  * regardless. The root *is* the scrollport, so hiding its overflow-y stops it
  * while keeping the current scroll offset (and every `position: sticky`) intact.
  *
@@ -22,12 +22,12 @@ function lockScroll() {
   const prevOverflowY = root.style.overflowY;
   const prevPaddingRight = root.style.paddingRight;
 
-  // Measure the *layout* width (body's rect) across the change — NOT
+  // Measure the *layout* width (body's rect) across the change - NOT
   // `clientWidth`. With `scrollbar-gutter: stable` Chrome keeps the gutter
   // reserved under `overflow: hidden` but still reports a 15px-wider
   // clientWidth, so a clientWidth delta double-compensates: the page slid
   // ~7px left on every lock, the nav slid under a stationary cursor, and
-  // the hover re-fired — an open/close flap of the flyout. Body's rect
+  // the hover re-fired - an open/close flap of the flyout. Body's rect
   // tracks the real content box, so the delta is 0 when the gutter holds.
   const widthBefore = document.body.getBoundingClientRect().width;
   root.style.overflowY = "hidden";
